@@ -1,0 +1,93 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+    <title>Search - TikTok</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="tailwind-config.js"></script>
+    <script src="https://unpkg.com/lucide@0.462.0/dist/umd/lucide.min.js"></script>
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body class="bg-black text-white font-sans antialiased">
+<div id="app" class="relative w-full h-full max-w-md mx-auto bg-tiktok-dark overflow-hidden flex flex-col border-x border-gray-900">
+    <header class="shrink-0 flex items-center gap-2 px-4 pb-3 safe-top border-b border-gray-800 bg-black">
+        <a href="index.html" aria-label="Back" class="p-1 -ml-1"><i data-lucide="chevron-left" class="w-6 h-6"></i></a>
+        <form id="search-form" class="flex-1 flex items-center bg-gray-800 rounded-full px-3">
+            <i data-lucide="search" class="w-4 h-4 text-gray-400"></i>
+            <input id="q" type="search" placeholder="Search accounts, #hashtags, sounds" autocomplete="off" class="flex-1 bg-transparent text-sm px-2 py-2 focus:outline-none">
+        </form>
+        <button id="go" class="text-tiktok-red font-bold text-sm">Search</button>
+    </header>
+
+    <main id="results" class="flex-1 min-h-0 overflow-y-auto no-scrollbar p-4 space-y-6"></main>
+    <nav id="nav-root"></nav>
+</div>
+
+<script type="module">
+import { searchUsers, suggestedUsers, searchVideosByTag, searchVideosByAudio, avatarOf } from './firebase.js';
+import { escapeHTML as esc, formatNumber, icons, renderNav } from './ui.js';
+
+renderNav('home');
+icons();
+const results = document.getElementById('results');
+const input = document.getElementById('q');
+const enc = encodeURIComponent;
+
+const userRow = (u) => `
+    <a href="profile.html?user=${enc(u.username)}" class="flex items-center gap-3 p-2 rounded-lg hover:bg-gray-800 transition">
+        <img src="${esc(avatarOf(u))}" alt="" class="w-12 h-12 rounded-full object-cover">
+        <div class="min-w-0"><p class="font-bold text-sm truncate">@${esc(u.username)}</p>
+        <p class="text-xs text-gray-400 truncate">${esc(u.displayName || '')} · ${formatNumber(u.followersCount)} followers</p></div>
+    </a>`;
+
+const tile = (v) => `
+    <a href="index.html?v=${enc(v.id)}" class="relative block aspect-[3/4] bg-gray-900 overflow-hidden rounded-md">
+        <video src="${esc(v.videoURL)}#t=0.1" muted playsinline preload="metadata" class="w-full h-full object-cover pointer-events-none"></video>
+        <span class="absolute bottom-1 left-1 text-[11px] font-semibold flex items-center gap-1 drop-shadow"><i data-lucide="heart" class="w-3 h-3"></i>${formatNumber(v.likesCount)}</span>
+    </a>`;
+
+const section = (title, body) => `<section><h2 class="text-sm font-bold text-gray-300 mb-2">${title}</h2>${body}</section>`;
+const empty = (t) => `<p class="text-sm text-gray-500 text-center py-6">${t}</p>`;
+
+async function showSuggested() {
+    results.innerHTML = '<p class="text-center text-sm text-gray-500 py-6">Loading…</p>';
+    try {
+        const users = await suggestedUsers(10);
+        results.innerHTML = section('Suggested accounts', users.length ? users.map(userRow).join('') : empty('No accounts yet. Be the first to sign up!'));
+    } catch { results.innerHTML = empty('Type something to search.'); }
+    icons();
+}
+
+async function run(term) {
+    term = term.trim();
+    history.replaceState(null, '', term ? `search.html?q=${enc(term)}` : 'search.html');
+    if (!term) return showSuggested();
+
+    results.innerHTML = '<p class="text-center text-sm text-gray-500 py-6">Searching…</p>';
+    const clean = term.replace(/^[@#]/, '');
+    const wantsTag = term.startsWith('#'), wantsUser = term.startsWith('@');
+
+    const [users, tagVids, audioVids] = await Promise.all([
+        wantsTag ? [] : searchUsers(clean).catch(() => []),
+        wantsUser ? [] : searchVideosByTag(clean).catch(() => []),
+        wantsUser || wantsTag ? [] : searchVideosByAudio(term).catch(() => []),
+    ]);
+    const vids = [...new Map([...tagVids, ...audioVids].map((v) => [v.id, v])).values()];
+
+    let html = '';
+    if (users.length) html += section('Accounts', users.map(userRow).join(''));
+    if (vids.length) html += section('Videos', `<div class="grid grid-cols-3 gap-1">${vids.map(tile).join('')}</div>`);
+    results.innerHTML = html || empty(`No results for "${esc(term)}". Try a different word or a #hashtag.`);
+    icons();
+}
+
+document.getElementById('search-form').addEventListener('submit', (e) => { e.preventDefault(); run(input.value); });
+document.getElementById('go').addEventListener('click', () => run(input.value));
+
+const initial = new URLSearchParams(location.search).get('q') || '';
+input.value = initial;
+run(initial);
+</script>
+</body>
+</html>
