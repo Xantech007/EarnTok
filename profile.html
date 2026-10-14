@@ -1,0 +1,175 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+    <title>Profile - TikTok</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="tailwind-config.js"></script>
+    <script src="https://unpkg.com/lucide@0.462.0/dist/umd/lucide.min.js"></script>
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body class="bg-black text-white font-sans antialiased">
+<div id="app" class="relative w-full h-full max-w-md mx-auto bg-tiktok-dark overflow-hidden flex flex-col border-x border-gray-900">
+    <div id="topbar"></div>
+    <main id="content" class="flex-1 min-h-0 overflow-y-auto no-scrollbar">
+        <p class="text-center text-sm text-gray-500 py-10">Loading…</p>
+    </main>
+    <nav id="nav-root"></nav>
+
+    <!-- Edit profile sheet -->
+    <div id="edit-sheet" class="hidden fixed inset-0 z-50 bg-black/60 flex items-end justify-center">
+        <form id="edit-form" class="w-full max-w-md bg-tiktok-dark rounded-t-2xl p-5 space-y-3 border-t border-gray-800" style="padding-bottom:max(1.25rem,env(safe-area-inset-bottom))">
+            <div class="flex items-center justify-between">
+                <h2 class="font-bold">Edit profile</h2>
+                <button type="button" id="edit-close" aria-label="Close" class="text-gray-400"><i data-lucide="x" class="w-5 h-5"></i></button>
+            </div>
+            <label class="block text-xs text-gray-400">Photo
+                <input id="edit-photo" type="file" accept="image/*" class="mt-1 block w-full text-sm text-gray-300 file:mr-3 file:rounded-md file:border-0 file:bg-gray-700 file:px-3 file:py-1.5 file:text-white">
+            </label>
+            <label class="block text-xs text-gray-400">Name
+                <input id="edit-name" maxlength="30" class="mt-1 w-full bg-gray-800 rounded-md px-3 py-2 text-sm text-white focus:outline-none focus:ring-1 focus:ring-tiktok-red">
+            </label>
+            <label class="block text-xs text-gray-400">Bio
+                <textarea id="edit-bio" maxlength="160" rows="3" class="mt-1 w-full bg-gray-800 rounded-md px-3 py-2 text-sm text-white focus:outline-none focus:ring-1 focus:ring-tiktok-red"></textarea>
+            </label>
+            <p id="edit-error" class="hidden text-sm text-tiktok-red"></p>
+            <button id="edit-save" class="w-full bg-tiktok-red hover:bg-red-600 disabled:opacity-50 font-bold py-2.5 rounded-md">Save changes</button>
+        </form>
+    </div>
+</div>
+
+<script type="module">
+import {
+    authReady, requireAuth, loginUrlFor, getMe, getUserByUsername, isFollowing, toggleFollow,
+    fetchUserVideos, fetchSavedVideos, avatarOf, logOut, uploadAvatar, updateMyProfile, friendlyError,
+} from './firebase.js';
+import { escapeHTML as esc, formatNumber, icons, renderNav, toast, topBar } from './ui.js';
+
+const $ = (id) => document.getElementById(id);
+const enc = encodeURIComponent;
+const content = $('content');
+const username = new URLSearchParams(location.search).get('user');
+
+const tile = (v) => `
+    <a href="index.html?v=${enc(v.id)}" class="relative block aspect-[3/4] bg-gray-900 overflow-hidden">
+        <video src="${esc(v.videoURL)}#t=0.1" muted playsinline preload="metadata" class="w-full h-full object-cover pointer-events-none"></video>
+        <span class="absolute bottom-1 left-1 text-[11px] font-semibold flex items-center gap-1 drop-shadow"><i data-lucide="heart" class="w-3 h-3"></i>${formatNumber(v.likesCount)}</span>
+    </a>`;
+
+async function main() {
+    const authUser = await authReady;
+    renderNav('profile');
+
+    let profile;
+    if (!username) {
+        if (!requireAuth('Log in to view your profile', 'profile.html')) return;
+        profile = await getMe();
+    } else {
+        profile = await getUserByUsername(username.toLowerCase()).catch(() => null);
+    }
+
+    if (!profile) {
+        $('topbar').innerHTML = topBar('Profile');
+        content.innerHTML = `<div class="text-center px-8 py-16 space-y-4"><p class="text-gray-300">We couldn't find that account.</p>
+            <a href="search.html" class="inline-block bg-tiktok-red px-5 py-2 rounded-md font-semibold text-sm">Search accounts</a></div>`;
+        return icons();
+    }
+
+    const own = !!authUser && authUser.uid === profile.uid;
+    $('topbar').innerHTML = topBar('@' + profile.username, 'index.html',
+        own ? `<button id="logout" aria-label="Log out" class="text-gray-300 hover:text-white"><i data-lucide="log-out" class="w-5 h-5"></i></button>` : '');
+
+    let followingThem = own ? false : await isFollowing(profile.uid).catch(() => false);
+    const who = enc(profile.username);
+
+    const actions = () => own
+        ? `<button id="edit-btn" class="px-6 py-2 bg-gray-800 hover:bg-gray-700 rounded-md text-sm font-semibold">Edit profile</button>
+           <a href="upload.html" class="px-4 py-2 bg-tiktok-red hover:bg-red-600 rounded-md text-sm font-semibold">Upload</a>`
+        : `<button id="follow-btn" class="px-6 py-2 rounded-md text-sm font-semibold ${followingThem ? 'bg-gray-800 hover:bg-gray-700' : 'bg-tiktok-red hover:bg-red-600'}">${followingThem ? 'Following' : 'Follow'}</button>
+           <a href="${authUser ? 'inbox.html?with=' + who : loginUrlFor('inbox.html?with=' + who)}" class="px-4 py-2 bg-gray-800 hover:bg-gray-700 rounded-md text-sm font-semibold">Message</a>`;
+
+    content.innerHTML = `
+        <section class="flex flex-col items-center px-6 pt-6 pb-4 text-center">
+            <img id="p-avatar" src="${esc(avatarOf(profile))}" alt="" class="w-24 h-24 rounded-full object-cover border-2 border-gray-700">
+            <h2 id="p-name" class="mt-3 font-bold text-lg">${esc(profile.displayName || profile.username)}</h2>
+            <div class="flex items-center gap-6 mt-4 text-center">
+                <a href="friends.html?tab=following&user=${who}"><p id="c-following" class="font-bold">${formatNumber(profile.followingCount)}</p><p class="text-xs text-gray-400">Following</p></a>
+                <a href="friends.html?tab=followers&user=${who}"><p id="c-followers" class="font-bold">${formatNumber(profile.followersCount)}</p><p class="text-xs text-gray-400">Followers</p></a>
+            </div>
+            <div id="actions" class="flex items-center gap-2 mt-4">${actions()}</div>
+            <p id="p-bio" class="mt-4 text-sm text-gray-300 whitespace-pre-line break-words">${esc(profile.bio || (own ? 'Tap "Edit profile" to add a bio.' : ''))}</p>
+        </section>
+        <div class="flex border-b border-gray-800 sticky top-0 bg-tiktok-dark">
+            <button data-tab="videos" class="tab flex-1 py-3 text-sm font-semibold border-b-2 border-white"><i data-lucide="grid-3x3" class="w-5 h-5 mx-auto"></i></button>
+            ${own ? `<button data-tab="saved" class="tab flex-1 py-3 text-sm font-semibold border-b-2 border-transparent text-gray-500"><i data-lucide="bookmark" class="w-5 h-5 mx-auto"></i></button>` : ''}
+        </div>
+        <div id="grid" class="grid grid-cols-3 gap-px"></div>`;
+    icons();
+
+    const grid = $('grid');
+    async function showTab(t) {
+        document.querySelectorAll('.tab').forEach((b) => {
+            const on = b.dataset.tab === t;
+            b.classList.toggle('border-white', on); b.classList.toggle('border-transparent', !on); b.classList.toggle('text-gray-500', !on);
+        });
+        grid.innerHTML = '<p class="col-span-3 text-center text-sm text-gray-500 py-10">Loading…</p>';
+        try {
+            const list = t === 'saved' ? await fetchSavedVideos(profile.uid) : await fetchUserVideos(profile.uid);
+            grid.innerHTML = list.length ? list.map(tile).join('')
+                : `<div class="col-span-3 text-center text-sm text-gray-500 py-10 space-y-3"><p>${t === 'saved' ? 'Videos you save appear here.' : 'No videos yet.'}</p>${own && t === 'videos' ? '<a href="upload.html" class="inline-block bg-tiktok-red text-white px-5 py-2 rounded-md font-semibold">Upload your first video</a>' : ''}</div>`;
+        } catch (e) { grid.innerHTML = '<p class="col-span-3 text-center text-sm text-gray-500 py-10">Could not load videos.</p>'; console.error(e); }
+        icons();
+    }
+    content.querySelectorAll('.tab').forEach((b) => b.addEventListener('click', () => showTab(b.dataset.tab)));
+    showTab('videos');
+
+    // ---- own profile: log out + edit ----
+    if (own) {
+        $('logout').addEventListener('click', async () => { await logOut(); location.href = 'index.html'; });
+        const sheet = $('edit-sheet');
+        const open = () => { $('edit-name').value = profile.displayName || ''; $('edit-bio').value = profile.bio || ''; sheet.classList.remove('hidden'); };
+        const close = () => sheet.classList.add('hidden');
+        $('edit-btn').addEventListener('click', open);
+        $('edit-close').addEventListener('click', close);
+        sheet.addEventListener('click', (e) => { if (e.target === sheet) close(); });
+        $('edit-form').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const save = $('edit-save'); save.disabled = true; save.textContent = 'Saving…';
+            $('edit-error').classList.add('hidden');
+            try {
+                const file = $('edit-photo').files[0];
+                if (file && file.size > 5 * 1024 * 1024) throw new Error('Photo must be under 5 MB.');
+                const photoURL = file ? await uploadAvatar(file) : '';
+                const displayName = $('edit-name').value.trim() || profile.username;
+                const bio = $('edit-bio').value.trim();
+                await updateMyProfile({ displayName, bio, photoURL });
+                Object.assign(profile, { displayName, bio, ...(photoURL ? { photoURL } : {}) });
+                $('p-name').textContent = displayName;
+                $('p-bio').textContent = bio || 'Tap "Edit profile" to add a bio.';
+                if (photoURL) $('p-avatar').src = photoURL;
+                close(); toast('Profile updated');
+            } catch (err) { $('edit-error').textContent = friendlyError(err); $('edit-error').classList.remove('hidden'); }
+            save.disabled = false; save.textContent = 'Save changes';
+        });
+    } else {
+        // ---- someone else's profile: follow toggle ----
+        $('actions').addEventListener('click', async (e) => {
+            if (!e.target.closest('#follow-btn')) return;
+            if (!requireAuth('Log in to follow creators', 'profile.html?user=' + who)) return;
+            try {
+                await toggleFollow(profile.uid, followingThem);
+                followingThem = !followingThem;
+                profile.followersCount = Math.max(0, (profile.followersCount || 0) + (followingThem ? 1 : -1));
+                $('c-followers').textContent = formatNumber(profile.followersCount);
+                const b = $('follow-btn');
+                b.textContent = followingThem ? 'Following' : 'Follow';
+                b.className = `px-6 py-2 rounded-md text-sm font-semibold ${followingThem ? 'bg-gray-800 hover:bg-gray-700' : 'bg-tiktok-red hover:bg-red-600'}`;
+            } catch (err) { toast('Could not update follow'); console.error(err); }
+        });
+    }
+}
+main();
+</script>
+</body>
+</html>
