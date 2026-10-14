@@ -1,0 +1,98 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+    <title>Inbox - TikTok</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="tailwind-config.js"></script>
+    <script src="https://unpkg.com/lucide@0.462.0/dist/umd/lucide.min.js"></script>
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body class="bg-black text-white font-sans antialiased">
+<div id="app" class="relative w-full h-full max-w-md mx-auto bg-tiktok-dark overflow-hidden flex flex-col border-x border-gray-900">
+    <div id="topbar"></div>
+    <main id="main" class="flex-1 min-h-0 overflow-y-auto no-scrollbar"></main>
+    <form id="composer" class="hidden shrink-0 border-t border-gray-800 bg-black px-3 py-2 flex items-center gap-2" style="padding-bottom:max(0.5rem,env(safe-area-inset-bottom))">
+        <input id="msg" maxlength="1000" autocomplete="off" placeholder="Send a message..." class="flex-1 bg-gray-800 rounded-full px-4 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-tiktok-red">
+        <button aria-label="Send" class="text-tiktok-red font-bold text-sm px-2">Send</button>
+    </form>
+    <nav id="nav-root"></nav>
+</div>
+
+<script type="module">
+import {
+    authReady, requireAuth, getMe, getUserByUsername, ensureChat, listChats, listenMessages,
+    sendMessage, avatarOf, defaultAvatar,
+} from './firebase.js';
+import { escapeHTML as esc, icons, renderNav, timeAgo, toast, topBar } from './ui.js';
+
+const $ = (id) => document.getElementById(id);
+const enc = encodeURIComponent;
+const withUser = new URLSearchParams(location.search).get('with');
+
+async function showList(me) {
+    $('topbar').innerHTML = topBar('Inbox', 'index.html',
+        '<a href="friends.html?tab=following" aria-label="New message" class="text-white"><i data-lucide="square-pen" class="w-5 h-5"></i></a>');
+    renderNav('inbox');
+    $('main').innerHTML = '<p class="text-center text-sm text-gray-500 py-10">Loading…</p>';
+    try {
+        const chats = await listChats(me.uid);
+        $('main').innerHTML = chats.length ? chats.map((c) => {
+            const otherId = c.participants.find((p) => p !== me.uid);
+            const o = (c.info && c.info[otherId]) || { username: 'user' };
+            return `<a href="inbox.html?with=${enc(o.username)}" class="flex items-center gap-3 px-4 py-3 hover:bg-gray-800/60 transition">
+                <img src="${esc(o.avatar || defaultAvatar(o.username))}" alt="" class="w-12 h-12 rounded-full object-cover">
+                <div class="flex-1 min-w-0"><p class="font-bold text-sm truncate">@${esc(o.username)}</p>
+                <p class="text-xs text-gray-400 truncate">${c.lastFrom === me.uid ? 'You: ' : ''}${esc(c.lastMessage || '')}</p></div>
+                <span class="text-[10px] text-gray-500">${timeAgo(c.lastAt)}</span></a>`;
+        }).join('') : `<div class="text-center px-8 py-16 space-y-4"><p class="text-sm text-gray-400">No messages yet.</p>
+            <a href="friends.html?tab=following" class="inline-block bg-tiktok-red px-5 py-2 rounded-md font-semibold text-sm">Message someone you follow</a></div>`;
+    } catch (e) { $('main').innerHTML = '<p class="text-center text-sm text-gray-500 py-10">Could not load messages.</p>'; console.error(e); }
+    icons();
+}
+
+async function showChat(me, username) {
+    const other = await getUserByUsername(username.toLowerCase()).catch(() => null);
+    $('nav-root').classList.add('hidden');
+    if (!other) {
+        $('topbar').innerHTML = topBar('Message', 'inbox.html');
+        $('main').innerHTML = '<p class="text-center text-sm text-gray-500 py-10">Account not found.</p>';
+        return icons();
+    }
+    if (other.uid === me.uid) { toast("You can't message yourself"); return showList(me); }
+
+    $('topbar').innerHTML = topBar('@' + other.username, 'inbox.html',
+        `<a href="profile.html?user=${enc(other.username)}" aria-label="View profile"><img src="${esc(avatarOf(other))}" alt="" class="w-7 h-7 rounded-full object-cover"></a>`);
+    $('composer').classList.remove('hidden');
+    icons();
+
+    const chatId = await ensureChat(me, other);
+    const main = $('main');
+    listenMessages(chatId, (msgs) => {
+        main.innerHTML = `<div class="p-4 space-y-2">${msgs.length ? msgs.map((m) => {
+            const mine = m.from === me.uid;
+            return `<div class="flex ${mine ? 'justify-end' : 'justify-start'}"><p class="max-w-[75%] px-3 py-2 rounded-2xl text-sm break-words ${mine ? 'bg-tiktok-red' : 'bg-gray-800'}">${esc(m.text)}</p></div>`;
+        }).join('') : '<p class="text-center text-xs text-gray-500 py-10">Say hi 👋</p>'}</div>`;
+        main.scrollTop = main.scrollHeight;
+    });
+
+    $('composer').addEventListener('submit', async (e) => {
+        e.preventDefault();
+        const text = $('msg').value.trim();
+        if (!text) return;
+        $('msg').value = '';
+        try { await sendMessage(chatId, text); } catch (err) { toast('Message failed to send'); $('msg').value = text; console.error(err); }
+    });
+}
+
+(async function init() {
+    await authReady;
+    const target = 'inbox.html' + (withUser ? '?with=' + enc(withUser) : '');
+    if (!requireAuth('Log in to see your messages', target)) return;
+    const me = await getMe();
+    withUser ? showChat(me, withUser) : showList(me);
+})();
+</script>
+</body>
+</html>
