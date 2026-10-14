@@ -20,12 +20,13 @@ import {
 /* 1. CONFIG — paste yours from Firebase Console > Project settings    */
 /* ------------------------------------------------------------------ */
 const firebaseConfig = {
-  apiKey: "YOUR_API_KEY",
-  authDomain: "YOUR_PROJECT_ID.firebaseapp.com",
-  projectId: "YOUR_PROJECT_ID",
-  storageBucket: "YOUR_PROJECT_ID.appspot.com",
-  messagingSenderId: "YOUR_SENDER_ID",
-  appId: "YOUR_APP_ID",
+  apiKey: "AIzaSyD-gMS-7WsLUNT8avQjQ4TTw0JN8uUtZVk",
+  authDomain: "earntok-c08e3.firebaseapp.com",
+  projectId: "earntok-c08e3",
+  storageBucket: "earntok-c08e3.firebasestorage.app",
+  messagingSenderId: "871407829862",
+  appId: "1:871407829862:web:bedcd24bde88d33185fea7",
+  measurementId: "G-Q5METHGJ11"
 };
 
 const app = initializeApp(firebaseConfig);
