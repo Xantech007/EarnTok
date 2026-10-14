@@ -5,7 +5,19 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
     <title>Upload - TikTok</title>
     <script src="https://cdn.tailwindcss.com"></script>
-    <script src="tailwind-config.js"></script>
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        'tiktok-dark': '#121212',
+                        'tiktok-red': '#FE2C55',
+                        'tiktok-cyan': '#25F4EE',
+                    }
+                }
+            }
+        }
+    </script>
     <script src="https://unpkg.com/lucide@0.462.0/dist/umd/lucide.min.js"></script>
     <link rel="stylesheet" href="styles.css">
 </head>
@@ -17,7 +29,7 @@
         <form id="upload-form" class="space-y-4" novalidate>
             <label id="drop" for="file" class="flex flex-col items-center justify-center aspect-[9/12] max-h-72 mx-auto rounded-xl border-2 border-dashed border-gray-700 hover:border-tiktok-cyan cursor-pointer overflow-hidden relative bg-black/40 transition">
                 <div id="placeholder" class="text-center text-gray-400 px-6">
-                    <i data-lucide="upload-cloud" class="w-10 h-10 mx-auto mb-2"></i>
+                    <i data-lucide="upload-cloud" class="w-10 h-10 mx-auto mb-2 text-tiktok-cyan"></i>
                     <p class="text-sm font-semibold text-white">Select a video to upload</p>
                     <p class="text-xs mt-1">MP4 or WebM · up to 100 MB</p>
                 </div>
@@ -33,12 +45,14 @@
             </label>
 
             <div id="progress-wrap" class="hidden">
-                <div class="h-2 bg-gray-800 rounded-full overflow-hidden"><div id="bar" class="h-full bg-tiktok-red w-0 transition-all"></div></div>
+                <div class="h-2 bg-gray-800 rounded-full overflow-hidden">
+                    <div id="bar" class="h-full bg-tiktok-red w-0 transition-all duration-150"></div>
+                </div>
                 <p id="pct" class="text-xs text-gray-400 mt-1 text-center">0%</p>
             </div>
             <p id="error" class="hidden text-sm text-tiktok-red" role="alert"></p>
 
-            <div class="flex gap-2">
+            <div class="flex gap-2 pt-2">
                 <a href="index.html" class="flex-1 text-center py-3 rounded-md bg-gray-800 hover:bg-gray-700 font-semibold text-sm">Cancel</a>
                 <button id="post" type="submit" class="flex-1 py-3 rounded-md bg-tiktok-red hover:bg-red-600 disabled:opacity-50 font-bold text-sm">Post</button>
             </div>
@@ -48,58 +62,128 @@
 </div>
 
 <script type="module">
-import { authReady, requireAuth, uploadVideo, friendlyError } from './firebase.js';
+import { authReady, requireAuth, createVideoRecord, friendlyError } from './firebase.js';
 import { icons, renderNav, topBar } from './ui.js';
 
-const $ = (id) => document.getElementById(id);
-const MAX = 100 * 1024 * 1024;
+const CLOUDINARY_CLOUD_NAME = 's35mxosr';
+const CLOUDINARY_UPLOAD_PRESET = 'user_uploads';
+const CLOUDINARY_URL = `https://api.cloudinary.com/v1_1/${CLOUDINARY_CLOUD_NAME}/video/upload`;
+
+const \$ = (id) => document.getElementById(id);
+const MAX = 100 * 1024 * 1024; // 100MB max
 let file = null;
 
-$('topbar').innerHTML = topBar('New video');
+\$('topbar').innerHTML = topBar('New video');
 icons();
 
-const showError = (m) => { $('error').textContent = m; $('error').classList.toggle('hidden', !m); };
+const showError = (m) => { 
+    \$('error').textContent = m; 
+    \$('error').classList.toggle('hidden', !m); 
+};
 
-$('file').addEventListener('change', (e) => {
+// Handle Video File Selection
+\$('file').addEventListener('change', (e) => {
     showError('');
     const f = e.target.files[0];
     if (!f) return;
-    if (!f.type.startsWith('video/')) return showError('Please choose a video file.');
+    if (!f.type.startsWith('video/')) return showError('Please choose a valid video file.');
     if (f.size > MAX) return showError('That video is over 100 MB. Choose a smaller file.');
+    
     file = f;
-    const v = $('preview');
+    const v = \$('preview');
     v.src = URL.createObjectURL(f);
     v.classList.remove('hidden');
-    $('placeholder').classList.add('hidden');
+    \$('placeholder').classList.add('hidden');
     v.play().catch(() => {});
 });
 
-$('upload-form').addEventListener('submit', async (e) => {
+/**
+ * Uploads video to Cloudinary via Unsigned XMLHttpRequest
+ */
+function uploadToCloudinary(videoFile, onProgress) {
+    return new Promise((resolve, reject) => {
+        const formData = new FormData();
+        formData.append('file', videoFile);
+        formData.append('upload_preset', CLOUDINARY_UPLOAD_PRESET);
+
+        const xhr = new XMLHttpRequest();
+        xhr.open('POST', CLOUDINARY_URL, true);
+
+        // Track upload progress
+        xhr.upload.onprogress = (e) => {
+            if (e.lengthComputable) {
+                const percent = Math.round((e.loaded / e.total) * 100);
+                onProgress(percent);
+            }
+        };
+
+        xhr.onload = () => {
+            if (xhr.status >= 200 && xhr.status < 300) {
+                const response = JSON.parse(xhr.responseText);
+                resolve(response);
+            } else {
+                try {
+                    const errRes = JSON.parse(xhr.responseText);
+                    reject(new Error(errRes.error?.message || 'Cloudinary upload failed'));
+                } catch {
+                    reject(new Error('Failed to upload video to Cloudinary'));
+                }
+            }
+        };
+
+        xhr.onerror = () => reject(new Error('Network error during video upload'));
+        xhr.send(formData);
+    });
+}
+
+// Handle Form Submission
+\$('upload-form').addEventListener('submit', async (e) => {
     e.preventDefault();
     showError('');
+
     if (!requireAuth('Log in to post videos', 'upload.html')) return;
     if (!file) return showError('Select a video first.');
-    $('post').disabled = true; $('post').textContent = 'Uploading…';
-    $('progress-wrap').classList.remove('hidden');
+
+    \$('post').disabled = true; 
+    $('post').textContent = 'Uploading…';$('progress-wrap').classList.remove('hidden');
+
     try {
-        const id = await uploadVideo({
-            file,
-            description: $('desc').value.trim(),
-            audio: $('audio').value.trim(),
-            onProgress: (p) => { $('bar').style.width = p + '%'; $('pct').textContent = p + '%'; },
+        // Step 1: Upload raw file to Cloudinary
+        const cloudData = await uploadToCloudinary(file, (p) => {
+            $('bar').style.width = p + '\%';$('pct').textContent = p + '%';
         });
-        location.href = 'index.html?v=' + encodeURIComponent(id);
+
+        \$('post').textContent = 'Finalizing…';
+
+        // Auto-generate poster preview thumbnail from Cloudinary video URL
+        const posterURL = cloudData.secure_url.replace(/\.[^/.]+\$/, ".jpg");
+
+        // Step 2: Save document metadata in Firestore via firebase.js
+        const videoId = await createVideoRecord({
+            videoURL: cloudData.secure_url,
+            poster: posterURL,
+            publicId: cloudData.public_id,
+            description: \$('desc').value.trim(),
+            audio: \$('audio').value.trim() || 'Original sound',
+            duration: cloudData.duration || 0
+        });
+
+        // Redirect back to main feed highlighting the posted video
+        location.href = 'index.html?v=' + encodeURIComponent(videoId);
+
     } catch (err) {
         console.error(err);
         showError(friendlyError(err));
-        $('post').disabled = false; $('post').textContent = 'Post';
+        \$('post').disabled = false; 
+        \$('post').textContent = 'Post';
     }
 });
 
+// Boot/Auth Gate Check
 (async function init() {
     await authReady;
     renderNav('create');
-    requireAuth('Log in to post videos', 'upload.html');   // guests are sent to login.html
+    requireAuth('Log in to post videos', 'upload.html');
 })();
 </script>
 </body>
