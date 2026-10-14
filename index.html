@@ -5,21 +5,87 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
     <title>TikTok - Make Your Day</title>
     <script src="https://cdn.tailwindcss.com"></script>
-    <script src="tailwind-config.js"></script>
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        'tiktok-dark': '#121212',
+                        'tiktok-red': '#FE2C55',
+                        'tiktok-cyan': '#25F4EE',
+                    },
+                    animation: {
+                        'spin-slow': 'spin 8s linear infinite',
+                        'heart-bounce': 'heartBounce 0.4s ease-in-out',
+                    },
+                    keyframes: {
+                        heartBounce: {
+                            '0%, 100%': { transform: 'scale(1)' },
+                            '50%': { transform: 'scale(1.3)' },
+                        }
+                    }
+                }
+            }
+        }
+    </script>
     <script src="https://unpkg.com/lucide@0.462.0/dist/umd/lucide.min.js"></script>
-    <link rel="stylesheet" href="styles.css">
+    <style>
+        /* Hide scrollbar for Chrome, Safari and Opera */
+        .no-scrollbar::-webkit-scrollbar {
+            display: none;
+        }
+        /* Hide scrollbar for IE, Edge and Firefox */
+        .no-scrollbar {
+            -ms-overflow-style: none;  /* IE and Edge */
+            scrollbar-width: none;  /* Firefox */
+        }
+        .snap-y-mandatory {
+            scroll-snap-type: y mandatory;
+        }
+        .snap-start {
+            scroll-snap-align: start;
+        }
+        @keyframes marquee {
+            0% { transform: translateX(0%); }
+            100% { transform: translateX(-50%); }
+        }
+        .animate-marquee {
+            display: inline-block;
+            animation: marquee 10s linear infinite;
+        }
+        .like-btn.active svg {
+            fill: #FE2C55;
+            color: #FE2C55;
+        }
+        .bookmark-btn.active svg {
+            fill: #25F4EE;
+            color: #25F4EE;
+        }
+        .floating-heart {
+            position: absolute;
+            animation: floatUp 0.9s ease-out forwards;
+            pointer-events: none;
+            transform: translate(-50%, -50%) rotate(var(--rot, 0deg));
+            z-index: 50;
+        }
+        @keyframes floatUp {
+            0% { opacity: 1; transform: translate(-50%, -50%) scale(0.5) rotate(var(--rot, 0deg)); }
+            50% { opacity: 1; transform: translate(-50%, -120px) scale(1.2) rotate(var(--rot, 0deg)); }
+            100% { opacity: 0; transform: translate(-50%, -220px) scale(1) rotate(var(--rot, 0deg)); }
+        }
+    </style>
 </head>
-<body class="bg-black text-white font-sans antialiased select-none overflow-hidden">
+<body class="bg-black text-white font-sans antialiased select-none overflow-hidden h-[100dvh] w-screen flex items-center justify-center">
 
 <div id="app" class="relative w-full h-full max-w-md mx-auto bg-tiktok-dark overflow-hidden flex flex-col shadow-2xl border-x border-gray-900">
 
     <!-- TOP HEADER -->
-    <header class="absolute top-0 left-0 right-0 z-30 flex items-center justify-between px-4 pb-3 safe-top bg-gradient-to-b from-black/80 via-black/40 to-transparent">
+    <header class="absolute top-0 left-0 right-0 z-30 flex items-center justify-between px-4 pt-4 pb-3 safe-top bg-gradient-to-b from-black/80 via-black/40 to-transparent">
         <a href="live.html" aria-label="Live" class="flex items-center space-x-1 text-white/90 hover:text-white transition">
             <i data-lucide="tv" class="w-6 h-6"></i>
             <span class="text-xs font-semibold uppercase tracking-wider hidden sm:inline">LIVE</span>
         </a>
-        <div class="flex items-center space-x-5 text-base font-bold">
+        <div class="flex items-center space-x-5 text-base font-bold drop-shadow-md">
             <button data-action="tab" data-tab="following" id="tab-following" class="relative text-white/60 hover:text-white transition py-1">
                 Following
                 <span id="indicator-following" class="hidden absolute bottom-0 left-1/2 -translate-x-1/2 w-6 h-0.5 bg-tiktok-cyan rounded-full"></span>
@@ -40,19 +106,41 @@
         <div class="h-full flex items-center justify-center text-gray-400 text-sm">Loading videos…</div>
     </main>
 
-    <!-- BOTTOM NAV (filled by ui.js) -->
-    <nav id="nav-root"></nav>
+    <!-- BOTTOM NAV -->
+    <nav id="nav-root" class="absolute bottom-0 left-0 right-0 z-30 bg-black/90 backdrop-blur-lg border-t border-gray-800/60 py-2 px-4 flex justify-around items-center text-xs">
+        <a href="index.html" class="flex flex-col items-center text-white space-y-1">
+            <i data-lucide="home" class="w-5 h-5"></i>
+            <span class="font-semibold text-[10px]">Home</span>
+        </a>
+        <a href="friends.html" class="flex flex-col items-center text-gray-400 hover:text-white space-y-1 transition">
+            <i data-lucide="users" class="w-5 h-5"></i>
+            <span class="text-[10px]">Friends</span>
+        </a>
+        <a href="upload.html" class="relative flex items-center justify-center w-9 h-7 bg-gradient-to-r from-tiktok-cyan via-white to-tiktok-red rounded-lg shadow-md">
+            <div class="absolute inset-[2px] bg-black rounded-[6px] flex items-center justify-center">
+                <i data-lucide="plus" class="w-4 h-4 text-white"></i>
+            </div>
+        </a>
+        <a href="inbox.html" class="flex flex-col items-center text-gray-400 hover:text-white space-y-1 transition">
+            <i data-lucide="message-square" class="w-5 h-5"></i>
+            <span class="text-[10px]">Inbox</span>
+        </a>
+        <a href="profile.html" class="flex flex-col items-center text-gray-400 hover:text-white space-y-1 transition">
+            <i data-lucide="user" class="w-5 h-5"></i>
+            <span class="text-[10px]">Profile</span>
+        </a>
+    </nav>
 
     <!-- Guest login pill -->
     <a id="guest-login" href="login.html" class="hidden absolute top-16 left-4 z-30 bg-tiktok-red hover:bg-red-600 text-white text-xs font-bold px-3 py-1.5 rounded-full shadow-lg transition">Log in</a>
 
-    <!-- Mute -->
+    <!-- Mute Toggle -->
     <button id="mute-btn" data-action="mute" aria-label="Toggle sound" class="absolute top-16 right-4 z-30 bg-black/40 hover:bg-black/60 backdrop-blur-md p-2 rounded-full text-white transition">
         <i data-lucide="volume-x" id="mute-icon" class="w-5 h-5"></i>
     </button>
 
     <!-- Backdrop for drawers -->
-    <div id="backdrop" data-action="close-all" class="hidden fixed inset-0 z-40 bg-black/50"></div>
+    <div id="backdrop" data-action="close-all" class="hidden fixed inset-0 z-40 bg-black/50 transition-opacity"></div>
 
     <!-- COMMENTS DRAWER -->
     <div id="comment-drawer" class="fixed inset-x-0 bottom-0 max-w-md mx-auto z-50 transform translate-y-full transition-transform duration-300 ease-in-out bg-tiktok-dark rounded-t-2xl shadow-2xl flex flex-col border-t border-gray-800" style="height:70vh;height:70dvh;padding-bottom:env(safe-area-inset-bottom)">
@@ -100,7 +188,7 @@
 
 <script type="module">
 import {
-    authReady, requireAuth, loginUrlFor, getMe, avatarOf, defaultAvatar, getMyState,
+    authReady, requireAuth, getMe, avatarOf, defaultAvatar, getMyState,
     fetchVideos, fetchVideo, fetchFollowingVideos, toggleLike, toggleBookmark, toggleFollow,
     fetchComments, addComment,
 } from './firebase.js';
@@ -138,7 +226,7 @@ const DEMO_COMMENTS = {
 };
 
 /* ---------- State ---------- */
-let me = null;                       // signed-in user or null (guest)
+let me = null;
 let liked = new Set(), saved = new Set(), following = new Set();
 let videos = [];
 let tab = 'foryou';
@@ -160,8 +248,8 @@ function cardHTML(v) {
     const profileHref = `profile.html?user=${enc(v.username || '')}`;
     const audioHref = `search.html?q=${enc(v.audio || '')}`;
     return `
-    <section class="video-card snap-start relative w-full h-full flex-shrink-0 bg-black overflow-hidden" data-id="${esc(v.id)}">
-        <video class="video-player w-full h-full object-cover cursor-pointer" loop playsinline muted preload="metadata" ${v.poster ? `poster="${esc(v.poster)}"` : ''}>
+    <section class="video-card snap-start relative w-full h-full flex-shrink-0 bg-black overflow-hidden flex items-center justify-center" data-id="${esc(v.id)}">
+        <video class="video-player w-full h-full object-cover cursor-pointer" loop playsinline muted preload="metadata" ${v.poster ? `poster="\${esc(v.poster)}"` : ''}>
             <source src="${esc(v.videoURL)}" type="video/mp4">
         </video>
         <div class="play-icon-overlay absolute inset-0 flex items-center justify-center opacity-0 pointer-events-none transition-opacity duration-200">
@@ -170,12 +258,13 @@ function cardHTML(v) {
             </div>
         </div>
 
-        <div class="absolute right-3 bottom-6 z-20 flex flex-col items-center space-y-5">
-            <div class="relative">
+        <!-- RIGHT ACTION BUTTONS -->
+        <div class="absolute right-3 bottom-20 z-20 flex flex-col items-center space-y-4">
+            <div class="relative mb-1">
                 <a href="${profileHref}" aria-label="View @${esc(v.username)}">
                     <img src="${esc(v.avatar || defaultAvatar(v.username))}" alt="" class="w-12 h-12 rounded-full border-2 border-white object-cover shadow-lg">
                 </a>
-                ${showFollow ? `<button data-action="follow" aria-label="Follow" class="follow-btn absolute -bottom-1.5 left-1/2 -translate-x-1/2 bg-tiktok-red hover:bg-red-600 text-white rounded-full p-0.5 shadow-md transition active:scale-90"><i data-lucide="plus" class="w-3.5 h-3.5"></i></button>` : ''}
+                ${showFollow ? `<button data-action="follow" aria-label="Follow" class="follow-btn absolute -bottom-2 left-1/2 -translate-x-1/2 bg-tiktok-red hover:bg-red-600 text-white rounded-full p-0.5 shadow-md transition active:scale-90"><i data-lucide="plus" class="w-3.5 h-3.5"></i></button>` : ''}
             </div>
 
             <div class="flex flex-col items-center">
@@ -206,18 +295,19 @@ function cardHTML(v) {
                 <span class="text-xs font-semibold drop-shadow-md mt-0.5">${formatNumber(v.sharesCount)}</span>
             </div>
 
-            <a href="${audioHref}" aria-label="Videos with this sound" class="mt-2 block">
-                <div class="w-10 h-10 rounded-full bg-gray-900 border-2 border-gray-700 flex items-center justify-center animate-spin-slow music-disc-glow overflow-hidden">
+            <a href="${audioHref}" aria-label="Videos with this sound" class="mt-1 block">
+                <div class="w-10 h-10 rounded-full bg-gray-900 border-2 border-gray-700 flex items-center justify-center animate-spin-slow overflow-hidden shadow-md">
                     <img src="${esc(v.avatar || defaultAvatar(v.username))}" alt="" class="w-6 h-6 rounded-full object-cover">
                 </div>
             </a>
         </div>
 
-        <div class="absolute bottom-2 left-0 right-16 z-20 p-4 bg-gradient-to-t from-black/80 via-black/30 to-transparent pointer-events-none">
+        <!-- BOTTOM CAPTION & AUDIO INFO -->
+        <div class="absolute bottom-16 left-0 right-16 z-20 p-4 bg-gradient-to-t from-black/80 via-black/30 to-transparent pointer-events-none">
             <div class="pointer-events-auto">
                 <a href="${profileHref}" class="font-bold text-base drop-shadow-md hover:underline inline-block">@${esc(v.username)}</a>
                 <p class="text-sm mt-1 text-gray-100 line-clamp-2 leading-snug drop-shadow-sm">${linkify(v.description)}</p>
-                <a href="${audioHref}" class="flex items-center space-x-2 mt-3 text-xs font-medium text-gray-200">
+                <a href="${audioHref}" class="flex items-center space-x-2 mt-2.5 text-xs font-medium text-gray-200">
                     <i data-lucide="music" class="w-3.5 h-3.5 animate-pulse text-tiktok-cyan"></i>
                     <div class="overflow-hidden w-48 relative h-4">
                         <div class="whitespace-nowrap animate-marquee absolute inset-0">${esc(v.audio || '')} &bull; ${esc(v.audio || '')}</div>
@@ -270,7 +360,6 @@ async function loadFeed(which) {
         try { list = await fetchVideos(20); } catch (e) { console.warn('Feed unavailable, using demo videos', e); }
         if (!list.length) list = DEMO;
 
-        // Deep link: index.html?v=<videoId> puts that video first
         const wanted = new URLSearchParams(location.search).get('v');
         if (wanted) {
             const v = list.find((x) => x.id === wanted) || await fetchVideo(wanted).catch(() => null);
@@ -283,7 +372,7 @@ async function loadFeed(which) {
     }
 }
 
-/* ---------- Actions (guest-gated where needed) ---------- */
+/* ---------- Actions ---------- */
 const gate = (msg, id = activeId) => requireAuth(msg, id && !String(id).startsWith('demo') ? `index.html?v=${id}` : 'index.html');
 
 async function doLike(card) {
@@ -365,7 +454,7 @@ async function openComments(id) {
 async function postComment() {
     const input = document.getElementById('comment-input');
     const text = input.value.trim();
-    if (!gate('Log in to comment')) return;     // guests are sent to login.html
+    if (!gate('Log in to comment')) return;
     if (!text) return;
     const v = byId(activeId);
     const list = document.getElementById('comments-list');
@@ -384,7 +473,6 @@ async function postComment() {
     } catch (e) { toast('Could not post comment'); console.error(e); }
 }
 
-// Focusing the comment box as a guest also goes to login
 document.getElementById('comment-input').addEventListener('focus', () => { if (!me) gate('Log in to comment'); });
 document.getElementById('comment-input').addEventListener('keydown', (e) => { if (e.key === 'Enter') postComment(); });
 
@@ -398,7 +486,7 @@ function openShare(id) {
     document.getElementById('share-x').href = `https://twitter.com/intent/tweet?text=${enc(text)}&url=${enc(url)}`;
     backdrop.classList.remove('hidden');
     shareModal.classList.remove('hidden');
-    void shareModal.offsetHeight;                 // force reflow so the slide-in transition runs
+    void shareModal.offsetHeight;
     shareModal.classList.remove('translate-y-full');
 }
 
@@ -445,7 +533,6 @@ function spawnHeart(e, card) {
     setTimeout(() => h.remove(), 900);
 }
 
-// One handler for both: single tap = play/pause (delayed), double tap = like
 let lastTap = 0, tapTimer = null;
 feed.addEventListener('click', (e) => {
     if (e.target.closest('a, button')) return;
@@ -476,7 +563,7 @@ function switchTab(t) {
     loadFeed(t);
 }
 
-/* ---------- Event delegation (module scripts can't use inline onclick) ---------- */
+/* ---------- Event delegation ---------- */
 document.addEventListener('click', (e) => {
     const el = e.target.closest('[data-action]');
     if (!el) return;
@@ -513,7 +600,7 @@ document.addEventListener('keydown', (e) => {
 /* ---------- Boot ---------- */
 (async function init() {
     icons();
-    me = await authReady;                         // null = guest, which is allowed here
+    me = await authReady;
     renderNav('home');
     if (!me) document.getElementById('guest-login').classList.remove('hidden');
     else {
