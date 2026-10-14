@@ -1,0 +1,106 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+    <title>Upload - TikTok</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="tailwind-config.js"></script>
+    <script src="https://unpkg.com/lucide@0.462.0/dist/umd/lucide.min.js"></script>
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body class="bg-black text-white font-sans antialiased">
+<div id="app" class="relative w-full h-full max-w-md mx-auto bg-tiktok-dark overflow-hidden flex flex-col border-x border-gray-900">
+    <div id="topbar"></div>
+
+    <main class="flex-1 min-h-0 overflow-y-auto no-scrollbar p-4">
+        <form id="upload-form" class="space-y-4" novalidate>
+            <label id="drop" for="file" class="flex flex-col items-center justify-center aspect-[9/12] max-h-72 mx-auto rounded-xl border-2 border-dashed border-gray-700 hover:border-tiktok-cyan cursor-pointer overflow-hidden relative bg-black/40 transition">
+                <div id="placeholder" class="text-center text-gray-400 px-6">
+                    <i data-lucide="upload-cloud" class="w-10 h-10 mx-auto mb-2"></i>
+                    <p class="text-sm font-semibold text-white">Select a video to upload</p>
+                    <p class="text-xs mt-1">MP4 or WebM · up to 100 MB</p>
+                </div>
+                <video id="preview" class="hidden absolute inset-0 w-full h-full object-cover" muted playsinline loop></video>
+            </label>
+            <input id="file" type="file" accept="video/mp4,video/webm,video/quicktime" class="sr-only">
+
+            <label class="block text-xs text-gray-400">Description
+                <textarea id="desc" maxlength="300" rows="3" placeholder="Add a description and #hashtags" class="mt-1 w-full bg-gray-800 rounded-md px-3 py-2 text-sm text-white focus:outline-none focus:ring-1 focus:ring-tiktok-red"></textarea>
+            </label>
+            <label class="block text-xs text-gray-400">Sound name <span class="text-gray-600">(optional)</span>
+                <input id="audio" maxlength="80" placeholder="Original sound" class="mt-1 w-full bg-gray-800 rounded-md px-3 py-2 text-sm text-white focus:outline-none focus:ring-1 focus:ring-tiktok-red">
+            </label>
+
+            <div id="progress-wrap" class="hidden">
+                <div class="h-2 bg-gray-800 rounded-full overflow-hidden"><div id="bar" class="h-full bg-tiktok-red w-0 transition-all"></div></div>
+                <p id="pct" class="text-xs text-gray-400 mt-1 text-center">0%</p>
+            </div>
+            <p id="error" class="hidden text-sm text-tiktok-red" role="alert"></p>
+
+            <div class="flex gap-2">
+                <a href="index.html" class="flex-1 text-center py-3 rounded-md bg-gray-800 hover:bg-gray-700 font-semibold text-sm">Cancel</a>
+                <button id="post" type="submit" class="flex-1 py-3 rounded-md bg-tiktok-red hover:bg-red-600 disabled:opacity-50 font-bold text-sm">Post</button>
+            </div>
+        </form>
+    </main>
+    <nav id="nav-root"></nav>
+</div>
+
+<script type="module">
+import { authReady, requireAuth, uploadVideo, friendlyError } from './firebase.js';
+import { icons, renderNav, topBar } from './ui.js';
+
+const $ = (id) => document.getElementById(id);
+const MAX = 100 * 1024 * 1024;
+let file = null;
+
+$('topbar').innerHTML = topBar('New video');
+icons();
+
+const showError = (m) => { $('error').textContent = m; $('error').classList.toggle('hidden', !m); };
+
+$('file').addEventListener('change', (e) => {
+    showError('');
+    const f = e.target.files[0];
+    if (!f) return;
+    if (!f.type.startsWith('video/')) return showError('Please choose a video file.');
+    if (f.size > MAX) return showError('That video is over 100 MB. Choose a smaller file.');
+    file = f;
+    const v = $('preview');
+    v.src = URL.createObjectURL(f);
+    v.classList.remove('hidden');
+    $('placeholder').classList.add('hidden');
+    v.play().catch(() => {});
+});
+
+$('upload-form').addEventListener('submit', async (e) => {
+    e.preventDefault();
+    showError('');
+    if (!requireAuth('Log in to post videos', 'upload.html')) return;
+    if (!file) return showError('Select a video first.');
+    $('post').disabled = true; $('post').textContent = 'Uploading…';
+    $('progress-wrap').classList.remove('hidden');
+    try {
+        const id = await uploadVideo({
+            file,
+            description: $('desc').value.trim(),
+            audio: $('audio').value.trim(),
+            onProgress: (p) => { $('bar').style.width = p + '%'; $('pct').textContent = p + '%'; },
+        });
+        location.href = 'index.html?v=' + encodeURIComponent(id);
+    } catch (err) {
+        console.error(err);
+        showError(friendlyError(err));
+        $('post').disabled = false; $('post').textContent = 'Post';
+    }
+});
+
+(async function init() {
+    await authReady;
+    renderNav('create');
+    requireAuth('Log in to post videos', 'upload.html');   // guests are sent to login.html
+})();
+</script>
+</body>
+</html>
