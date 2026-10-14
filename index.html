@@ -2,782 +2,525 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
     <title>TikTok - Make Your Day</title>
-    <!-- Tailwind CSS CDN -->
     <script src="https://cdn.tailwindcss.com"></script>
-    <!-- Lucide Icons CDN -->
-    <script src="https://unpkg.com/lucide@latest"></script>
-    <script>
-        tailwind.config = {
-            theme: {
-                extend: {
-                    colors: {
-                        'tiktok-red': '#FE2C55',
-                        'tiktok-cyan': '#25F4EE',
-                        'tiktok-dark': '#121212',
-                        'tiktok-card': '#1E1E1E',
-                    },
-                    animation: {
-                        'spin-slow': 'spin 5s linear infinite',
-                        'heart-bounce': 'heartBounce 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275)',
-                        'marquee': 'marquee 8s linear infinite',
-                    },
-                    keyframes: {
-                        heartBounce: {
-                            '0%': { transform: 'scale(0.3)', opacity: '0' },
-                            '50%': { transform: 'scale(1.2)', opacity: '1' },
-                            '100%': { transform: 'scale(1)', opacity: '1' }
-                        },
-                        marquee: {
-                            '0%': { transform: 'translateX(100%)' },
-                            '100%': { transform: 'translateX(-100%)' }
-                        }
-                    }
-                }
-            }
-        }
-    </script>
-    <style>
-        /* Fit the real visible viewport on mobile (100vh includes the area behind browser toolbars,
-           which pushed the bottom nav off-screen) */
-        html, body {
-            height: 100%;
-            margin: 0;
-            overflow: hidden;
-        }
-        body {
-            position: fixed;
-            inset: 0;
-            width: 100%;
-            height: 100vh;      /* fallback */
-            height: 100dvh;     /* dynamic viewport height */
-        }
-        #app {
-            height: 100%;
-        }
-        .safe-top    { padding-top: max(0.75rem, env(safe-area-inset-top)); }
-        .safe-bottom { padding-bottom: max(0.5rem, env(safe-area-inset-bottom)); }
-
-        /* Custom scroll snapping for vertical video container */
-        .snap-y-mandatory {
-            scroll-snap-type: y mandatory;
-            scroll-behavior: smooth;
-            -webkit-overflow-scrolling: touch;
-        }
-        .snap-start {
-            scroll-snap-align: start;
-            scroll-snap-stop: always;
-        }
-        /* Hide scrollbars across browsers */
-        .no-scrollbar::-webkit-scrollbar {
-            display: none;
-        }
-        .no-scrollbar {
-            -ms-overflow-style: none;
-            scrollbar-width: none;
-        }
-        /* Floating Heart Animation */
-        @keyframes floatUp {
-            0% {
-                opacity: 1;
-                transform: translate(-50%, -50%) scale(0.6) rotate(0deg);
-            }
-            50% {
-                opacity: 0.9;
-                transform: translate(-50%, -150%) scale(1.2) rotate(var(--rot));
-            }
-            100% {
-                opacity: 0;
-                transform: translate(-50%, -250%) scale(1.4) rotate(var(--rot));
-            }
-        }
-        .floating-heart {
-            position: absolute;
-            pointer-events: none;
-            z-index: 50;
-            animation: floatUp 0.9s ease-out forwards;
-            filter: drop-shadow(0 4px 8px rgba(0,0,0,0.4));
-        }
-        /* Sound wave animation */
-        .music-disc-glow {
-            box-shadow: 0 0 10px rgba(37, 244, 238, 0.5), 0 0 20px rgba(254, 44, 85, 0.5);
-        }
-    </style>
+    <script src="tailwind-config.js"></script>
+    <script src="https://unpkg.com/lucide@0.462.0/dist/umd/lucide.min.js"></script>
+    <link rel="stylesheet" href="styles.css">
 </head>
 <body class="bg-black text-white font-sans antialiased select-none overflow-hidden">
 
-    <!-- MAIN CONTAINER -->
-    <div id="app" class="relative w-full h-full max-w-md md:max-w-md mx-auto bg-tiktok-dark overflow-hidden flex flex-col shadow-2xl border-x border-gray-900">
+<div id="app" class="relative w-full h-full max-w-md mx-auto bg-tiktok-dark overflow-hidden flex flex-col shadow-2xl border-x border-gray-900">
 
-        <!-- TOP HEADER NAVBAR -->
-        <header class="absolute top-0 left-0 right-0 z-30 flex items-center justify-between px-4 pb-3 safe-top bg-gradient-to-b from-black/80 via-black/40 to-transparent pointer-events-auto">
-            <!-- LIVE Button -->
-            <button class="flex items-center space-x-1 text-white/90 hover:text-white transition group">
-                <i data-lucide="tv" class="w-6 h-6 text-white group-hover:scale-105 transition"></i>
-                <span class="text-xs font-semibold uppercase tracking-wider hidden sm:inline">LIVE</span>
+    <!-- TOP HEADER -->
+    <header class="absolute top-0 left-0 right-0 z-30 flex items-center justify-between px-4 pb-3 safe-top bg-gradient-to-b from-black/80 via-black/40 to-transparent">
+        <a href="live.html" aria-label="Live" class="flex items-center space-x-1 text-white/90 hover:text-white transition">
+            <i data-lucide="tv" class="w-6 h-6"></i>
+            <span class="text-xs font-semibold uppercase tracking-wider hidden sm:inline">LIVE</span>
+        </a>
+        <div class="flex items-center space-x-5 text-base font-bold">
+            <button data-action="tab" data-tab="following" id="tab-following" class="relative text-white/60 hover:text-white transition py-1">
+                Following
+                <span id="indicator-following" class="hidden absolute bottom-0 left-1/2 -translate-x-1/2 w-6 h-0.5 bg-tiktok-cyan rounded-full"></span>
             </button>
-
-            <!-- Following vs For You Tabs -->
-            <div class="flex items-center space-x-5 text-base font-bold">
-                <button id="tab-following" onclick="switchTab('following')" class="relative text-white/60 hover:text-white transition py-1">
-                    Following
-                    <span id="indicator-following" class="hidden absolute bottom-0 left-1/2 -translate-x-1/2 w-6 h-0.5 bg-tiktok-cyan rounded-full"></span>
-                </button>
-                <span class="text-white/30 text-xs">|</span>
-                <button id="tab-foryou" onclick="switchTab('foryou')" class="relative text-white py-1">
-                    For You
-                    <span id="indicator-foryou" class="absolute bottom-0 left-1/2 -translate-x-1/2 w-6 h-0.5 bg-tiktok-red rounded-full"></span>
-                </button>
-            </div>
-
-            <!-- Search Icon -->
-            <button onclick="showToast('Search feature opened')" class="text-white/90 hover:text-white transition group">
-                <i data-lucide="search" class="w-6 h-6 group-hover:scale-105 transition"></i>
+            <span class="text-white/30 text-xs">|</span>
+            <button data-action="tab" data-tab="foryou" id="tab-foryou" class="relative text-white py-1">
+                For You
+                <span id="indicator-foryou" class="absolute bottom-0 left-1/2 -translate-x-1/2 w-6 h-0.5 bg-tiktok-red rounded-full"></span>
             </button>
-        </header>
-
-        <!-- SCROLLABLE VIDEO FEED -->
-        <main id="video-feed" class="w-full flex-1 min-h-0 overflow-y-scroll snap-y-mandatory no-scrollbar relative">
-            
-            <!-- VIDEO CARD 1 -->
-            <section class="video-card snap-start relative w-full h-full flex-shrink-0 bg-black overflow-hidden" data-id="1" data-liked="false" data-bookmarked="false" data-likes="142500" data-comments="2380" data-username="@alex_cyberpunk" data-desc="Exploring the neon city at midnight! 🌃 High energy vibes always #cyberpunk #neon #citylights #nightwalk #vibes" data-audio="Original Sound - @alex_cyberpunk">
-                <!-- Video Element / Canvas Simulation -->
-                <video class="video-player w-full h-full object-cover cursor-pointer" loop playsinline muted poster="https://images.unsplash.com/photo-1518709268805-4e9042af9f23?auto=format&fit=crop&w=800&q=80">
-                    <source src="https://assets.mixkit.co/videos/preview/mixkit-tokyo-street-with-neon-lights-at-night-42232-large.mp4" type="video/mp4">
-                </video>
-
-                <!-- Play/Pause Indicator Overlay -->
-                <div class="play-icon-overlay absolute inset-0 flex items-center justify-center opacity-0 pointer-events-none transition-opacity duration-200">
-                    <div class="w-16 h-16 bg-black/50 rounded-full flex items-center justify-center backdrop-blur-sm">
-                        <i data-lucide="play" class="w-8 h-8 text-white fill-white ml-1"></i>
-                    </div>
-                </div>
-
-                <!-- RIGHT SIDE ACTIONS COLUMN -->
-                <div class="absolute right-3 bottom-6 z-20 flex flex-col items-center space-y-5">
-                    <!-- Profile Avatar + Follow Badge -->
-                    <div class="relative group cursor-pointer" onclick="showToast('Viewing @alex_cyberpunk profile')">
-                        <img src="https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=150&q=80" class="w-12 h-12 rounded-full border-2 border-white object-cover shadow-lg group-hover:scale-105 transition">
-                        <button onclick="event.stopPropagation(); toggleFollow(this)" class="follow-btn absolute -bottom-1.5 left-1/2 -translate-x-1/2 bg-tiktok-red hover:bg-red-600 text-white rounded-full p-0.5 shadow-md transition transform active:scale-90">
-                            <i data-lucide="plus" class="w-3.5 h-3.5"></i>
-                        </button>
-                    </div>
-
-                    <!-- Like Button -->
-                    <div class="flex flex-col items-center">
-                        <button onclick="toggleLike(this)" class="like-btn p-2 rounded-full hover:bg-white/10 transition active:scale-75 text-white">
-                            <i data-lucide="heart" class="w-8 h-8 transition-colors"></i>
-                        </button>
-                        <span class="like-count text-xs font-semibold drop-shadow-md mt-0.5">142.5K</span>
-                    </div>
-
-                    <!-- Comment Button -->
-                    <div class="flex flex-col items-center">
-                        <button onclick="openComments('1')" class="p-2 rounded-full hover:bg-white/10 transition active:scale-75 text-white">
-                            <i data-lucide="message-circle" class="w-8 h-8 drop-shadow-md"></i>
-                        </button>
-                        <span class="comment-count text-xs font-semibold drop-shadow-md mt-0.5">2,380</span>
-                    </div>
-
-                    <!-- Bookmark / Favorite Button -->
-                    <div class="flex flex-col items-center">
-                        <button onclick="toggleBookmark(this)" class="bookmark-btn p-2 rounded-full hover:bg-white/10 transition active:scale-75 text-white">
-                            <i data-lucide="bookmark" class="w-8 h-8 transition-colors drop-shadow-md"></i>
-                        </button>
-                        <span class="bookmark-count text-xs font-semibold drop-shadow-md mt-0.5">18.4K</span>
-                    </div>
-
-                    <!-- Share Button -->
-                    <div class="flex flex-col items-center">
-                        <button onclick="openShareModal()" class="p-2 rounded-full hover:bg-white/10 transition active:scale-75 text-white">
-                            <i data-lucide="share-2" class="w-8 h-8 drop-shadow-md"></i>
-                        </button>
-                        <span class="text-xs font-semibold drop-shadow-md mt-0.5">4,120</span>
-                    </div>
-
-                    <!-- Audio Vinyl Spinner -->
-                    <div class="mt-2 cursor-pointer" onclick="showToast('Audio: Original Sound - @alex_cyberpunk')">
-                        <div class="w-10 h-10 rounded-full bg-gray-900 border-2 border-gray-700 flex items-center justify-center animate-spin-slow music-disc-glow relative overflow-hidden">
-                            <img src="https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=100&q=80" class="w-6 h-6 rounded-full object-cover">
-                        </div>
-                    </div>
-                </div>
-
-                <!-- BOTTOM OVERLAY DETAILS -->
-                <div class="absolute bottom-2 left-0 right-16 z-20 p-4 bg-gradient-to-t from-black/80 via-black/30 to-transparent pointer-events-none">
-                    <div class="pointer-events-auto">
-                        <h3 class="font-bold text-base drop-shadow-md hover:underline cursor-pointer inline-block" onclick="showToast('@alex_cyberpunk')">@alex_cyberpunk</h3>
-                        <p class="text-sm mt-1 text-gray-100 line-clamp-2 leading-snug drop-shadow-sm">Exploring the neon city at midnight! 🌃 High energy vibes always <span class="font-semibold text-tiktok-cyan cursor-pointer">#cyberpunk</span> <span class="font-semibold text-tiktok-cyan cursor-pointer">#neon</span></p>
-                        
-                        <!-- Marquee Audio Banner -->
-                        <div class="flex items-center space-x-2 mt-3 text-xs font-medium text-gray-200">
-                            <i data-lucide="music" class="w-3.5 h-3.5 animate-pulse text-tiktok-cyan"></i>
-                            <div class="overflow-hidden w-48 relative h-4">
-                                <div class="whitespace-nowrap animate-marquee absolute inset-0">
-                                    Original Sound - @alex_cyberpunk &bull; High Energy Synthbeat &bull; Original Sound - @alex_cyberpunk
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            </section>
-
-            <!-- VIDEO CARD 2 -->
-            <section class="video-card snap-start relative w-full h-full flex-shrink-0 bg-black overflow-hidden" data-id="2" data-liked="false" data-bookmarked="false" data-likes="892000" data-comments="9410" data-username="@chef_mario" data-desc="Making the ULTIMATE crispy artisan garlic bread 🥖🧄 Would you eat this whole loaf? #foodie #cooking #recipe #garlicbread #yummy" data-audio="Delicious Cooking Beats - Chef Mario">
-                <video class="video-player w-full h-full object-cover cursor-pointer" loop playsinline muted poster="https://images.unsplash.com/photo-1555396273-367ea4eb4db5?auto=format&fit=crop&w=800&q=80">
-                    <source src="https://assets.mixkit.co/videos/preview/mixkit-hands-holding-a-slice-of-pizza-42823-large.mp4" type="video/mp4">
-                </video>
-
-                <div class="play-icon-overlay absolute inset-0 flex items-center justify-center opacity-0 pointer-events-none transition-opacity duration-200">
-                    <div class="w-16 h-16 bg-black/50 rounded-full flex items-center justify-center backdrop-blur-sm">
-                        <i data-lucide="play" class="w-8 h-8 text-white fill-white ml-1"></i>
-                    </div>
-                </div>
-
-                <!-- RIGHT SIDE ACTIONS COLUMN -->
-                <div class="absolute right-3 bottom-6 z-20 flex flex-col items-center space-y-5">
-                    <div class="relative group cursor-pointer" onclick="showToast('Viewing @chef_mario profile')">
-                        <img src="https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?auto=format&fit=crop&w=150&q=80" class="w-12 h-12 rounded-full border-2 border-white object-cover shadow-lg group-hover:scale-105 transition">
-                        <button onclick="event.stopPropagation(); toggleFollow(this)" class="follow-btn absolute -bottom-1.5 left-1/2 -translate-x-1/2 bg-tiktok-red hover:bg-red-600 text-white rounded-full p-0.5 shadow-md transition transform active:scale-90">
-                            <i data-lucide="plus" class="w-3.5 h-3.5"></i>
-                        </button>
-                    </div>
-
-                    <div class="flex flex-col items-center">
-                        <button onclick="toggleLike(this)" class="like-btn p-2 rounded-full hover:bg-white/10 transition active:scale-75 text-white">
-                            <i data-lucide="heart" class="w-8 h-8 transition-colors"></i>
-                        </button>
-                        <span class="like-count text-xs font-semibold drop-shadow-md mt-0.5">892K</span>
-                    </div>
-
-                    <div class="flex flex-col items-center">
-                        <button onclick="openComments('2')" class="p-2 rounded-full hover:bg-white/10 transition active:scale-75 text-white">
-                            <i data-lucide="message-circle" class="w-8 h-8 drop-shadow-md"></i>
-                        </button>
-                        <span class="comment-count text-xs font-semibold drop-shadow-md mt-0.5">9,410</span>
-                    </div>
-
-                    <div class="flex flex-col items-center">
-                        <button onclick="toggleBookmark(this)" class="bookmark-btn p-2 rounded-full hover:bg-white/10 transition active:scale-75 text-white">
-                            <i data-lucide="bookmark" class="w-8 h-8 transition-colors drop-shadow-md"></i>
-                        </button>
-                        <span class="bookmark-count text-xs font-semibold drop-shadow-md mt-0.5">52.1K</span>
-                    </div>
-
-                    <div class="flex flex-col items-center">
-                        <button onclick="openShareModal()" class="p-2 rounded-full hover:bg-white/10 transition active:scale-75 text-white">
-                            <i data-lucide="share-2" class="w-8 h-8 drop-shadow-md"></i>
-                        </button>
-                        <span class="text-xs font-semibold drop-shadow-md mt-0.5">12.8K</span>
-                    </div>
-
-                    <div class="mt-2 cursor-pointer" onclick="showToast('Audio: Delicious Cooking Beats')">
-                        <div class="w-10 h-10 rounded-full bg-gray-900 border-2 border-gray-700 flex items-center justify-center animate-spin-slow music-disc-glow relative overflow-hidden">
-                            <img src="https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?auto=format&fit=crop&w=100&q=80" class="w-6 h-6 rounded-full object-cover">
-                        </div>
-                    </div>
-                </div>
-
-                <!-- BOTTOM OVERLAY DETAILS -->
-                <div class="absolute bottom-2 left-0 right-16 z-20 p-4 bg-gradient-to-t from-black/80 via-black/30 to-transparent pointer-events-none">
-                    <div class="pointer-events-auto">
-                        <h3 class="font-bold text-base drop-shadow-md hover:underline cursor-pointer inline-block" onclick="showToast('@chef_mario')">@chef_mario</h3>
-                        <p class="text-sm mt-1 text-gray-100 line-clamp-2 leading-snug drop-shadow-sm">Making the ULTIMATE crispy artisan garlic bread 🥖🧄 Would you eat this whole loaf? <span class="font-semibold text-tiktok-cyan cursor-pointer">#foodie</span> <span class="font-semibold text-tiktok-cyan cursor-pointer">#recipe</span></p>
-                        
-                        <div class="flex items-center space-x-2 mt-3 text-xs font-medium text-gray-200">
-                            <i data-lucide="music" class="w-3.5 h-3.5 animate-pulse text-tiktok-cyan"></i>
-                            <div class="overflow-hidden w-48 relative h-4">
-                                <div class="whitespace-nowrap animate-marquee absolute inset-0">
-                                    Delicious Cooking Beats - Chef Mario &bull; Italian Vibes &bull; Delicious Cooking Beats
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            </section>
-
-            <!-- VIDEO CARD 3 -->
-            <section class="video-card snap-start relative w-full h-full flex-shrink-0 bg-black overflow-hidden" data-id="3" data-liked="false" data-bookmarked="false" data-likes="320100" data-comments="1540" data-username="@nature_escapes" data-desc="Serene sunset above the clouds in the Swiss Alps 🏔️ Real peace exists right here. #travel #nature #mountains #sunset #peaceful" data-audio="Chill Lofi Ambient Rain - Nature Escapes">
-                <video class="video-player w-full h-full object-cover cursor-pointer" loop playsinline muted poster="https://images.unsplash.com/photo-1464822759023-fed622ff2c3b?auto=format&fit=crop&w=800&q=80">
-                    <source src="https://assets.mixkit.co/videos/preview/mixkit-forest-stream-in-the-sunlight-529-large.mp4" type="video/mp4">
-                </video>
-
-                <div class="play-icon-overlay absolute inset-0 flex items-center justify-center opacity-0 pointer-events-none transition-opacity duration-200">
-                    <div class="w-16 h-16 bg-black/50 rounded-full flex items-center justify-center backdrop-blur-sm">
-                        <i data-lucide="play" class="w-8 h-8 text-white fill-white ml-1"></i>
-                    </div>
-                </div>
-
-                <!-- RIGHT SIDE ACTIONS COLUMN -->
-                <div class="absolute right-3 bottom-6 z-20 flex flex-col items-center space-y-5">
-                    <div class="relative group cursor-pointer" onclick="showToast('Viewing @nature_escapes profile')">
-                        <img src="https://images.unsplash.com/photo-1544005313-94ddf0286df2?auto=format&fit=crop&w=150&q=80" class="w-12 h-12 rounded-full border-2 border-white object-cover shadow-lg group-hover:scale-105 transition">
-                        <button onclick="event.stopPropagation(); toggleFollow(this)" class="follow-btn absolute -bottom-1.5 left-1/2 -translate-x-1/2 bg-tiktok-red hover:bg-red-600 text-white rounded-full p-0.5 shadow-md transition transform active:scale-90">
-                            <i data-lucide="plus" class="w-3.5 h-3.5"></i>
-                        </button>
-                    </div>
-
-                    <div class="flex flex-col items-center">
-                        <button onclick="toggleLike(this)" class="like-btn p-2 rounded-full hover:bg-white/10 transition active:scale-75 text-white">
-                            <i data-lucide="heart" class="w-8 h-8 transition-colors"></i>
-                        </button>
-                        <span class="like-count text-xs font-semibold drop-shadow-md mt-0.5">320.1K</span>
-                    </div>
-
-                    <div class="flex flex-col items-center">
-                        <button onclick="openComments('3')" class="p-2 rounded-full hover:bg-white/10 transition active:scale-75 text-white">
-                            <i data-lucide="message-circle" class="w-8 h-8 drop-shadow-md"></i>
-                        </button>
-                        <span class="comment-count text-xs font-semibold drop-shadow-md mt-0.5">1,540</span>
-                    </div>
-
-                    <div class="flex flex-col items-center">
-                        <button onclick="toggleBookmark(this)" class="bookmark-btn p-2 rounded-full hover:bg-white/10 transition active:scale-75 text-white">
-                            <i data-lucide="bookmark" class="w-8 h-8 transition-colors drop-shadow-md"></i>
-                        </button>
-                        <span class="bookmark-count text-xs font-semibold drop-shadow-md mt-0.5">31.2K</span>
-                    </div>
-
-                    <div class="flex flex-col items-center">
-                        <button onclick="openShareModal()" class="p-2 rounded-full hover:bg-white/10 transition active:scale-75 text-white">
-                            <i data-lucide="share-2" class="w-8 h-8 drop-shadow-md"></i>
-                        </button>
-                        <span class="text-xs font-semibold drop-shadow-md mt-0.5">8,900</span>
-                    </div>
-
-                    <div class="mt-2 cursor-pointer" onclick="showToast('Audio: Chill Lofi Ambient Rain')">
-                        <div class="w-10 h-10 rounded-full bg-gray-900 border-2 border-gray-700 flex items-center justify-center animate-spin-slow music-disc-glow relative overflow-hidden">
-                            <img src="https://images.unsplash.com/photo-1544005313-94ddf0286df2?auto=format&fit=crop&w=100&q=80" class="w-6 h-6 rounded-full object-cover">
-                        </div>
-                    </div>
-                </div>
-
-                <!-- BOTTOM OVERLAY DETAILS -->
-                <div class="absolute bottom-2 left-0 right-16 z-20 p-4 bg-gradient-to-t from-black/80 via-black/30 to-transparent pointer-events-none">
-                    <div class="pointer-events-auto">
-                        <h3 class="font-bold text-base drop-shadow-md hover:underline cursor-pointer inline-block" onclick="showToast('@nature_escapes')">@nature_escapes</h3>
-                        <p class="text-sm mt-1 text-gray-100 line-clamp-2 leading-snug drop-shadow-sm">Serene sunset above the clouds in the Swiss Alps 🏔️ Real peace exists right here. <span class="font-semibold text-tiktok-cyan cursor-pointer">#travel</span> <span class="font-semibold text-tiktok-cyan cursor-pointer">#mountains</span></p>
-                        
-                        <div class="flex items-center space-x-2 mt-3 text-xs font-medium text-gray-200">
-                            <i data-lucide="music" class="w-3.5 h-3.5 animate-pulse text-tiktok-cyan"></i>
-                            <div class="overflow-hidden w-48 relative h-4">
-                                <div class="whitespace-nowrap animate-marquee absolute inset-0">
-                                    Chill Lofi Ambient Rain - Nature Escapes &bull; Relaxing Waves
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            </section>
-        </main>
-
-        <!-- BOTTOM MOBILE NAVIGATION BAR -->
-        <nav class="relative shrink-0 z-30 bg-black border-t border-gray-800 px-3 pt-2 safe-bottom flex items-center justify-around text-xs font-medium">
-            <button onclick="switchNavTab('home')" id="nav-home" class="flex flex-col items-center text-white space-y-0.5">
-                <i data-lucide="home" class="w-6 h-6"></i>
-                <span>Home</span>
-            </button>
-            <button onclick="switchNavTab('friends')" id="nav-friends" class="flex flex-col items-center text-gray-400 hover:text-white space-y-0.5">
-                <i data-lucide="users" class="w-6 h-6"></i>
-                <span>Friends</span>
-            </button>
-            <!-- Create Button (+) with TikTok Dual-Glow Effect -->
-            <button onclick="showToast('Create Video Camera feature')" class="relative flex items-center justify-center group active:scale-95 transition">
-                <div class="w-11 h-7 rounded-lg bg-tiktok-cyan absolute -left-1"></div>
-                <div class="w-11 h-7 rounded-lg bg-tiktok-red absolute -right-1"></div>
-                <div class="w-11 h-7 rounded-lg bg-white relative flex items-center justify-center text-black">
-                    <i data-lucide="plus" class="w-5 h-5 stroke-[3]"></i>
-                </div>
-            </button>
-            <button onclick="switchNavTab('inbox')" id="nav-inbox" class="flex flex-col items-center text-gray-400 hover:text-white space-y-0.5 relative">
-                <i data-lucide="message-square" class="w-6 h-6"></i>
-                <span class="absolute top-0 right-3 w-2 h-2 bg-tiktok-red rounded-full"></span>
-                <span>Inbox</span>
-            </button>
-            <button onclick="switchNavTab('profile')" id="nav-profile" class="flex flex-col items-center text-gray-400 hover:text-white space-y-0.5">
-                <i data-lucide="user" class="w-6 h-6"></i>
-                <span>Profile</span>
-            </button>
-        </nav>
-
-        <!-- COMMENTS SLIDING DRAWER MODAL -->
-        <div id="comment-drawer" class="fixed inset-x-0 bottom-0 max-w-md mx-auto z-50 transform translate-y-full transition-transform duration-300 ease-in-out bg-tiktok-dark rounded-t-2xl shadow-2xl flex flex-col h-[70dvh] max-h-[70%] border-t border-gray-800" style="height:70vh;height:70dvh;padding-bottom:env(safe-area-inset-bottom)">
-            <!-- Header -->
-            <div class="p-3 border-b border-gray-800 flex items-center justify-between text-center relative">
-                <div class="w-10 h-1 bg-gray-600 rounded-full absolute top-2 left-1/2 -translate-x-1/2"></div>
-                <h4 id="drawer-comment-count" class="w-full text-center text-xs font-bold pt-2 text-gray-200">2,380 comments</h4>
-                <button onclick="closeComments()" class="absolute right-3 top-3 text-gray-400 hover:text-white p-1">
-                    <i data-lucide="x" class="w-5 h-5"></i>
-                </button>
-            </div>
-
-            <!-- Comment List Scroll Area -->
-            <div id="comments-list" class="flex-1 overflow-y-auto p-4 space-y-4 no-scrollbar">
-                <!-- Dynamically populated comments -->
-            </div>
-
-            <!-- Input Comment Form -->
-            <div class="p-3 border-t border-gray-800 bg-black/50 flex items-center space-x-2">
-                <img src="https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?auto=format&fit=crop&w=100&q=80" class="w-8 h-8 rounded-full object-cover">
-                <input id="comment-input" type="text" placeholder="Add comment..." class="flex-1 bg-gray-800 text-white text-sm rounded-full px-4 py-2 focus:outline-none focus:ring-1 focus:ring-tiktok-red">
-                <button onclick="postComment()" class="text-tiktok-red hover:text-red-400 font-bold text-sm px-2">Post</button>
-            </div>
         </div>
+        <a href="search.html" aria-label="Search" class="text-white/90 hover:text-white transition">
+            <i data-lucide="search" class="w-6 h-6"></i>
+        </a>
+    </header>
 
-        <!-- SHARE MODAL SLIDE UP -->
-        <div id="share-modal" class="fixed inset-x-0 bottom-0 max-w-md mx-auto z-50 transform translate-y-full transition-transform duration-300 ease-in-out bg-tiktok-dark rounded-t-2xl p-4 border-t border-gray-800 hidden">
-            <div class="flex justify-between items-center mb-4">
-                <h4 class="text-sm font-bold">Share to</h4>
-                <button onclick="closeShareModal()" class="text-gray-400 hover:text-white"><i data-lucide="x" class="w-5 h-5"></i></button>
-            </div>
-            <div class="grid grid-cols-4 gap-4 text-center text-xs mb-4">
-                <button onclick="copyVideoLink()" class="flex flex-col items-center space-y-1 group">
-                    <div class="w-12 h-12 rounded-full bg-gray-800 flex items-center justify-center group-hover:bg-gray-700 transition"><i data-lucide="link" class="w-6 h-6 text-tiktok-cyan"></i></div>
-                    <span>Copy Link</span>
-                </button>
-                <button onclick="showToast('Shared to WhatsApp!')" class="flex flex-col items-center space-y-1 group">
-                    <div class="w-12 h-12 rounded-full bg-green-600 flex items-center justify-center group-hover:bg-green-500 transition"><i data-lucide="message-circle" class="w-6 h-6"></i></div>
-                    <span>WhatsApp</span>
-                </button>
-                <button onclick="showToast('Shared to Stories!')" class="flex flex-col items-center space-y-1 group">
-                    <div class="w-12 h-12 rounded-full bg-gradient-to-tr from-yellow-500 via-pink-500 to-purple-600 flex items-center justify-center group-hover:opacity-90 transition"><i data-lucide="instagram" class="w-6 h-6"></i></div>
-                    <span>Stories</span>
-                </button>
-                <button onclick="showToast('Reposted!')" class="flex flex-col items-center space-y-1 group">
-                    <div class="w-12 h-12 rounded-full bg-tiktok-red flex items-center justify-center group-hover:bg-red-600 transition"><i data-lucide="repeat" class="w-6 h-6"></i></div>
-                    <span>Repost</span>
-                </button>
-            </div>
+    <!-- FEED (cards are rendered by JS) -->
+    <main id="video-feed" class="w-full flex-1 min-h-0 overflow-y-scroll snap-y-mandatory no-scrollbar relative">
+        <div class="h-full flex items-center justify-center text-gray-400 text-sm">Loading videos…</div>
+    </main>
+
+    <!-- BOTTOM NAV (filled by ui.js) -->
+    <nav id="nav-root"></nav>
+
+    <!-- Guest login pill -->
+    <a id="guest-login" href="login.html" class="hidden absolute top-16 left-4 z-30 bg-tiktok-red hover:bg-red-600 text-white text-xs font-bold px-3 py-1.5 rounded-full shadow-lg transition">Log in</a>
+
+    <!-- Mute -->
+    <button id="mute-btn" data-action="mute" aria-label="Toggle sound" class="absolute top-16 right-4 z-30 bg-black/40 hover:bg-black/60 backdrop-blur-md p-2 rounded-full text-white transition">
+        <i data-lucide="volume-x" id="mute-icon" class="w-5 h-5"></i>
+    </button>
+
+    <!-- Backdrop for drawers -->
+    <div id="backdrop" data-action="close-all" class="hidden fixed inset-0 z-40 bg-black/50"></div>
+
+    <!-- COMMENTS DRAWER -->
+    <div id="comment-drawer" class="fixed inset-x-0 bottom-0 max-w-md mx-auto z-50 transform translate-y-full transition-transform duration-300 ease-in-out bg-tiktok-dark rounded-t-2xl shadow-2xl flex flex-col border-t border-gray-800" style="height:70vh;height:70dvh;padding-bottom:env(safe-area-inset-bottom)">
+        <div class="p-3 border-b border-gray-800 flex items-center justify-between text-center relative">
+            <div class="w-10 h-1 bg-gray-600 rounded-full absolute top-2 left-1/2 -translate-x-1/2"></div>
+            <h4 id="drawer-comment-count" class="w-full text-center text-xs font-bold pt-2 text-gray-200">Comments</h4>
+            <button data-action="close-all" aria-label="Close comments" class="absolute right-3 top-3 text-gray-400 hover:text-white p-1">
+                <i data-lucide="x" class="w-5 h-5"></i>
+            </button>
         </div>
-
-        <!-- MUTE/UNMUTE BUTTON TOP RIGHT -->
-        <button id="mute-btn" onclick="toggleMute()" class="absolute top-16 right-4 z-30 bg-black/40 hover:bg-black/60 backdrop-blur-md p-2 rounded-full text-white transition">
-            <i data-lucide="volume-x" id="mute-icon" class="w-5 h-5"></i>
-        </button>
-
-        <!-- TOAST NOTIFICATION CONTAINER -->
-        <div id="toast" class="absolute top-16 left-1/2 -translate-x-1/2 z-50 bg-gray-800/90 text-white text-xs px-4 py-2 rounded-full opacity-0 pointer-events-none transition-opacity duration-300 shadow-xl border border-gray-700">
-            Toast Message
+        <div id="comments-list" class="flex-1 overflow-y-auto p-4 space-y-4 no-scrollbar"></div>
+        <div class="p-3 border-t border-gray-800 bg-black/50 flex items-center space-x-2">
+            <img id="comment-avatar" src="" alt="" class="w-8 h-8 rounded-full object-cover">
+            <input id="comment-input" type="text" maxlength="500" placeholder="Add comment..." class="flex-1 bg-gray-800 text-white text-sm rounded-full px-4 py-2 focus:outline-none focus:ring-1 focus:ring-tiktok-red">
+            <button data-action="post-comment" class="text-tiktok-red hover:text-red-400 font-bold text-sm px-2">Post</button>
         </div>
     </div>
 
-    <script>
-        // Mock Comments database
-        const commentsData = {
-            '1': [
-                { id: 101, user: '@cyber_fan', avatar: 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?auto=format&fit=crop&w=100&q=80', text: 'This lighting setup is insane 🔥!', likes: 242 },
-                { id: 102, user: '@tokyo_drift', avatar: 'https://images.unsplash.com/photo-1494790108377-be9c29b29330?auto=format&fit=crop&w=100&q=80', text: 'Where in Tokyo was this shot?', likes: 89 },
-                { id: 103, user: '@synthwave_boy', avatar: 'https://images.unsplash.com/photo-1570295999919-56ceb5ecca61?auto=format&fit=crop&w=100&q=80', text: 'Adding this song to my playlist right now!', likes: 31 }
-            ],
-            '2': [
-                { id: 201, user: '@foodie_101', avatar: 'https://images.unsplash.com/photo-1527980965255-d3b416303d12?auto=format&fit=crop&w=100&q=80', text: 'I can literally smell this video 🤤🥖', likes: 1204 },
-                { id: 202, user: '@baker_sam', avatar: 'https://images.unsplash.com/photo-1580489944761-15a19d654956?auto=format&fit=crop&w=100&q=80', text: 'Needs more garlic powder! Jk looks delicious!', likes: 450 }
-            ],
-            '3': [
-                { id: 301, user: '@hiker_dave', avatar: 'https://images.unsplash.com/photo-1500648767791-00dcc994a43e?auto=format&fit=crop&w=100&q=80', text: 'Heaven on earth ⛰️☁️', likes: 512 }
-            ]
-        };
+    <!-- SHARE SHEET -->
+    <div id="share-modal" class="fixed inset-x-0 bottom-0 max-w-md mx-auto z-50 transform translate-y-full transition-transform duration-300 ease-in-out bg-tiktok-dark rounded-t-2xl p-4 border-t border-gray-800 hidden" style="padding-bottom:max(1rem,env(safe-area-inset-bottom))">
+        <div class="flex justify-between items-center mb-4">
+            <h4 class="text-sm font-bold">Share to</h4>
+            <button data-action="close-all" aria-label="Close share" class="text-gray-400 hover:text-white"><i data-lucide="x" class="w-5 h-5"></i></button>
+        </div>
+        <div class="grid grid-cols-4 gap-4 text-center text-xs mb-2">
+            <button data-action="copy-link" class="flex flex-col items-center space-y-1 group">
+                <div class="w-12 h-12 rounded-full bg-gray-800 flex items-center justify-center group-hover:bg-gray-700 transition"><i data-lucide="link" class="w-6 h-6 text-tiktok-cyan"></i></div>
+                <span>Copy link</span>
+            </button>
+            <a id="share-whatsapp" href="#" target="_blank" rel="noopener" class="flex flex-col items-center space-y-1 group">
+                <div class="w-12 h-12 rounded-full bg-green-600 flex items-center justify-center group-hover:bg-green-500 transition"><i data-lucide="message-circle" class="w-6 h-6"></i></div>
+                <span>WhatsApp</span>
+            </a>
+            <a id="share-x" href="#" target="_blank" rel="noopener" class="flex flex-col items-center space-y-1 group">
+                <div class="w-12 h-12 rounded-full bg-gray-800 flex items-center justify-center group-hover:bg-gray-700 transition"><i data-lucide="twitter" class="w-6 h-6"></i></div>
+                <span>X</span>
+            </a>
+            <button data-action="native-share" class="flex flex-col items-center space-y-1 group">
+                <div class="w-12 h-12 rounded-full bg-tiktok-red flex items-center justify-center group-hover:bg-red-600 transition"><i data-lucide="share" class="w-6 h-6"></i></div>
+                <span>More</span>
+            </button>
+        </div>
+    </div>
+</div>
 
-        let currentActiveCard = null;
-        let activeVideoId = '1';
-        let isMuted = true;
+<script type="module">
+import {
+    authReady, requireAuth, loginUrlFor, getMe, avatarOf, defaultAvatar, getMyState,
+    fetchVideos, fetchVideo, fetchFollowingVideos, toggleLike, toggleBookmark, toggleFollow,
+    fetchComments, addComment,
+} from './firebase.js';
+import { escapeHTML as esc, formatNumber, timeAgo, toast, icons, renderNav } from './ui.js';
 
-        // Initialize icons and video behavior on DOM ready
-        document.addEventListener('DOMContentLoaded', () => {
-            lucide.createIcons();
-            setupIntersectionObserver();
-            setupDoubleTapHearts();
-            setupKeyboardNavigation();
-        });
+/* ---------- Demo content shown until real videos exist in Firestore ---------- */
+const DEMO = [
+    { id: 'demo-1', demo: true, username: 'alex_cyberpunk', avatar: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=150&q=80',
+      videoURL: 'https://assets.mixkit.co/videos/preview/mixkit-tokyo-street-with-neon-lights-at-night-42232-large.mp4',
+      poster: 'https://images.unsplash.com/photo-1518709268805-4e9042af9f23?auto=format&fit=crop&w=800&q=80',
+      description: 'Exploring the neon city at midnight! 🌃 High energy vibes always #cyberpunk #neon #citylights',
+      audio: 'Original Sound - @alex_cyberpunk', likesCount: 142500, commentsCount: 3, bookmarksCount: 18400, sharesCount: 4120 },
+    { id: 'demo-2', demo: true, username: 'chef_mario', avatar: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?auto=format&fit=crop&w=150&q=80',
+      videoURL: 'https://assets.mixkit.co/videos/preview/mixkit-hands-holding-a-slice-of-pizza-42823-large.mp4',
+      poster: 'https://images.unsplash.com/photo-1555396273-367ea4eb4db5?auto=format&fit=crop&w=800&q=80',
+      description: 'Making the ULTIMATE crispy artisan garlic bread 🥖🧄 Would you eat this whole loaf? #foodie #recipe',
+      audio: 'Delicious Cooking Beats - Chef Mario', likesCount: 892000, commentsCount: 2, bookmarksCount: 52100, sharesCount: 12800 },
+    { id: 'demo-3', demo: true, username: 'nature_escapes', avatar: 'https://images.unsplash.com/photo-1544005313-94ddf0286df2?auto=format&fit=crop&w=150&q=80',
+      videoURL: 'https://assets.mixkit.co/videos/preview/mixkit-forest-stream-in-the-sunlight-529-large.mp4',
+      poster: 'https://images.unsplash.com/photo-1464822759023-fed622ff2c3b?auto=format&fit=crop&w=800&q=80',
+      description: 'Serene sunset above the clouds in the Swiss Alps 🏔️ Real peace exists right here. #travel #mountains',
+      audio: 'Chill Lofi Ambient Rain - Nature Escapes', likesCount: 320100, commentsCount: 1, bookmarksCount: 31200, sharesCount: 8900 },
+];
+const DEMO_COMMENTS = {
+    'demo-1': [
+        { username: 'cyber_fan', text: 'This lighting setup is insane 🔥!' },
+        { username: 'tokyo_drift', text: 'Where in Tokyo was this shot?' },
+        { username: 'synthwave_boy', text: 'Adding this song to my playlist right now!' },
+    ],
+    'demo-2': [
+        { username: 'foodie_101', text: 'I can literally smell this video 🤤🥖' },
+        { username: 'baker_sam', text: 'Needs more garlic powder! Jk looks delicious!' },
+    ],
+    'demo-3': [{ username: 'hiker_dave', text: 'Heaven on earth ⛰️☁️' }],
+};
 
-        function setupIntersectionObserver() {
-            const videoCards = document.querySelectorAll('.video-card');
-            
-            const observer = new IntersectionObserver((entries) => {
-                entries.forEach(entry => {
-                    const video = entry.target.querySelector('video');
-                    if (entry.isIntersecting) {
-                        currentActiveCard = entry.target;
-                        activeVideoId = entry.target.getAttribute('data-id');
-                        video.play().catch(err => console.log('Autoplay blocked:', err));
-                    } else {
-                        video.pause();
-                        video.currentTime = 0;
-                    }
-                });
-            }, { threshold: 0.6 });
+/* ---------- State ---------- */
+let me = null;                       // signed-in user or null (guest)
+let liked = new Set(), saved = new Set(), following = new Set();
+let videos = [];
+let tab = 'foryou';
+let activeId = null;
+let isMuted = true;
+let observer = null;
 
-            videoCards.forEach(card => observer.observe(card));
+const feed = document.getElementById('video-feed');
+const byId = (id) => videos.find((v) => v.id === id);
+const cardOf = (id) => feed.querySelector(`.video-card[data-id="${CSS.escape(id)}"]`);
+const enc = encodeURIComponent;
+const linkify = (t = '') => esc(t).replace(/(^|\s)#(\w+)/g,
+    (_, sp, tag) => `${sp}<a href="search.html?q=%23${tag}" class="font-semibold text-tiktok-cyan">#${tag}</a>`);
 
-            // Single tap to play/pause video
-            videoCards.forEach(card => {
-                const video = card.querySelector('video');
-                const playOverlay = card.querySelector('.play-icon-overlay');
+/* ---------- Rendering ---------- */
+function cardHTML(v) {
+    const own = me && v.uid === me.uid;
+    const showFollow = !own && !following.has(v.uid);
+    const profileHref = `profile.html?user=${enc(v.username || '')}`;
+    const audioHref = `search.html?q=${enc(v.audio || '')}`;
+    return `
+    <section class="video-card snap-start relative w-full h-full flex-shrink-0 bg-black overflow-hidden" data-id="${esc(v.id)}">
+        <video class="video-player w-full h-full object-cover cursor-pointer" loop playsinline muted preload="metadata" ${v.poster ? `poster="${esc(v.poster)}"` : ''}>
+            <source src="${esc(v.videoURL)}" type="video/mp4">
+        </video>
+        <div class="play-icon-overlay absolute inset-0 flex items-center justify-center opacity-0 pointer-events-none transition-opacity duration-200">
+            <div class="w-16 h-16 bg-black/50 rounded-full flex items-center justify-center backdrop-blur-sm">
+                <i data-lucide="play" class="w-8 h-8 text-white fill-white ml-1"></i>
+            </div>
+        </div>
 
-                card.addEventListener('click', (e) => {
-                    // Prevent trigger if clicking action buttons or drawer
-                    if (e.target.closest('button') || e.target.closest('#comment-drawer')) return;
+        <div class="absolute right-3 bottom-6 z-20 flex flex-col items-center space-y-5">
+            <div class="relative">
+                <a href="${profileHref}" aria-label="View @${esc(v.username)}">
+                    <img src="${esc(v.avatar || defaultAvatar(v.username))}" alt="" class="w-12 h-12 rounded-full border-2 border-white object-cover shadow-lg">
+                </a>
+                ${showFollow ? `<button data-action="follow" aria-label="Follow" class="follow-btn absolute -bottom-1.5 left-1/2 -translate-x-1/2 bg-tiktok-red hover:bg-red-600 text-white rounded-full p-0.5 shadow-md transition active:scale-90"><i data-lucide="plus" class="w-3.5 h-3.5"></i></button>` : ''}
+            </div>
 
-                    if (video.paused) {
-                        video.play();
-                        playOverlay.classList.add('opacity-0');
-                    } else {
-                        video.pause();
-                        playOverlay.classList.remove('opacity-0');
-                    }
-                });
-            });
-        }
+            <div class="flex flex-col items-center">
+                <button data-action="like" aria-label="Like" class="like-btn ${liked.has(v.id) ? 'active' : ''} p-2 rounded-full hover:bg-white/10 transition active:scale-75 text-white">
+                    <i data-lucide="heart" class="w-8 h-8 drop-shadow-md"></i>
+                </button>
+                <span class="like-count text-xs font-semibold drop-shadow-md mt-0.5">${formatNumber(v.likesCount)}</span>
+            </div>
 
-        function setupDoubleTapHearts() {
-            let lastTap = 0;
-            const videoCards = document.querySelectorAll('.video-card');
+            <div class="flex flex-col items-center">
+                <button data-action="comment" aria-label="Comments" class="p-2 rounded-full hover:bg-white/10 transition active:scale-75 text-white">
+                    <i data-lucide="message-circle" class="w-8 h-8 drop-shadow-md"></i>
+                </button>
+                <span class="comment-count text-xs font-semibold drop-shadow-md mt-0.5">${formatNumber(v.commentsCount)}</span>
+            </div>
 
-            videoCards.forEach(card => {
-                card.addEventListener('touchend', (e) => handleDoubleTap(e, card));
-                card.addEventListener('dblclick', (e) => spawnFloatingHeart(e, card));
-            });
+            <div class="flex flex-col items-center">
+                <button data-action="bookmark" aria-label="Save" class="bookmark-btn ${saved.has(v.id) ? 'active' : ''} p-2 rounded-full hover:bg-white/10 transition active:scale-75 text-white">
+                    <i data-lucide="bookmark" class="w-8 h-8 drop-shadow-md"></i>
+                </button>
+                <span class="bookmark-count text-xs font-semibold drop-shadow-md mt-0.5">${formatNumber(v.bookmarksCount)}</span>
+            </div>
 
-            function handleDoubleTap(e, card) {
-                const currentTime = new Date().getTime();
-                const tapLength = currentTime - lastTap;
-                if (tapLength < 300 && tapLength > 0) {
-                    const touch = e.changedTouches[0];
-                    spawnFloatingHeart({ clientX: touch.clientX, clientY: touch.clientY }, card);
-                    // Automatically trigger like
-                    const likeBtn = card.querySelector('.like-btn');
-                    if (card.getAttribute('data-liked') !== 'true') {
-                        toggleLike(likeBtn);
-                    }
-                }
-                lastTap = currentTime;
-            }
-        }
+            <div class="flex flex-col items-center">
+                <button data-action="share" aria-label="Share" class="p-2 rounded-full hover:bg-white/10 transition active:scale-75 text-white">
+                    <i data-lucide="share-2" class="w-8 h-8 drop-shadow-md"></i>
+                </button>
+                <span class="text-xs font-semibold drop-shadow-md mt-0.5">${formatNumber(v.sharesCount)}</span>
+            </div>
 
-        function spawnFloatingHeart(e, card) {
-            const rect = card.getBoundingClientRect();
-            const x = e.clientX - rect.left;
-            const y = e.clientY - rect.top;
-
-            const heart = document.createElement('div');
-            heart.className = 'floating-heart text-tiktok-red';
-            const randomRotation = (Math.random() - 0.5) * 40;
-            heart.style.setProperty('--rot', `${randomRotation}deg`);
-            heart.style.left = `${x}px`;
-            heart.style.top = `${y}px`;
-            heart.innerHTML = `<svg class="w-20 h-20 fill-current" viewBox="0 0 24 24"><path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z"/></svg>`;
-
-            card.appendChild(heart);
-            setTimeout(() => heart.remove(), 900);
-        }
-
-        function toggleLike(btn) {
-            const card = btn.closest('.video-card');
-            const isLiked = card.getAttribute('data-liked') === 'true';
-            const countSpan = card.querySelector('.like-count');
-            let likes = parseInt(card.getAttribute('data-likes'));
-
-            if (!isLiked) {
-                card.setAttribute('data-liked', 'true');
-                likes += 1;
-                btn.classList.add('text-tiktok-red', 'animate-heart-bounce');
-                btn.classList.remove('text-white');
-            } else {
-                card.setAttribute('data-liked', 'false');
-                likes -= 1;
-                btn.classList.remove('text-tiktok-red', 'animate-heart-bounce');
-                btn.classList.add('text-white');
-            }
-            card.setAttribute('data-likes', likes);
-            countSpan.textContent = formatNumber(likes);
-        }
-
-        function toggleBookmark(btn) {
-            const card = btn.closest('.video-card');
-            const isBookmarked = card.getAttribute('data-bookmarked') === 'true';
-
-            if (!isBookmarked) {
-                card.setAttribute('data-bookmarked', 'true');
-                btn.classList.add('text-yellow-400');
-                btn.classList.remove('text-white');
-                showToast('Saved to Favorites');
-            } else {
-                card.setAttribute('data-bookmarked', 'false');
-                btn.classList.remove('text-yellow-400');
-                btn.classList.add('text-white');
-                showToast('Removed from Favorites');
-            }
-        }
-
-        function toggleFollow(btn) {
-            btn.classList.add('scale-0');
-            setTimeout(() => {
-                btn.parentElement.classList.add('ring-2', 'ring-tiktok-cyan');
-                showToast('Following creator!');
-            }, 200);
-        }
-
-        function toggleMute() {
-            const videos = document.querySelectorAll('video');
-            const muteIcon = document.getElementById('mute-icon');
-            isMuted = !isMuted;
-
-            videos.forEach(v => v.muted = isMuted);
-            muteIcon.setAttribute('data-lucide', isMuted ? 'volume-x' : 'volume-2');
-            lucide.createIcons();
-            showToast(isMuted ? 'Sound Off' : 'Sound On');
-        }
-
-        function openComments(id) {
-            activeVideoId = id;
-            const drawer = document.getElementById('comment-drawer');
-            const list = document.getElementById('comments-list');
-            const countHeader = document.getElementById('drawer-comment-count');
-
-            const comments = commentsData[id] || [];
-            countHeader.textContent = `${comments.length.toLocaleString()} comments`;
-
-            list.innerHTML = comments.map(c => `
-                <div class="flex items-start justify-between space-x-3">
-                    <img src="${c.avatar}" class="w-8 h-8 rounded-full object-cover">
-                    <div class="flex-1 text-xs">
-                        <span class="font-bold text-gray-400">${c.user}</span>
-                        <p class="text-white mt-0.5">${c.text}</p>
-                    </div>
-                    <button onclick="likeComment(this)" class="flex flex-col items-center text-gray-400 hover:text-tiktok-red transition">
-                        <i data-lucide="heart" class="w-4 h-4"></i>
-                        <span class="text-[10px]">${c.likes}</span>
-                    </button>
+            <a href="${audioHref}" aria-label="Videos with this sound" class="mt-2 block">
+                <div class="w-10 h-10 rounded-full bg-gray-900 border-2 border-gray-700 flex items-center justify-center animate-spin-slow music-disc-glow overflow-hidden">
+                    <img src="${esc(v.avatar || defaultAvatar(v.username))}" alt="" class="w-6 h-6 rounded-full object-cover">
                 </div>
-            `).join('');
+            </a>
+        </div>
 
-            lucide.createIcons();
-            drawer.classList.remove('translate-y-full');
-        }
+        <div class="absolute bottom-2 left-0 right-16 z-20 p-4 bg-gradient-to-t from-black/80 via-black/30 to-transparent pointer-events-none">
+            <div class="pointer-events-auto">
+                <a href="${profileHref}" class="font-bold text-base drop-shadow-md hover:underline inline-block">@${esc(v.username)}</a>
+                <p class="text-sm mt-1 text-gray-100 line-clamp-2 leading-snug drop-shadow-sm">${linkify(v.description)}</p>
+                <a href="${audioHref}" class="flex items-center space-x-2 mt-3 text-xs font-medium text-gray-200">
+                    <i data-lucide="music" class="w-3.5 h-3.5 animate-pulse text-tiktok-cyan"></i>
+                    <div class="overflow-hidden w-48 relative h-4">
+                        <div class="whitespace-nowrap animate-marquee absolute inset-0">${esc(v.audio || '')} &bull; ${esc(v.audio || '')}</div>
+                    </div>
+                </a>
+            </div>
+        </div>
+    </section>`;
+}
 
-        function closeComments() {
-            document.getElementById('comment-drawer').classList.add('translate-y-full');
-        }
+function renderFeed(list, emptyHTML) {
+    videos = list;
+    if (observer) observer.disconnect();
+    feed.innerHTML = list.length ? list.map(cardHTML).join('') : (emptyHTML || '');
+    icons();
+    feed.scrollTop = 0;
+    observe();
+}
 
-        function postComment() {
-            const input = document.getElementById('comment-input');
-            const text = input.value.trim();
-            if (!text) return;
-
-            if (!commentsData[activeVideoId]) commentsData[activeVideoId] = [];
-            commentsData[activeVideoId].unshift({
-                id: Date.now(),
-                user: '@you',
-                avatar: 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?auto=format&fit=crop&w=100&q=80',
-                text: text,
-                likes: 0
-            });
-
-            input.value = '';
-            openComments(activeVideoId);
-            showToast('Comment posted!');
-        }
-
-        function likeComment(btn) {
-            btn.classList.toggle('text-tiktok-red');
-        }
-
-        function switchTab(tab) {
-            const indFollowing = document.getElementById('indicator-following');
-            const indForYou = document.getElementById('indicator-foryou');
-            const btnFollowing = document.getElementById('tab-following');
-            const btnForYou = document.getElementById('tab-foryou');
-
-            if (tab === 'following') {
-                indFollowing.classList.remove('hidden');
-                indForYou.classList.add('hidden');
-                btnFollowing.className = 'relative text-white py-1';
-                btnForYou.className = 'relative text-white/60 hover:text-white transition py-1';
+function observe() {
+    observer = new IntersectionObserver((entries) => {
+        entries.forEach((entry) => {
+            const video = entry.target.querySelector('video');
+            if (entry.isIntersecting) {
+                activeId = entry.target.dataset.id;
+                video.muted = isMuted;
+                video.play().catch(() => {});
             } else {
-                indForYou.classList.remove('hidden');
-                indFollowing.classList.add('hidden');
-                btnForYou.className = 'relative text-white py-1';
-                btnFollowing.className = 'relative text-white/60 hover:text-white transition py-1';
+                video.pause();
+                video.currentTime = 0;
+                entry.target.querySelector('.play-icon-overlay').classList.add('opacity-0');
             }
-        }
+        });
+    }, { threshold: 0.6 });
+    feed.querySelectorAll('.video-card').forEach((c) => observer.observe(c));
+}
 
-        function switchNavTab(tab) {
-            const tabs = ['home', 'friends', 'inbox', 'profile'];
-            tabs.forEach(t => {
-                const el = document.getElementById(`nav-${t}`);
-                if (t === tab) {
-                    el.className = 'flex flex-col items-center text-white space-y-0.5';
-                } else {
-                    el.className = 'flex flex-col items-center text-gray-400 hover:text-white space-y-0.5';
-                }
-            });
-            if (tab !== 'home') showToast(`${tab.toUpperCase()} page opened`);
+/* ---------- Loading feeds ---------- */
+async function loadFeed(which) {
+    feed.innerHTML = '<div class="h-full flex items-center justify-center text-gray-400 text-sm">Loading videos…</div>';
+    try {
+        if (which === 'following') {
+            const list = await fetchFollowingVideos(me.uid);
+            renderFeed(list, `<div class="h-full flex flex-col items-center justify-center text-center px-8 text-gray-300 space-y-4">
+                <p class="text-sm">No videos from people you follow yet.</p>
+                <a href="friends.html?tab=suggested" class="bg-tiktok-red px-5 py-2 rounded-md font-semibold text-sm">Find people to follow</a></div>`);
+            return;
         }
+        let list = [];
+        try { list = await fetchVideos(20); } catch (e) { console.warn('Feed unavailable, using demo videos', e); }
+        if (!list.length) list = DEMO;
 
-        // Share Drawer Shortcuts
-        function openShareModal() {
-            const modal = document.getElementById('share-modal');
-            modal.classList.remove('hidden', 'translate-y-full');
+        // Deep link: index.html?v=<videoId> puts that video first
+        const wanted = new URLSearchParams(location.search).get('v');
+        if (wanted) {
+            const v = list.find((x) => x.id === wanted) || await fetchVideo(wanted).catch(() => null);
+            if (v) list = [v, ...list.filter((x) => x.id !== v.id)];
         }
+        renderFeed(list);
+    } catch (e) {
+        console.error(e);
+        renderFeed(DEMO);
+    }
+}
 
-        function closeShareModal() {
-            const modal = document.getElementById('share-modal');
-            modal.classList.add('translate-y-full');
-            setTimeout(() => modal.classList.add('hidden'), 300);
-        }
+/* ---------- Actions (guest-gated where needed) ---------- */
+const gate = (msg, id = activeId) => requireAuth(msg, id && !String(id).startsWith('demo') ? `index.html?v=${id}` : 'index.html');
 
-        function copyVideoLink() {
-            const dummy = document.createElement('input');
-            document.body.appendChild(dummy);
-            dummy.value = window.location.href;
-            dummy.select();
-            document.execCommand('copy');
-            document.body.removeChild(dummy);
-            closeShareModal();
-            showToast('Link copied to clipboard!');
-        }
+async function doLike(card) {
+    const v = byId(card.dataset.id);
+    if (!gate('Log in to like videos', v.id)) return;
+    const was = liked.has(v.id);
+    setLiked(card, v, !was);
+    if (v.demo) return;
+    try { await toggleLike(v.id, was); } catch (e) { setLiked(card, v, was); toast('Could not update like'); console.error(e); }
+}
+function setLiked(card, v, on) {
+    on ? liked.add(v.id) : liked.delete(v.id);
+    v.likesCount = Math.max(0, (v.likesCount || 0) + (on ? 1 : -1));
+    const btn = card.querySelector('.like-btn');
+    btn.classList.toggle('active', on);
+    btn.classList.toggle('animate-heart-bounce', on);
+    card.querySelector('.like-count').textContent = formatNumber(v.likesCount);
+}
 
-        // Keyboard navigation support
-        function setupKeyboardNavigation() {
-            const feed = document.getElementById('video-feed');
-            document.addEventListener('keydown', (e) => {
-                if (e.target.tagName === 'INPUT') return;
+async function doBookmark(card) {
+    const v = byId(card.dataset.id);
+    if (!gate('Log in to save videos', v.id)) return;
+    const was = saved.has(v.id);
+    was ? saved.delete(v.id) : saved.add(v.id);
+    v.bookmarksCount = Math.max(0, (v.bookmarksCount || 0) + (was ? -1 : 1));
+    card.querySelector('.bookmark-btn').classList.toggle('active', !was);
+    card.querySelector('.bookmark-count').textContent = formatNumber(v.bookmarksCount);
+    toast(was ? 'Removed from Favorites' : 'Saved to Favorites');
+    if (v.demo) return;
+    try { await toggleBookmark(v.id, was); } catch (e) { toast('Could not save'); console.error(e); }
+}
 
-                if (e.key === 'ArrowDown' || e.key === 'j') {
-                    feed.scrollBy({ top: feed.clientHeight, behavior: 'smooth' });
-                } else if (e.key === 'ArrowUp' || e.key === 'k') {
-                    feed.scrollBy({ top: -feed.clientHeight, behavior: 'smooth' });
-                } else if (e.key === ' ') {
-                    e.preventDefault();
-                    if (currentActiveCard) {
-                        const video = currentActiveCard.querySelector('video');
-                        video.paused ? video.play() : video.pause();
-                    }
-                } else if (e.key.toLowerCase() === 'l') {
-                    if (currentActiveCard) {
-                        toggleLike(currentActiveCard.querySelector('.like-btn'));
-                    }
-                } else if (e.key.toLowerCase() === 'm') {
-                    toggleMute();
-                }
-            });
-        }
+async function doFollow(card, btn) {
+    const v = byId(card.dataset.id);
+    if (!gate('Log in to follow creators', v.id)) return;
+    if (v.demo || !v.uid) { toast('Demo creator — upload a video to create real ones'); return; }
+    try {
+        await toggleFollow(v.uid, false);
+        following.add(v.uid);
+        feed.querySelectorAll('.video-card').forEach((c) => {
+            if (byId(c.dataset.id)?.uid === v.uid) c.querySelector('.follow-btn')?.remove();
+        });
+        toast('Following @' + v.username);
+    } catch (e) { toast('Could not follow'); console.error(e); }
+}
 
-        // Toast Helper
-        function showToast(msg) {
-            const toast = document.getElementById('toast');
-            toast.textContent = msg;
-            toast.classList.remove('opacity-0');
-            setTimeout(() => toast.classList.add('opacity-0'), 2000);
-        }
+/* ---------- Comments ---------- */
+const drawer = document.getElementById('comment-drawer');
+const backdrop = document.getElementById('backdrop');
+const shareModal = document.getElementById('share-modal');
 
-        // Number Formatter Helper (e.g. 142500 -> 142.5K)
-        function formatNumber(num) {
-            if (num >= 1000000) return (num / 1000000).toFixed(1) + 'M';
-            if (num >= 1000) return (num / 1000).toFixed(1) + 'K';
-            return num.toString();
-        }
-    </script>
+const commentHTML = (c) => `
+    <div class="flex items-start space-x-3">
+        <a href="profile.html?user=${enc(c.username)}"><img src="${esc(c.avatar || defaultAvatar(c.username))}" alt="" class="w-8 h-8 rounded-full object-cover"></a>
+        <div class="flex-1 text-xs min-w-0">
+            <a href="profile.html?user=${enc(c.username)}" class="font-bold text-gray-400">@${esc(c.username)}</a>
+            <p class="text-white mt-0.5 break-words">${esc(c.text)}</p>
+            <span class="text-[10px] text-gray-500">${c.createdAt === undefined ? '' : timeAgo(c.createdAt)}</span>
+        </div>
+    </div>`;
+
+async function openComments(id) {
+    const v = byId(id);
+    const list = document.getElementById('comments-list');
+    document.getElementById('comment-avatar').src = me ? avatarOf(me) : defaultAvatar('?');
+    document.getElementById('drawer-comment-count').textContent = `${formatNumber(v.commentsCount)} comments`;
+    list.innerHTML = '<p class="text-center text-xs text-gray-500">Loading…</p>';
+    backdrop.classList.remove('hidden');
+    drawer.classList.remove('translate-y-full');
+    try {
+        const items = v.demo ? DEMO_COMMENTS[id] || [] : await fetchComments(id);
+        list.innerHTML = items.length ? items.map(commentHTML).join('') : '<p class="text-center text-xs text-gray-500 pt-6">No comments yet. Be the first!</p>';
+    } catch (e) {
+        list.innerHTML = '<p class="text-center text-xs text-gray-500 pt-6">Could not load comments.</p>';
+        console.error(e);
+    }
+}
+
+async function postComment() {
+    const input = document.getElementById('comment-input');
+    const text = input.value.trim();
+    if (!gate('Log in to comment')) return;     // guests are sent to login.html
+    if (!text) return;
+    const v = byId(activeId);
+    const list = document.getElementById('comments-list');
+    try {
+        const profile = await getMe();
+        const c = v.demo
+            ? { username: profile.username, avatar: avatarOf(profile), text, createdAt: null }
+            : await addComment(v.id, profile, text);
+        if (list.querySelector('p.pt-6')) list.innerHTML = '';
+        list.insertAdjacentHTML('afterbegin', commentHTML(c));
+        input.value = '';
+        v.commentsCount = (v.commentsCount || 0) + 1;
+        const txt = formatNumber(v.commentsCount);
+        cardOf(v.id).querySelector('.comment-count').textContent = txt;
+        document.getElementById('drawer-comment-count').textContent = `${txt} comments`;
+    } catch (e) { toast('Could not post comment'); console.error(e); }
+}
+
+// Focusing the comment box as a guest also goes to login
+document.getElementById('comment-input').addEventListener('focus', () => { if (!me) gate('Log in to comment'); });
+document.getElementById('comment-input').addEventListener('keydown', (e) => { if (e.key === 'Enter') postComment(); });
+
+/* ---------- Share ---------- */
+function openShare(id) {
+    const v = byId(id);
+    const url = new URL(`index.html?v=${enc(id)}`, location.href).href;
+    const text = `Check out @${v.username} on TikTok`;
+    shareModal.dataset.url = url;
+    document.getElementById('share-whatsapp').href = `https://wa.me/?text=${enc(text + ' ' + url)}`;
+    document.getElementById('share-x').href = `https://twitter.com/intent/tweet?text=${enc(text)}&url=${enc(url)}`;
+    backdrop.classList.remove('hidden');
+    shareModal.classList.remove('hidden');
+    void shareModal.offsetHeight;                 // force reflow so the slide-in transition runs
+    shareModal.classList.remove('translate-y-full');
+}
+
+function closeAll() {
+    drawer.classList.add('translate-y-full');
+    shareModal.classList.add('translate-y-full');
+    backdrop.classList.add('hidden');
+    setTimeout(() => shareModal.classList.add('hidden'), 300);
+}
+
+async function copyLink() {
+    const url = shareModal.dataset.url;
+    try { await navigator.clipboard.writeText(url); }
+    catch { const i = Object.assign(document.createElement('input'), { value: url }); document.body.appendChild(i); i.select(); document.execCommand('copy'); i.remove(); }
+    closeAll();
+    toast('Link copied to clipboard!');
+}
+
+/* ---------- Mute / play / double-tap ---------- */
+function toggleMute() {
+    isMuted = !isMuted;
+    feed.querySelectorAll('video').forEach((v) => (v.muted = isMuted));
+    document.getElementById('mute-icon').setAttribute('data-lucide', isMuted ? 'volume-x' : 'volume-2');
+    icons();
+    toast(isMuted ? 'Sound off' : 'Sound on');
+}
+
+function togglePlay(card) {
+    const video = card.querySelector('video');
+    const overlay = card.querySelector('.play-icon-overlay');
+    if (video.paused) { video.play(); overlay.classList.add('opacity-0'); }
+    else { video.pause(); overlay.classList.remove('opacity-0'); }
+}
+
+function spawnHeart(e, card) {
+    const r = card.getBoundingClientRect();
+    const h = document.createElement('div');
+    h.className = 'floating-heart text-tiktok-red';
+    h.style.setProperty('--rot', `${(Math.random() - 0.5) * 40}deg`);
+    h.style.left = `${e.clientX - r.left}px`;
+    h.style.top = `${e.clientY - r.top}px`;
+    h.innerHTML = '<svg class="w-20 h-20 fill-current" viewBox="0 0 24 24"><path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z"/></svg>';
+    card.appendChild(h);
+    setTimeout(() => h.remove(), 900);
+}
+
+// One handler for both: single tap = play/pause (delayed), double tap = like
+let lastTap = 0, tapTimer = null;
+feed.addEventListener('click', (e) => {
+    if (e.target.closest('a, button')) return;
+    const card = e.target.closest('.video-card');
+    if (!card) return;
+    const now = Date.now();
+    if (now - lastTap < 300) {
+        clearTimeout(tapTimer); lastTap = 0;
+        const v = byId(card.dataset.id);
+        if (!gate('Log in to like videos', v.id)) return;
+        spawnHeart(e, card);
+        if (!liked.has(v.id)) doLike(card);
+    } else {
+        lastTap = now;
+        tapTimer = setTimeout(() => togglePlay(card), 300);
+    }
+});
+
+/* ---------- Tabs ---------- */
+function switchTab(t) {
+    if (t === 'following' && !me) { requireAuth('Log in to see people you follow', 'index.html'); return; }
+    tab = t;
+    const f = t === 'following';
+    document.getElementById('indicator-following').classList.toggle('hidden', !f);
+    document.getElementById('indicator-foryou').classList.toggle('hidden', f);
+    document.getElementById('tab-following').className = `relative py-1 ${f ? 'text-white' : 'text-white/60 hover:text-white transition'}`;
+    document.getElementById('tab-foryou').className = `relative py-1 ${f ? 'text-white/60 hover:text-white transition' : 'text-white'}`;
+    loadFeed(t);
+}
+
+/* ---------- Event delegation (module scripts can't use inline onclick) ---------- */
+document.addEventListener('click', (e) => {
+    const el = e.target.closest('[data-action]');
+    if (!el) return;
+    const card = el.closest('.video-card');
+    switch (el.dataset.action) {
+        case 'like': doLike(card); break;
+        case 'bookmark': doBookmark(card); break;
+        case 'follow': doFollow(card, el); break;
+        case 'comment': activeId = card.dataset.id; openComments(activeId); break;
+        case 'share': activeId = card.dataset.id; openShare(activeId); break;
+        case 'post-comment': postComment(); break;
+        case 'copy-link': copyLink(); break;
+        case 'native-share':
+            if (navigator.share) navigator.share({ url: shareModal.dataset.url }).catch(() => {});
+            else copyLink();
+            break;
+        case 'mute': toggleMute(); break;
+        case 'tab': switchTab(el.dataset.tab); break;
+        case 'close-all': closeAll(); break;
+    }
+});
+
+document.addEventListener('keydown', (e) => {
+    if (e.target.tagName === 'INPUT') return;
+    const card = activeId && cardOf(activeId);
+    if (e.key === 'ArrowDown' || e.key === 'j') feed.scrollBy({ top: feed.clientHeight, behavior: 'smooth' });
+    else if (e.key === 'ArrowUp' || e.key === 'k') feed.scrollBy({ top: -feed.clientHeight, behavior: 'smooth' });
+    else if (e.key === ' ' && card) { e.preventDefault(); togglePlay(card); }
+    else if (e.key.toLowerCase() === 'l' && card) doLike(card);
+    else if (e.key.toLowerCase() === 'm') toggleMute();
+    else if (e.key === 'Escape') closeAll();
+});
+
+/* ---------- Boot ---------- */
+(async function init() {
+    icons();
+    me = await authReady;                         // null = guest, which is allowed here
+    renderNav('home');
+    if (!me) document.getElementById('guest-login').classList.remove('hidden');
+    else {
+        try { ({ liked, saved, following } = await getMyState(me.uid)); } catch (e) { console.warn(e); }
+    }
+    await loadFeed('foryou');
+})();
+</script>
 </body>
 </html>
