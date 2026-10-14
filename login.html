@@ -1,0 +1,92 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+    <title>Log in - TikTok</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="tailwind-config.js"></script>
+    <script src="https://unpkg.com/lucide@0.462.0/dist/umd/lucide.min.js"></script>
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body class="bg-black text-white font-sans antialiased">
+<div id="app" class="relative w-full h-full max-w-md mx-auto bg-tiktok-dark overflow-hidden flex flex-col border-x border-gray-900">
+    <header class="shrink-0 flex items-center justify-between px-4 pb-3 safe-top">
+        <a href="index.html" aria-label="Back to feed" class="p-1 -ml-1"><i data-lucide="x" class="w-6 h-6"></i></a>
+        <a href="signup.html" id="to-signup" class="text-sm font-semibold text-tiktok-red">Sign up</a>
+    </header>
+
+    <main class="flex-1 min-h-0 overflow-y-auto no-scrollbar px-6 pb-10">
+        <h1 class="text-2xl font-extrabold text-center mt-4">Log in to TikTok</h1>
+        <p id="notice" class="hidden mt-3 text-center text-sm text-tiktok-cyan"></p>
+
+        <form id="login-form" class="mt-8 space-y-3" novalidate>
+            <label class="block">
+                <span class="text-xs text-gray-400">Email</span>
+                <input id="email" type="email" autocomplete="email" required class="mt-1 w-full bg-gray-800 rounded-md px-4 py-3 text-sm focus:outline-none focus:ring-1 focus:ring-tiktok-red">
+            </label>
+            <label class="block">
+                <span class="text-xs text-gray-400">Password</span>
+                <input id="password" type="password" autocomplete="current-password" required class="mt-1 w-full bg-gray-800 rounded-md px-4 py-3 text-sm focus:outline-none focus:ring-1 focus:ring-tiktok-red">
+            </label>
+            <p id="error" class="hidden text-sm text-tiktok-red" role="alert"></p>
+            <button id="submit" type="submit" class="w-full bg-tiktok-red hover:bg-red-600 disabled:opacity-50 font-bold py-3 rounded-md transition">Log in</button>
+            <button id="forgot" type="button" class="w-full text-center text-xs text-gray-400 hover:text-white">Forgot password?</button>
+        </form>
+
+        <div class="flex items-center my-6 text-xs text-gray-500"><div class="flex-1 h-px bg-gray-800"></div><span class="px-3">or</span><div class="flex-1 h-px bg-gray-800"></div></div>
+
+        <button id="google" class="w-full flex items-center justify-center space-x-2 border border-gray-700 hover:bg-gray-800 py-3 rounded-md font-semibold text-sm transition">
+            <i data-lucide="log-in" class="w-5 h-5"></i><span>Continue with Google</span>
+        </button>
+
+        <p class="text-center text-sm text-gray-400 mt-8">Don't have an account? <a id="to-signup-2" href="signup.html" class="text-tiktok-red font-semibold">Sign up</a></p>
+        <p class="text-center text-sm mt-4"><a href="index.html" class="text-gray-400 hover:text-white underline">Continue as guest</a></p>
+    </main>
+</div>
+
+<script type="module">
+import { authReady, logIn, logInWithGoogle, resetPassword, friendlyError, getRedirect } from './firebase.js';
+import { icons } from './ui.js';
+
+icons();
+const $ = (id) => document.getElementById(id);
+const redirect = getRedirect();
+
+// keep ?redirect= when switching to sign up
+const suffix = new URLSearchParams(location.search).get('redirect');
+if (suffix) ['to-signup', 'to-signup-2'].forEach((id) => ($(id).href = 'signup.html?redirect=' + encodeURIComponent(suffix)));
+
+const msg = sessionStorage.getItem('authMsg');
+if (msg) { $('notice').textContent = msg; $('notice').classList.remove('hidden'); sessionStorage.removeItem('authMsg'); }
+
+if (await authReady) location.replace(redirect);   // already logged in
+
+const showError = (m) => { $('error').textContent = m; $('error').classList.toggle('hidden', !m); };
+const busy = (on) => { $('submit').disabled = on; $('google').disabled = on; $('submit').textContent = on ? 'Logging in…' : 'Log in'; };
+
+$('login-form').addEventListener('submit', async (e) => {
+    e.preventDefault();
+    showError('');
+    const email = $('email').value.trim(), password = $('password').value;
+    if (!email || !password) return showError('Enter your email and password.');
+    busy(true);
+    try { await logIn(email, password); location.href = redirect; }
+    catch (err) { showError(friendlyError(err)); busy(false); }
+});
+
+$('google').addEventListener('click', async () => {
+    showError(''); busy(true);
+    try { await logInWithGoogle(); location.href = redirect; }
+    catch (err) { showError(friendlyError(err)); busy(false); }
+});
+
+$('forgot').addEventListener('click', async () => {
+    const email = $('email').value.trim();
+    if (!email) return showError('Type your email above first, then tap "Forgot password?".');
+    try { await resetPassword(email); showError(''); $('notice').textContent = 'Password reset email sent. Check your inbox.'; $('notice').classList.remove('hidden'); }
+    catch (err) { showError(friendlyError(err)); }
+});
+</script>
+</body>
+</html>
