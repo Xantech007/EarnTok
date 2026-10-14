@@ -1,0 +1,48 @@
+/* Fit the real visible viewport on mobile */
+html, body { height: 100%; margin: 0; overflow: hidden; }
+body {
+  position: fixed;
+  inset: 0;
+  width: 100%;
+  height: 100vh;
+  height: 100dvh;
+  background: #000;
+}
+#app { height: 100%; }
+.safe-top    { padding-top: max(0.75rem, env(safe-area-inset-top)); }
+.safe-bottom { padding-bottom: max(0.5rem, env(safe-area-inset-bottom)); }
+
+/* Vertical video snapping */
+.snap-y-mandatory {
+  scroll-snap-type: y mandatory;
+  scroll-behavior: smooth;
+  -webkit-overflow-scrolling: touch;
+}
+.snap-start { scroll-snap-align: start; scroll-snap-stop: always; }
+
+.no-scrollbar::-webkit-scrollbar { display: none; }
+.no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+
+/* Floating heart (double tap) */
+@keyframes floatUp {
+  0%   { opacity: 1;   transform: translate(-50%, -50%) scale(0.6) rotate(0deg); }
+  50%  { opacity: 0.9; transform: translate(-50%, -150%) scale(1.2) rotate(var(--rot)); }
+  100% { opacity: 0;   transform: translate(-50%, -250%) scale(1.4) rotate(var(--rot)); }
+}
+.floating-heart {
+  position: absolute;
+  pointer-events: none;
+  z-index: 50;
+  animation: floatUp 0.9s ease-out forwards;
+  filter: drop-shadow(0 4px 8px rgba(0,0,0,0.4));
+}
+.music-disc-glow { box-shadow: 0 0 10px rgba(37,244,238,.5), 0 0 20px rgba(254,44,85,.5); }
+
+/* Active (liked / saved) states: Lucide icons are outlines, so fill them */
+.like-btn.active { color: #FE2C55; }
+.like-btn.active svg, .bookmark-btn.active svg { fill: currentColor; }
+.bookmark-btn.active { color: #facc15; }
+
+@media (prefers-reduced-motion: reduce) {
+  .animate-spin-slow, .animate-marquee, .animate-pulse { animation: none !important; }
+}
