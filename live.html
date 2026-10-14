@@ -1,0 +1,139 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+    <title>LIVE - TikTok</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="tailwind-config.js"></script>
+    <script src="https://unpkg.com/lucide@0.462.0/dist/umd/lucide.min.js"></script>
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body class="bg-black text-white font-sans antialiased">
+<div id="app" class="relative w-full h-full max-w-md mx-auto bg-tiktok-dark overflow-hidden flex flex-col border-x border-gray-900">
+    <div id="topbar"></div>
+    <main id="main" class="flex-1 min-h-0 overflow-y-auto no-scrollbar"></main>
+    <form id="composer" class="hidden shrink-0 border-t border-gray-800 bg-black px-3 py-2 flex items-center gap-2" style="padding-bottom:max(0.5rem,env(safe-area-inset-bottom))">
+        <input id="msg" maxlength="300" autocomplete="off" placeholder="Say something..." class="flex-1 bg-gray-800 rounded-full px-4 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-tiktok-red">
+        <button class="text-tiktok-red font-bold text-sm px-2">Send</button>
+    </form>
+    <nav id="nav-root"></nav>
+</div>
+
+<script type="module">
+import {
+    authReady, requireAuth, loginUrlFor, getMe, listLives, getLive, startLive, endLive,
+    listenLiveChat, sendLiveChat, avatarOf, defaultAvatar,
+} from './firebase.js';
+import { escapeHTML as esc, icons, renderNav, toast, topBar } from './ui.js';
+
+const $ = (id) => document.getElementById(id);
+const enc = encodeURIComponent;
+const roomId = new URLSearchParams(location.search).get('room');
+let user = null, stream = null;
+
+/* ---------- Room list ---------- */
+async function showList() {
+    $('topbar').innerHTML = topBar('LIVE', 'index.html');
+    renderNav('home');
+    $('main').innerHTML = `
+        <div class="p-4 space-y-4">
+            <form id="go-live" class="bg-black/40 border border-gray-800 rounded-xl p-4 space-y-3">
+                <p class="text-sm font-bold">Go LIVE</p>
+                <input id="title" maxlength="80" placeholder="What's your LIVE about?" class="w-full bg-gray-800 rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-tiktok-red">
+                <button class="w-full bg-tiktok-red hover:bg-red-600 font-bold py-2.5 rounded-md text-sm">Start LIVE</button>
+            </form>
+            <h2 class="text-sm font-bold text-gray-300">Live now</h2>
+            <div id="rooms"><p class="text-center text-sm text-gray-500 py-8">Loading…</p></div>
+        </div>`;
+    icons();
+
+    $('go-live').addEventListener('submit', async (e) => {
+        e.preventDefault();
+        if (!requireAuth('Log in to go LIVE', 'live.html')) return;
+        const title = $('title').value.trim();
+        if (!title) return toast('Add a title for your LIVE');
+        try { location.href = 'live.html?room=' + enc(await startLive(await getMe(), title)); }
+        catch (err) { toast('Could not start LIVE'); console.error(err); }
+    });
+
+    try {
+        const rooms = await listLives();
+        $('rooms').innerHTML = rooms.length ? `<div class="grid grid-cols-2 gap-3">${rooms.map((r) => `
+            <a href="live.html?room=${enc(r.id)}" class="block rounded-xl overflow-hidden bg-gray-900 border border-gray-800 hover:border-tiktok-red transition">
+                <div class="aspect-[3/4] flex items-center justify-center bg-gradient-to-br from-gray-800 to-black relative">
+                    <img src="${esc(r.avatar || defaultAvatar(r.username))}" alt="" class="w-16 h-16 rounded-full object-cover">
+                    <span class="absolute top-2 left-2 bg-tiktok-red text-[10px] font-bold px-1.5 py-0.5 rounded">LIVE</span>
+                </div>
+                <div class="p-2"><p class="text-xs font-semibold truncate">${esc(r.title)}</p><p class="text-[11px] text-gray-400 truncate">@${esc(r.username)}</p></div>
+            </a>`).join('')}</div>`
+            : '<p class="text-center text-sm text-gray-500 py-8">Nobody is live right now.</p>';
+    } catch (e) { $('rooms').innerHTML = '<p class="text-center text-sm text-gray-500 py-8">Could not load LIVE rooms.</p>'; console.error(e); }
+}
+
+/* ---------- Room ---------- */
+async function showRoom(id) {
+    const room = await getLive(id).catch(() => null);
+    $('nav-root').classList.add('hidden');
+    if (!room || !room.active) {
+        $('topbar').innerHTML = topBar('LIVE', 'live.html');
+        $('main').innerHTML = '<div class="text-center px-8 py-16 space-y-4"><p class="text-sm text-gray-300">This LIVE has ended.</p><a href="live.html" class="inline-block bg-tiktok-red px-5 py-2 rounded-md font-semibold text-sm">Browse LIVE</a></div>';
+        return icons();
+    }
+    const host = !!user && user.uid === room.uid;
+    $('topbar').innerHTML = topBar(room.title, 'live.html',
+        host ? '<button id="end" class="text-tiktok-red font-bold text-xs">End</button>' : '');
+
+    $('main').innerHTML = `
+        <div class="flex flex-col h-full">
+            <div class="relative shrink-0 aspect-video bg-black flex items-center justify-center">
+                <video id="cam" class="${host ? '' : 'hidden'} w-full h-full object-cover" muted playsinline autoplay></video>
+                ${host ? '' : `<div class="text-center px-6 space-y-2"><img src="${esc(room.avatar || defaultAvatar(room.username))}" alt="" class="w-16 h-16 rounded-full object-cover mx-auto">
+                    <a href="profile.html?user=${enc(room.username)}" class="font-bold text-sm hover:underline">@${esc(room.username)}</a>
+                    <p class="text-[11px] text-gray-500">Live video isn't connected yet. Chat is live.</p></div>`}
+                <span class="absolute top-2 left-2 bg-tiktok-red text-[10px] font-bold px-1.5 py-0.5 rounded">LIVE</span>
+            </div>
+            <div id="chat" class="flex-1 min-h-0 overflow-y-auto no-scrollbar p-3 space-y-1.5 text-sm"></div>
+        </div>`;
+    $('composer').classList.remove('hidden');
+    if (!user) {
+        $('composer').innerHTML = `<a href="${loginUrlFor('live.html?room=' + enc(id))}" class="flex-1 text-center bg-gray-800 rounded-full px-4 py-2 text-sm text-gray-300">Log in to chat</a>`;
+    }
+    icons();
+
+    if (host) {
+        try {
+            stream = await navigator.mediaDevices.getUserMedia({ video: true, audio: false });
+            $('cam').srcObject = stream;
+        } catch { toast('Camera blocked. Allow camera access to preview yourself.'); }
+        $('end').addEventListener('click', async () => {
+            if (stream) stream.getTracks().forEach((t) => t.stop());
+            await endLive(id).catch(() => {});
+            location.href = 'live.html';
+        });
+    }
+
+    listenLiveChat(id, (msgs) => {
+        const chat = $('chat');
+        chat.innerHTML = msgs.length ? msgs.map((m) =>
+            `<p class="break-words"><a href="profile.html?user=${enc(m.username)}" class="font-bold text-gray-400">${esc(m.username)}</a> ${esc(m.text)}</p>`).join('')
+            : '<p class="text-center text-xs text-gray-500 py-6">No chat yet.</p>';
+        chat.scrollTop = chat.scrollHeight;
+    });
+
+    if (user) $('composer').addEventListener('submit', async (e) => {
+        e.preventDefault();
+        const text = $('msg').value.trim();
+        if (!text) return;
+        $('msg').value = '';
+        try { await sendLiveChat(id, await getMe(), text); } catch (err) { toast('Message failed'); console.error(err); }
+    });
+}
+
+(async function init() {
+    user = await authReady;
+    roomId ? showRoom(roomId) : showList();
+})();
+</script>
+</body>
+</html>
