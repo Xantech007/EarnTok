@@ -1,48 +1,158 @@
-/* Fit the real visible viewport on mobile */
-html, body { height: 100%; margin: 0; overflow: hidden; }
+/* ==========================================
+   Base Viewport & Reset
+   ========================================== */
+html, body { 
+  height: 100%; 
+  margin: 0; 
+  padding: 0;
+  overflow: hidden; 
+  background-color: #000;
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+  -webkit-tap-highlight-color: transparent;
+}
+
 body {
   position: fixed;
   inset: 0;
   width: 100%;
   height: 100vh;
   height: 100dvh;
-  background: #000;
 }
-#app { height: 100%; }
-.safe-top    { padding-top: max(0.75rem, env(safe-area-inset-top)); }
-.safe-bottom { padding-bottom: max(0.5rem, env(safe-area-inset-bottom)); }
 
-/* Vertical video snapping */
+#app { 
+  height: 100%; 
+  width: 100%;
+  position: relative;
+}
+
+/* Safe Area Insets for Modern Mobile Screens (Notches / Home Indicators) */
+.safe-top { 
+  padding-top: max(0.75rem, env(safe-area-inset-top)); 
+}
+
+.safe-bottom { 
+  padding-bottom: max(0.5rem, env(safe-area-inset-bottom)); 
+}
+
+/* ==========================================
+   Vertical Feed & Snapping (TikTok Scroll)
+   ========================================== */
 .snap-y-mandatory {
   scroll-snap-type: y mandatory;
   scroll-behavior: smooth;
   -webkit-overflow-scrolling: touch;
+  overscroll-behavior-y: contain;
 }
-.snap-start { scroll-snap-align: start; scroll-snap-stop: always; }
 
-.no-scrollbar::-webkit-scrollbar { display: none; }
-.no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+.snap-start { 
+  scroll-snap-align: start; 
+  scroll-snap-stop: always; 
+}
 
-/* Floating heart (double tap) */
+/* Scrollbar Hiding Across Browsers */
+.no-scrollbar::-webkit-scrollbar { 
+  display: none; 
+}
+
+.no-scrollbar { 
+  -ms-overflow-style: none; 
+  scrollbar-width: none; 
+}
+
+/* ==========================================
+   Animations & Keyframes
+   ========================================== */
+
+/* Double-tap Floating Heart */
 @keyframes floatUp {
-  0%   { opacity: 1;   transform: translate(-50%, -50%) scale(0.6) rotate(0deg); }
-  50%  { opacity: 0.9; transform: translate(-50%, -150%) scale(1.2) rotate(var(--rot)); }
-  100% { opacity: 0;   transform: translate(-50%, -250%) scale(1.4) rotate(var(--rot)); }
+  0% { 
+    opacity: 1;   
+    transform: translate(-50%, -50%) scale(0.5) rotate(0deg); 
+  }
+  50% { 
+    opacity: 0.95; 
+    transform: translate(-50%, -140px) scale(1.25) rotate(var(--rot, 0deg)); 
+  }
+  100% { 
+    opacity: 0;   
+    transform: translate(-50%, -240px) scale(1.4) rotate(var(--rot, 0deg)); 
+  }
 }
+
 .floating-heart {
   position: absolute;
   pointer-events: none;
   z-index: 50;
-  animation: floatUp 0.9s ease-out forwards;
-  filter: drop-shadow(0 4px 8px rgba(0,0,0,0.4));
+  animation: floatUp 0.9s cubic-bezier(0.215, 0.61, 0.355, 1) forwards;
+  filter: drop-shadow(0 4px 12px rgba(0, 0, 0, 0.5));
 }
-.music-disc-glow { box-shadow: 0 0 10px rgba(37,244,238,.5), 0 0 20px rgba(254,44,85,.5); }
 
-/* Active (liked / saved) states: Lucide icons are outlines, so fill them */
-.like-btn.active { color: #FE2C55; }
-.like-btn.active svg, .bookmark-btn.active svg { fill: currentColor; }
-.bookmark-btn.active { color: #facc15; }
+/* Audio Marquee Text Scrolling */
+@keyframes marquee {
+  0%   { transform: translateX(0%); }
+  100% { transform: translateX(-50%); }
+}
 
+.animate-marquee {
+  display: inline-block;
+  white-space: nowrap;
+  animation: marquee 9s linear infinite;
+}
+
+/* Slow Vinyl Spinning Animation */
+@keyframes spinSlow {
+  from { transform: rotate(0deg); }
+  to   { transform: rotate(360deg); }
+}
+
+.animate-spin-slow {
+  animation: spinSlow 8s linear infinite;
+}
+
+/* Heart Bounce Effect when Liked */
+@keyframes heartBounce {
+  0%, 100% { transform: scale(1); }
+  50%      { transform: scale(1.35); }
+}
+
+.animate-heart-bounce {
+  animation: heartBounce 0.4s ease-in-out;
+}
+
+/* ==========================================
+   Styling Elements & Active States
+   ========================================== */
+
+/* Glowing Rotating Music Disc */
+.music-disc-glow { 
+  box-shadow: 0 0 12px rgba(37, 244, 238, 0.4), 0 0 20px rgba(254, 44, 85, 0.4); 
+}
+
+/* Active Button States (Like & Bookmark Fill Colors) */
+.like-btn.active { 
+  color: #FE2C55; 
+}
+
+.bookmark-btn.active { 
+  color: #25F4EE; 
+}
+
+.like-btn.active svg, 
+.bookmark-btn.active svg { 
+  fill: currentColor; 
+}
+
+/* Backdrops & Drawer Overlays */
+#comment-drawer, #share-modal {
+  will-change: transform;
+}
+
+/* Accessibility & Performance Overrides */
 @media (prefers-reduced-motion: reduce) {
-  .animate-spin-slow, .animate-marquee, .animate-pulse { animation: none !important; }
+  .animate-spin-slow, 
+  .animate-marquee, 
+  .animate-pulse, 
+  .animate-heart-bounce { 
+    animation: none !important; 
+  }
 }
