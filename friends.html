@@ -1,0 +1,102 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+    <title>Friends - TikTok</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="tailwind-config.js"></script>
+    <script src="https://unpkg.com/lucide@0.462.0/dist/umd/lucide.min.js"></script>
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body class="bg-black text-white font-sans antialiased">
+<div id="app" class="relative w-full h-full max-w-md mx-auto bg-tiktok-dark overflow-hidden flex flex-col border-x border-gray-900">
+    <div id="topbar"></div>
+    <div class="shrink-0 flex border-b border-gray-800 bg-black text-sm font-semibold">
+        <button data-tab="following" class="tab flex-1 py-3 border-b-2 border-transparent text-gray-500">Following</button>
+        <button data-tab="followers" class="tab flex-1 py-3 border-b-2 border-transparent text-gray-500">Followers</button>
+        <button data-tab="suggested" class="tab flex-1 py-3 border-b-2 border-transparent text-gray-500">Suggested</button>
+    </div>
+    <main id="list" class="flex-1 min-h-0 overflow-y-auto no-scrollbar p-3"></main>
+    <nav id="nav-root"></nav>
+</div>
+
+<script type="module">
+import {
+    authReady, requireAuth, getUserByUsername, getMe, getFollowingIds, getFollowerIds, listUsersByIds,
+    suggestedUsers, getMyState, toggleFollow, avatarOf,
+} from './firebase.js';
+import { escapeHTML as esc, formatNumber, icons, renderNav, toast, topBar } from './ui.js';
+
+const $ = (id) => document.getElementById(id);
+const enc = encodeURIComponent;
+const params = new URLSearchParams(location.search);
+const list = $('list');
+
+let authUser, target, myFollowing = new Set();
+
+const row = (u) => {
+    const mine = authUser && authUser.uid === u.uid;
+    const on = myFollowing.has(u.uid);
+    return `<div class="flex items-center gap-3 p-2 rounded-lg hover:bg-gray-800/60 transition">
+        <a href="profile.html?user=${enc(u.username)}" class="flex items-center gap-3 flex-1 min-w-0">
+            <img src="${esc(avatarOf(u))}" alt="" class="w-12 h-12 rounded-full object-cover">
+            <div class="min-w-0"><p class="font-bold text-sm truncate">@${esc(u.username)}</p>
+            <p class="text-xs text-gray-400 truncate">${esc(u.displayName || '')} · ${formatNumber(u.followersCount)} followers</p></div>
+        </a>
+        ${mine ? '' : `<button data-uid="${esc(u.uid)}" class="follow px-4 py-1.5 rounded-md text-xs font-semibold ${on ? 'bg-gray-800' : 'bg-tiktok-red'}">${on ? 'Following' : 'Follow'}</button>`}
+    </div>`;
+};
+
+async function show(tab) {
+    document.querySelectorAll('.tab').forEach((b) => {
+        const on = b.dataset.tab === tab;
+        b.classList.toggle('border-white', on); b.classList.toggle('border-transparent', !on); b.classList.toggle('text-gray-500', !on);
+    });
+    history.replaceState(null, '', `friends.html?tab=${tab}${params.get('user') ? '&user=' + enc(params.get('user')) : ''}`);
+    list.innerHTML = '<p class="text-center text-sm text-gray-500 py-10">Loading…</p>';
+    try {
+        let users;
+        if (tab === 'suggested') users = (await suggestedUsers(20)).filter((u) => !authUser || u.uid !== authUser.uid);
+        else users = await listUsersByIds(tab === 'following' ? await getFollowingIds(target.uid) : await getFollowerIds(target.uid));
+        list.innerHTML = users.length ? users.map(row).join('') : `<div class="text-center text-sm text-gray-500 py-12 space-y-3">
+            <p>${tab === 'following' ? 'Not following anyone yet.' : tab === 'followers' ? 'No followers yet.' : 'No suggestions yet.'}</p>
+            ${tab !== 'suggested' ? '<a href="?tab=suggested" class="inline-block bg-tiktok-red text-white px-5 py-2 rounded-md font-semibold">Find people to follow</a>' : ''}</div>`;
+    } catch (e) { list.innerHTML = '<p class="text-center text-sm text-gray-500 py-10">Could not load this list.</p>'; console.error(e); }
+}
+
+list.addEventListener('click', async (e) => {
+    const btn = e.target.closest('.follow');
+    if (!btn) return;
+    if (!requireAuth('Log in to follow people')) return;
+    const uid = btn.dataset.uid, was = myFollowing.has(uid);
+    try {
+        await toggleFollow(uid, was);
+        was ? myFollowing.delete(uid) : myFollowing.add(uid);
+        btn.textContent = was ? 'Follow' : 'Following';
+        btn.className = `follow px-4 py-1.5 rounded-md text-xs font-semibold ${was ? 'bg-tiktok-red' : 'bg-gray-800'}`;
+    } catch (err) { toast('Could not update follow'); console.error(err); }
+});
+
+document.querySelectorAll('.tab').forEach((b) => b.addEventListener('click', (e) => { e.preventDefault(); show(b.dataset.tab); }));
+
+(async function init() {
+    authUser = await authReady;
+    renderNav('friends');
+    const uname = params.get('user');
+    if (uname) {
+        target = await getUserByUsername(uname.toLowerCase()).catch(() => null);
+        if (!target) { $('topbar').innerHTML = topBar('Friends'); list.innerHTML = '<p class="text-center text-sm text-gray-500 py-10">Account not found.</p>'; return icons(); }
+    } else {
+        if (!requireAuth('Log in to see your friends', 'friends.html')) return;
+        target = await getMe();
+    }
+    $('topbar').innerHTML = topBar(uname ? '@' + target.username : 'Friends', uname ? `profile.html?user=${enc(target.username)}` : 'index.html');
+    if (authUser) try { myFollowing = (await getMyState(authUser.uid)).following; } catch (e) { console.warn(e); }
+    icons();
+    const t = params.get('tab');
+    show(['following', 'followers', 'suggested'].includes(t) ? t : 'following');
+})();
+</script>
+</body>
+</html>
