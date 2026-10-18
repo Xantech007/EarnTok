@@ -1,0 +1,616 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="theme-color" content="#09090b">
+    <title>EarnTok · Superadmin</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        :root { color-scheme: dark; }
+        body { min-height: 100vh; }
+        .glass { background: rgba(24, 24, 27, .88); backdrop-filter: blur(16px); }
+        .field {
+            width: 100%; border: 1px solid #3f3f46; border-radius: .75rem;
+            background: #09090b; padding: .75rem .875rem; color: #fafafa;
+            outline: none; transition: border-color .15s ease;
+        }
+        .field:focus { border-color: #25f4ee; }
+        .field::placeholder { color: #71717a; }
+        .btn {
+            display: inline-flex; align-items: center; justify-content: center; gap: .5rem;
+            border-radius: .75rem; padding: .65rem 1rem; font-weight: 650; transition: .15s ease;
+        }
+        .btn:disabled { cursor: wait; opacity: .6; }
+        .btn-primary { background: #fe2c55; color: white; }
+        .btn-primary:hover:not(:disabled) { background: #e11d48; }
+        .btn-muted { background: #27272a; color: #e4e4e7; }
+        .btn-muted:hover:not(:disabled) { background: #3f3f46; }
+        .btn-danger { color: #fda4af; background: rgba(190, 18, 60, .15); }
+        .btn-danger:hover:not(:disabled) { background: rgba(190, 18, 60, .3); }
+        dialog { color: #fafafa; }
+        dialog::backdrop { background: rgba(0, 0, 0, .76); backdrop-filter: blur(5px); }
+        .video-preview { aspect-ratio: 9 / 14; max-height: 15rem; }
+    </style>
+</head>
+<body class="bg-zinc-950 text-zinc-100 antialiased">
+    <main id="login-screen" class="min-h-screen flex items-center justify-center p-5">
+        <section class="glass w-full max-w-md rounded-3xl border border-zinc-800 p-7 shadow-2xl sm:p-9">
+            <div class="mb-8">
+                <div class="mb-5 flex h-12 w-12 items-center justify-center rounded-2xl bg-rose-500/15 text-rose-400">
+                    <span class="text-xl font-black">E</span>
+                </div>
+                <p class="text-xs font-bold uppercase tracking-[.22em] text-cyan-300">EarnTok control room</p>
+                <h1 class="mt-2 text-3xl font-bold tracking-tight">Superadmin</h1>
+                <p class="mt-2 text-sm text-zinc-400">Sign in to manage the video library.</p>
+            </div>
+            <form id="login-form" class="space-y-4">
+                <label class="block text-sm font-medium text-zinc-300">
+                    Username
+                    <input class="field mt-2" name="username" autocomplete="username" required>
+                </label>
+                <label class="block text-sm font-medium text-zinc-300">
+                    Password
+                    <input class="field mt-2" name="password" type="password" autocomplete="current-password" required>
+                </label>
+                <p id="login-message" class="hidden rounded-xl border border-rose-900 bg-rose-950/60 p-3 text-sm text-rose-200" role="alert"></p>
+                <button id="login-button" class="btn btn-primary w-full py-3" type="submit">Sign in</button>
+            </form>
+            <p class="mt-6 text-xs leading-5 text-zinc-500">This sign-in is a browser-side interface gate. Protect your Firestore data with server-enforced security rules and Firebase Authentication before using this page with sensitive data.</p>
+        </section>
+    </main>
+
+    <div id="admin-app" class="hidden min-h-screen">
+        <header class="sticky top-0 z-20 border-b border-zinc-800 bg-zinc-950/90 backdrop-blur">
+            <div class="mx-auto flex max-w-7xl items-center justify-between gap-4 px-4 py-4 sm:px-6 lg:px-8">
+                <a href="./index.html" class="flex items-center gap-3" aria-label="EarnTok home">
+                    <span class="flex h-10 w-10 items-center justify-center rounded-xl bg-rose-500/15 font-black text-rose-400">E</span>
+                    <span><strong class="block">EarnTok</strong><span class="text-xs text-zinc-500">Video administration</span></span>
+                </a>
+                <div class="flex items-center gap-2">
+                    <a class="btn btn-muted hidden sm:inline-flex" href="./index.html">View feed</a>
+                    <button id="logout-button" class="btn btn-muted" type="button">Sign out</button>
+                </div>
+            </div>
+        </header>
+
+        <div class="mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8">
+            <section class="mb-8 flex flex-col justify-between gap-5 sm:flex-row sm:items-end">
+                <div>
+                    <p class="text-xs font-bold uppercase tracking-[.22em] text-cyan-300">Content management</p>
+                    <h1 class="mt-2 text-3xl font-bold tracking-tight sm:text-4xl">Video library</h1>
+                    <p class="mt-2 text-sm text-zinc-400">Upload, publish, edit, and remove videos from the feed.</p>
+                </div>
+                <button id="add-video-button" class="btn btn-primary" type="button">＋ Add video</button>
+            </section>
+
+            <section class="mb-6 grid grid-cols-1 gap-3 sm:grid-cols-3" aria-label="Video totals">
+                <div class="rounded-2xl border border-zinc-800 bg-zinc-900/70 p-5">
+                    <p class="text-sm text-zinc-400">Total videos</p><p id="total-count" class="mt-2 text-3xl font-bold">—</p>
+                </div>
+                <div class="rounded-2xl border border-zinc-800 bg-zinc-900/70 p-5">
+                    <p class="text-sm text-zinc-400">Published</p><p id="published-count" class="mt-2 text-3xl font-bold text-emerald-300">—</p>
+                </div>
+                <div class="rounded-2xl border border-zinc-800 bg-zinc-900/70 p-5">
+                    <p class="text-sm text-zinc-400">Drafts</p><p id="draft-count" class="mt-2 text-3xl font-bold text-amber-300">—</p>
+                </div>
+            </section>
+
+            <section class="overflow-hidden rounded-2xl border border-zinc-800 bg-zinc-900/50">
+                <div class="flex flex-col gap-3 border-b border-zinc-800 p-4 sm:flex-row sm:items-center sm:justify-between sm:p-5">
+                    <div>
+                        <h2 class="font-semibold">All videos</h2>
+                        <p class="mt-1 text-xs text-zinc-500">Includes published videos and drafts.</p>
+                    </div>
+                    <div class="flex gap-2">
+                        <input id="search-input" class="field max-w-xs py-2 text-sm" type="search" placeholder="Search captions or creators" aria-label="Search videos">
+                        <button id="refresh-button" class="btn btn-muted" type="button">Refresh</button>
+                    </div>
+                </div>
+                <div id="video-list" class="divide-y divide-zinc-800">
+                    <p class="p-8 text-center text-sm text-zinc-400">Sign in to load videos.</p>
+                </div>
+            </section>
+            <p id="app-message" class="mt-4 hidden rounded-xl border p-3 text-sm" role="status"></p>
+        </div>
+    </div>
+
+    <dialog id="video-dialog" class="w-[min(48rem,calc(100%-2rem))] max-h-[92vh] overflow-y-auto rounded-2xl border border-zinc-700 bg-zinc-900 p-0 shadow-2xl">
+        <form id="video-form" class="p-5 sm:p-7">
+            <div class="mb-6 flex items-start justify-between gap-4">
+                <div><p class="text-xs font-bold uppercase tracking-[.2em] text-cyan-300">Video details</p><h2 id="dialog-title" class="mt-1 text-2xl font-bold">Add video</h2></div>
+                <button id="close-dialog" class="rounded-lg px-3 py-2 text-zinc-400 hover:bg-zinc-800 hover:text-white" type="button" aria-label="Close dialog">✕</button>
+            </div>
+            <input id="video-id" type="hidden">
+            <div class="grid gap-5 sm:grid-cols-2">
+                <label class="block text-sm font-medium text-zinc-300 sm:col-span-2">
+                    Video or photo <span id="file-required-label" class="text-rose-300">· required for new videos</span>
+                    <input id="video-file" class="field mt-2 file:mr-3 file:rounded-lg file:border-0 file:bg-zinc-700 file:px-3 file:py-2 file:text-sm file:text-white" type="file" accept="video/*,image/*">
+                    <span id="current-video-label" class="mt-2 block text-xs text-zinc-500"></span>
+                </label>
+                <label class="block text-sm font-medium text-zinc-300 sm:col-span-2">
+                    Caption / description
+                    <textarea id="description" class="field mt-2 min-h-24 resize-y" maxlength="5000" placeholder="Write a caption…" required></textarea>
+                </label>
+                <label class="block text-sm font-medium text-zinc-300">
+                    Creator name
+                    <input id="uploaded-by" class="field mt-2" maxlength="120" placeholder="@creator" required>
+                </label>
+                <label class="block text-sm font-medium text-zinc-300">
+                    Profile image URL
+                    <input id="profile-image-url" class="field mt-2" type="url" placeholder="https://…">
+                </label>
+                <label class="block text-sm font-medium text-zinc-300 sm:col-span-2">
+                    Upload profile image (optional)
+                    <input id="profile-image-file" class="field mt-2 file:mr-3 file:rounded-lg file:border-0 file:bg-zinc-700 file:px-3 file:py-2 file:text-sm file:text-white" type="file" accept="image/*">
+                </label>
+                <label class="block text-sm font-medium text-zinc-300">
+                    Likes count
+                    <input id="likes-count" class="field mt-2" type="number" min="0" step="1" value="0" required>
+                </label>
+                <label class="block text-sm font-medium text-zinc-300">
+                    Saves count
+                    <input id="saves-count" class="field mt-2" type="number" min="0" step="1" value="0" required>
+                </label>
+                <label class="block text-sm font-medium text-zinc-300">
+                    Shares count
+                    <input id="shares-count" class="field mt-2" type="number" min="0" step="1" value="0" required>
+                </label>
+                <label class="block text-sm font-medium text-zinc-300">
+                    Feed visibility
+                    <select id="admin-status" class="field mt-2"><option value="no">Draft</option><option value="yes">Published</option></select>
+                </label>
+                <section class="sm:col-span-2" aria-labelledby="comments-heading">
+                    <div class="mb-3 flex flex-wrap items-center justify-between gap-3">
+                        <div>
+                            <h3 id="comments-heading" class="text-sm font-medium text-zinc-300">Comments</h3>
+                            <p class="mt-1 text-xs text-zinc-500">Add sample comments to display with this video.</p>
+                        </div>
+                        <button id="add-comment-button" class="btn btn-muted text-sm" type="button">＋ Add more</button>
+                    </div>
+                    <div id="comments-list" class="space-y-3"></div>
+                    <p id="comments-empty" class="rounded-xl border border-dashed border-zinc-700 p-4 text-center text-sm text-zinc-500">No comments added.</p>
+                </section>
+            </div>
+            <div id="upload-status" class="mt-5 hidden rounded-xl border border-zinc-700 bg-zinc-950 p-3 text-sm text-zinc-300" role="status"></div>
+            <div class="mt-6 flex flex-col-reverse justify-end gap-2 sm:flex-row">
+                <button id="cancel-dialog" class="btn btn-muted" type="button">Cancel</button>
+                <button id="save-video-button" class="btn btn-primary" type="submit">Save video</button>
+            </div>
+        </form>
+    </dialog>
+
+    <script type="module">
+        import { db } from './firebase.js';
+        import {
+            addDoc, collection, deleteDoc, doc, getDoc, getDocs, updateDoc
+        } from 'https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js';
+
+        const CLOUDINARY_CLOUD_NAME = 's35mxosr';
+        const CLOUDINARY_UPLOAD_PRESET = 'user_uploads';
+        const CLOUDINARY_FOLDER = 'user_uploads';
+        const PENDING_CLOUD_NAME = 'hjkjnzpz';
+        const videosCollection = collection(db, 'videos');
+        const loginScreen = document.getElementById('login-screen');
+        const adminApp = document.getElementById('admin-app');
+        const loginForm = document.getElementById('login-form');
+        const loginButton = document.getElementById('login-button');
+        const loginMessage = document.getElementById('login-message');
+        const videoDialog = document.getElementById('video-dialog');
+        const videoForm = document.getElementById('video-form');
+        const videoList = document.getElementById('video-list');
+        const appMessage = document.getElementById('app-message');
+        const uploadStatus = document.getElementById('upload-status');
+        const commentsList = document.getElementById('comments-list');
+        const commentsEmpty = document.getElementById('comments-empty');
+        let videos = [];
+
+        function escapeHtml(value) {
+            return String(value ?? '').replace(/[&<>"']/g, character => ({
+                '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;'
+            })[character]);
+        }
+
+        function validHttpUrl(value) {
+            if (!value) return '';
+            try {
+                const url = new URL(value);
+                return url.protocol === 'https:' || url.protocol === 'http:' ? url.href : '';
+            } catch {
+                return '';
+            }
+        }
+
+        function formatCount(value) {
+            const count = Number(value);
+            return Number.isFinite(count) && count >= 0 ? Math.floor(count).toLocaleString() : '0';
+        }
+
+        function mediaTypeFor(video) {
+            if (video.mediaType === 'image') return 'image';
+            if (video.mediaType === 'video') return 'video';
+            const path = String(video.link ?? '').split('?')[0].toLowerCase();
+            return /\.(avif|gif|jpe?g|png|webp|bmp|heic)$/.test(path) ? 'image' : 'video';
+        }
+
+        function showMessage(element, message, isError = false) {
+            element.textContent = message;
+            element.classList.remove('hidden', 'border-rose-900', 'bg-rose-950/60', 'text-rose-200', 'border-emerald-900', 'bg-emerald-950/50', 'text-emerald-200');
+            element.classList.add(...(isError
+                ? ['border-rose-900', 'bg-rose-950/60', 'text-rose-200']
+                : ['border-emerald-900', 'bg-emerald-950/50', 'text-emerald-200']));
+        }
+
+        function clearMessage(element) {
+            element.textContent = '';
+            element.classList.add('hidden');
+        }
+
+        function addCommentRow(comment = '') {
+            const isObject = comment !== null && typeof comment === 'object' && !Array.isArray(comment);
+            const author = isObject
+                ? comment.user ?? comment.username ?? comment.uploadedBy ?? comment.name ?? ''
+                : '';
+            const text = isObject
+                ? comment.text ?? comment.comment ?? comment.message ?? ''
+                : comment;
+            const row = document.createElement('div');
+            row.className = 'comment-row grid gap-2 rounded-xl border border-zinc-800 bg-zinc-950/70 p-3 sm:grid-cols-[minmax(8rem,.7fr)_minmax(0,2fr)_auto] sm:items-start';
+            row.originalComment = isObject ? { ...comment } : null;
+            row.innerHTML = `
+                <label class="block text-xs font-medium text-zinc-400">
+                    Name <span class="font-normal text-zinc-600">(optional)</span>
+                    <input class="comment-author field mt-1.5 py-2 text-sm" maxlength="120" placeholder="e.g. Alex">
+                </label>
+                <label class="block text-xs font-medium text-zinc-400">
+                    Comment
+                    <textarea class="comment-text field mt-1.5 min-h-10 resize-y py-2 text-sm" maxlength="1000" rows="2" placeholder="Write a comment…" required></textarea>
+                </label>
+                <button class="remove-comment btn btn-danger mt-5 text-sm sm:mt-6" type="button">Remove</button>`;
+            row.querySelector('.comment-author').value = String(author ?? '');
+            row.querySelector('.comment-text').value = String(text ?? '');
+            commentsList.append(row);
+            commentsEmpty.classList.toggle('hidden', commentsList.children.length > 0);
+        }
+
+        function getCommentsFromEditor() {
+            return [...commentsList.querySelectorAll('.comment-row')].flatMap(row => {
+                const text = row.querySelector('.comment-text').value.trim();
+                if (!text) return [];
+                const author = row.querySelector('.comment-author').value.trim();
+                if (!author && !row.originalComment) return [text];
+                return [{
+                    ...(row.originalComment ?? {}),
+                    ...(author ? { user: author } : {}),
+                    text
+                }];
+            });
+        }
+
+        document.getElementById('add-comment-button').addEventListener('click', () => {
+            addCommentRow();
+            commentsList.lastElementChild.querySelector('.comment-text').focus();
+        });
+
+        commentsList.addEventListener('click', event => {
+            const button = event.target.closest('.remove-comment');
+            if (!button) return;
+            button.closest('.comment-row').remove();
+            commentsEmpty.classList.toggle('hidden', commentsList.children.length > 0);
+        });
+
+        loginForm.addEventListener('submit', async event => {
+            event.preventDefault();
+            clearMessage(loginMessage);
+            loginButton.disabled = true;
+            loginButton.textContent = 'Checking…';
+            const formData = new FormData(loginForm);
+            try {
+                const credentials = await getDoc(doc(db, 'admin', 'login'));
+                if (!credentials.exists()) {
+                    throw new Error('The admin/login credentials document was not found.');
+                }
+                const savedCredentials = credentials.data();
+                const usernameMatches = String(savedCredentials.username ?? '') === String(formData.get('username') ?? '');
+                const passwordMatches = String(savedCredentials.password ?? '') === String(formData.get('password') ?? '');
+                if (!usernameMatches || !passwordMatches) {
+                    showMessage(loginMessage, 'Incorrect username or password.', true);
+                    return;
+                }
+                loginScreen.classList.add('hidden');
+                adminApp.classList.remove('hidden');
+                await loadVideos();
+            } catch (error) {
+                console.error('Admin sign-in failed:', error);
+                showMessage(loginMessage, error.message.includes('credentials document')
+                    ? error.message
+                    : 'Could not verify admin credentials. Check your Firestore connection and read rules, then try again.', true);
+            } finally {
+                loginButton.disabled = false;
+                loginButton.textContent = 'Sign in';
+            }
+        });
+
+        async function loadVideos() {
+            videoList.innerHTML = '<p class="p-8 text-center text-sm text-zinc-400">Loading videos…</p>';
+            clearMessage(appMessage);
+            try {
+                const snapshot = await getDocs(videosCollection);
+                videos = snapshot.docs.map(videoDoc => ({ id: videoDoc.id, ...videoDoc.data() }));
+                renderVideos();
+            } catch (error) {
+                console.error('Unable to load videos:', error);
+                videoList.innerHTML = '<p class="p-8 text-center text-sm text-rose-200">Could not load videos. Check Firestore permissions and connection, then refresh.</p>';
+                showMessage(appMessage, 'The video list could not be loaded.', true);
+            }
+        }
+
+        function renderVideos() {
+            const published = videos.filter(video => video.admin === 'yes').length;
+            document.getElementById('total-count').textContent = videos.length.toLocaleString();
+            document.getElementById('published-count').textContent = published.toLocaleString();
+            document.getElementById('draft-count').textContent = (videos.length - published).toLocaleString();
+            const search = document.getElementById('search-input').value.trim().toLowerCase();
+            const filtered = videos.filter(video =>
+                `${video.description ?? ''} ${video.uploadedBy ?? ''}`.toLowerCase().includes(search));
+
+            if (!filtered.length) {
+                videoList.innerHTML = `<p class="p-8 text-center text-sm text-zinc-400">${videos.length ? 'No videos match your search.' : 'No videos yet. Add one to get started.'}</p>`;
+                return;
+            }
+
+            videoList.innerHTML = filtered.map(video => {
+                const source = validHttpUrl(video.link);
+                const publishedVideo = video.admin === 'yes';
+                const profile = validHttpUrl(video.profileImageLink);
+                const mediaType = mediaTypeFor(video);
+                const creator = escapeHtml(video.uploadedBy || 'Unknown creator');
+                const commentsCount = Array.isArray(video.comments) ? video.comments.length : 0;
+                return `
+                    <article class="grid gap-4 p-4 sm:grid-cols-[5rem_minmax(0,1fr)_auto] sm:items-center sm:p-5">
+                        <div class="flex h-24 w-20 items-center justify-center overflow-hidden rounded-xl bg-zinc-800">
+                            ${source ? mediaType === 'image'
+                                ? `<img class="h-full w-full object-cover" src="${escapeHtml(source)}" alt="" loading="lazy">`
+                                : `<video class="h-full w-full object-cover" src="${escapeHtml(source)}" preload="metadata" muted playsinline></video>`
+                                : '<span class="text-xs text-zinc-500">No media</span>'}
+                        </div>
+                        <div class="min-w-0">
+                            <div class="mb-2 flex flex-wrap items-center gap-2">
+                                <h3 class="max-w-full truncate font-semibold">${creator}</h3>
+                                <span class="rounded-full px-2.5 py-1 text-[11px] font-semibold ${publishedVideo ? 'bg-emerald-400/10 text-emerald-300' : 'bg-amber-400/10 text-amber-300'}">${publishedVideo ? 'Published' : 'Draft'}</span>
+                            </div>
+                            <p class="line-clamp-2 break-words text-sm text-zinc-400">${escapeHtml(video.description || 'No description')}</p>
+                            <div class="mt-3 flex flex-wrap gap-x-4 gap-y-1 text-xs text-zinc-500">
+                                <span>♥ ${formatCount(video.likesCount)}</span><span>▣ ${formatCount(video.savesCount)}</span>
+                                <span>↗ ${formatCount(video.sharesCount)}</span><span>☰ ${commentsCount} comments</span>
+                            </div>
+                            ${profile ? `<p class="mt-2 truncate text-xs text-zinc-600">Profile: ${escapeHtml(profile)}</p>` : ''}
+                            <p class="mt-1 truncate text-xs text-zinc-600">ID: ${escapeHtml(video.id)}</p>
+                        </div>
+                        <div class="flex flex-wrap gap-2 sm:justify-end">
+                            <button class="btn btn-muted text-sm" type="button" data-action="edit" data-id="${escapeHtml(video.id)}">Edit</button>
+                            <button class="btn btn-muted text-sm" type="button" data-action="publish" data-id="${escapeHtml(video.id)}">${publishedVideo ? 'Unpublish' : 'Publish'}</button>
+                            <button class="btn btn-danger text-sm" type="button" data-action="delete" data-id="${escapeHtml(video.id)}">Delete</button>
+                        </div>
+                    </article>`;
+            }).join('');
+        }
+
+        async function uploadToCloudinary(file, resourceType, {
+            cloudName = CLOUDINARY_CLOUD_NAME,
+            uploadPreset = CLOUDINARY_UPLOAD_PRESET,
+            folder = CLOUDINARY_FOLDER
+        } = {}) {
+            const formData = new FormData();
+            formData.append('file', file);
+            formData.append('upload_preset', uploadPreset);
+            if (folder) formData.append('folder', folder);
+            const endpoint = `https://api.cloudinary.com/v1_1/${encodeURIComponent(cloudName)}/${resourceType}/upload`;
+            return new Promise((resolve, reject) => {
+                const request = new XMLHttpRequest();
+                request.open('POST', endpoint);
+                request.upload.addEventListener('progress', event => {
+                    if (event.lengthComputable) {
+                        uploadStatus.textContent = `Uploading ${resourceType}… ${Math.round(event.loaded / event.total * 100)}%`;
+                    }
+                });
+                request.addEventListener('load', () => {
+                    let result;
+                    try {
+                        result = JSON.parse(request.responseText);
+                    } catch {
+                        reject(new Error('Cloudinary returned an unreadable response.'));
+                        return;
+                    }
+                    if (request.status < 200 || request.status >= 300 || !result.secure_url) {
+                        reject(new Error(result.error?.message || `Cloudinary upload failed (${request.status}).`));
+                        return;
+                    }
+                    resolve(result.secure_url);
+                });
+                request.addEventListener('error', () => reject(new Error('Network error while uploading to Cloudinary.')));
+                request.addEventListener('abort', () => reject(new Error('Cloudinary upload was cancelled.')));
+                request.send(formData);
+            });
+        }
+
+        async function transferDraftToPublishingCloud(video) {
+            const mediaType = mediaTypeFor(video);
+            const source = validHttpUrl(video.link);
+            if (!source) throw new Error('This draft does not have a valid media URL.');
+            const cloudinaryCloud = new URL(source).pathname.split('/')[1];
+            if (cloudinaryCloud === CLOUDINARY_CLOUD_NAME) {
+                return { link: source, mediaType };
+            }
+
+            const formData = new FormData();
+            formData.append('file', source);
+            formData.append('upload_preset', CLOUDINARY_UPLOAD_PRESET);
+            formData.append('folder', CLOUDINARY_FOLDER);
+            const endpoint = `https://api.cloudinary.com/v1_1/${encodeURIComponent(CLOUDINARY_CLOUD_NAME)}/${mediaType}/upload`;
+            const response = await fetch(endpoint, { method: 'POST', body: formData });
+            let result;
+            try {
+                result = await response.json();
+            } catch {
+                throw new Error('Cloudinary returned an unreadable transfer response.');
+            }
+            if (!response.ok || !result.secure_url) {
+                throw new Error(result.error?.message || `Could not transfer draft media (${response.status}).`);
+            }
+            return { link: result.secure_url, mediaType };
+        }
+
+        function openEditor(video) {
+            videoForm.reset();
+            clearMessage(uploadStatus);
+            document.getElementById('video-id').value = video?.id ?? '';
+            document.getElementById('dialog-title').textContent = video ? 'Edit video' : 'Add video';
+            document.getElementById('file-required-label').textContent = video ? '· leave empty to keep the current video' : '· required for new videos';
+            document.getElementById('current-video-label').textContent = video?.link
+                ? `Current ${mediaTypeFor(video)}: ${video.link}`
+                : '';
+            document.getElementById('description').value = video?.description ?? '';
+            document.getElementById('uploaded-by').value = video?.uploadedBy ?? '';
+            document.getElementById('profile-image-url').value = video?.profileImageLink ?? '';
+            document.getElementById('likes-count').value = video?.likesCount ?? 0;
+            document.getElementById('saves-count').value = video?.savesCount ?? 0;
+            document.getElementById('shares-count').value = video?.sharesCount ?? 0;
+            document.getElementById('admin-status').value = video?.admin === 'yes' ? 'yes' : 'no';
+            commentsList.replaceChildren();
+            (Array.isArray(video?.comments) ? video.comments : []).forEach(addCommentRow);
+            commentsEmpty.classList.toggle('hidden', commentsList.children.length > 0);
+            videoDialog.showModal();
+        }
+
+        document.getElementById('add-video-button').addEventListener('click', () => openEditor(null));
+        document.getElementById('close-dialog').addEventListener('click', () => videoDialog.close());
+        document.getElementById('cancel-dialog').addEventListener('click', () => videoDialog.close());
+        document.getElementById('refresh-button').addEventListener('click', loadVideos);
+        document.getElementById('search-input').addEventListener('input', renderVideos);
+        document.getElementById('logout-button').addEventListener('click', () => {
+            adminApp.classList.add('hidden');
+            loginScreen.classList.remove('hidden');
+            loginForm.reset();
+            clearMessage(loginMessage);
+            videoList.innerHTML = '<p class="p-8 text-center text-sm text-zinc-400">Sign in to load videos.</p>';
+            videos = [];
+        });
+
+        videoList.addEventListener('click', async event => {
+            const button = event.target.closest('button[data-action]');
+            if (!button) return;
+            const video = videos.find(item => item.id === button.dataset.id);
+            if (!video) return;
+            const action = button.dataset.action;
+            if (action === 'edit') {
+                openEditor(video);
+                return;
+            }
+            button.disabled = true;
+            try {
+                if (action === 'publish') {
+                    if (video.admin === 'yes') {
+                        await updateDoc(doc(db, 'videos', video.id), { admin: 'no' });
+                    } else {
+                        button.textContent = 'Transferring…';
+                        const publishedMedia = await transferDraftToPublishingCloud(video);
+                        await updateDoc(doc(db, 'videos', video.id), {
+                            link: publishedMedia.link,
+                            mediaType: publishedMedia.mediaType,
+                            admin: 'yes'
+                        });
+                    }
+                } else if (action === 'delete') {
+                    if (!window.confirm(`Delete "${video.description || video.uploadedBy || video.id}" from Firestore? This cannot be undone.`)) return;
+                    await deleteDoc(doc(db, 'videos', video.id));
+                }
+                await loadVideos();
+            } catch (error) {
+                console.error(`Unable to ${action} video:`, error);
+                showMessage(appMessage, `Could not ${action} this video. Check Firestore permissions and try again.`, true);
+            } finally {
+                button.disabled = false;
+            }
+        });
+
+        videoForm.addEventListener('submit', async event => {
+            event.preventDefault();
+            clearMessage(uploadStatus);
+            clearMessage(appMessage);
+            const saveButton = document.getElementById('save-video-button');
+            const id = document.getElementById('video-id').value;
+            const videoFile = document.getElementById('video-file').files[0];
+            const imageFile = document.getElementById('profile-image-file').files[0];
+            const current = videos.find(video => video.id === id);
+            if (!current && !videoFile) {
+                showMessage(uploadStatus, 'Select a video file to create a video.', true);
+                return;
+            }
+
+            const countValues = ['likes-count', 'saves-count', 'shares-count'].map(fieldId =>
+                Number(document.getElementById(fieldId).value));
+            if (countValues.some(value => !Number.isSafeInteger(value) || value < 0)) {
+                showMessage(uploadStatus, 'Like, save, and share counts must be non-negative whole numbers.', true);
+                return;
+            }
+
+            const comments = getCommentsFromEditor();
+
+            saveButton.disabled = true;
+            saveButton.textContent = 'Saving…';
+            uploadStatus.classList.remove('hidden');
+            uploadStatus.textContent = 'Saving video details…';
+            try {
+                let link = current?.link ?? '';
+                let mediaType = current ? mediaTypeFor(current) : 'video';
+                let profileImageLink = document.getElementById('profile-image-url').value.trim();
+                if (videoFile) {
+                    mediaType = videoFile.type.startsWith('image/') ? 'image' : 'video';
+                    const draftUpload = document.getElementById('admin-status').value !== 'yes';
+                    link = await uploadToCloudinary(videoFile, mediaType, draftUpload
+                        ? { cloudName: PENDING_CLOUD_NAME, uploadPreset: 'pending_review', folder: '' }
+                        : undefined);
+                }
+                if (imageFile) profileImageLink = await uploadToCloudinary(imageFile, 'image');
+                if (profileImageLink && !validHttpUrl(profileImageLink)) {
+                    throw new Error('Profile image URL must begin with http:// or https://.');
+                }
+                const adminStatus = document.getElementById('admin-status').value;
+                if (current && current.admin !== 'yes' && adminStatus === 'yes') {
+                    uploadStatus.textContent = 'Transferring draft media to the publishing account…';
+                    const publishedMedia = await transferDraftToPublishingCloud({ ...current, link, mediaType });
+                    link = publishedMedia.link;
+                    mediaType = publishedMedia.mediaType;
+                }
+                const videoData = {
+                    link,
+                    mediaType,
+                    description: document.getElementById('description').value.trim(),
+                    uploadedBy: document.getElementById('uploaded-by').value.trim(),
+                    profileImageLink,
+                    likesCount: countValues[0],
+                    savesCount: countValues[1],
+                    sharesCount: countValues[2],
+                    comments,
+                    admin: adminStatus
+                };
+                if (current) {
+                    await updateDoc(doc(db, 'videos', id), videoData);
+                } else {
+                    await addDoc(videosCollection, videoData);
+                }
+                videoDialog.close();
+                await loadVideos();
+                showMessage(appMessage, current ? 'Video updated.' : 'Video uploaded and added to the library.');
+            } catch (error) {
+                console.error('Unable to save video:', error);
+                showMessage(uploadStatus, error.message || 'Could not save this video. Check Cloudinary and Firestore permissions.', true);
+            } finally {
+                saveButton.disabled = false;
+                saveButton.textContent = 'Save video';
+            }
+        });
+    </script>
+</body>
+</html>

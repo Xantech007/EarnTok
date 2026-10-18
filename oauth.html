@@ -1,0 +1,227 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="theme-color" content="#09090b">
+    <title>EarnTok · Sign in</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        :root { color-scheme: dark; }
+        body { min-height: 100vh; }
+        .field {
+            width: 100%; border: 1px solid #3f3f46; border-radius: .75rem;
+            background: #09090b; padding: .75rem .875rem; color: #fafafa;
+            outline: none; transition: border-color .15s ease;
+        }
+        .field:focus { border-color: #25f4ee; }
+        .field::placeholder { color: #71717a; }
+        .tab-active { color: white; border-color: #fe2c55; }
+    </style>
+</head>
+<body class="bg-zinc-950 text-zinc-100 antialiased">
+    <main class="flex min-h-screen items-center justify-center p-5">
+        <section class="w-full max-w-lg rounded-3xl border border-zinc-800 bg-zinc-900/90 p-6 shadow-2xl sm:p-9">
+            <a href="./index.html" class="mb-7 inline-flex items-center gap-3">
+                <span class="flex h-11 w-11 items-center justify-center rounded-2xl bg-rose-500/15 text-xl font-black text-rose-400">E</span>
+                <span class="text-lg font-bold">EarnTok</span>
+            </a>
+            <h1 class="text-3xl font-bold tracking-tight">Welcome to your feed</h1>
+            <p class="mt-2 text-sm text-zinc-400">Sign in or create an account to join the conversation.</p>
+
+            <div class="mt-7 grid grid-cols-2 border-b border-zinc-800" role="tablist" aria-label="Account access">
+                <button id="login-tab" class="tab-active border-b-2 px-4 py-3 text-sm font-semibold" type="button" role="tab" aria-selected="true" aria-controls="login-panel">Log in</button>
+                <button id="register-tab" class="border-b-2 border-transparent px-4 py-3 text-sm font-semibold text-zinc-400" type="button" role="tab" aria-selected="false" aria-controls="register-panel">Create account</button>
+            </div>
+
+            <form id="login-panel" class="mt-6 space-y-4" role="tabpanel" aria-labelledby="login-tab">
+                <label class="block text-sm font-medium text-zinc-300">
+                    Email
+                    <input class="field mt-2" name="email" type="email" autocomplete="email" placeholder="you@example.com" required>
+                </label>
+                <label class="block text-sm font-medium text-zinc-300">
+                    Password
+                    <input class="field mt-2" name="password" type="password" autocomplete="current-password" required>
+                </label>
+                <button class="w-full rounded-xl bg-rose-500 px-4 py-3 font-bold text-white transition hover:bg-rose-600 disabled:cursor-wait disabled:opacity-60" type="submit">Log in</button>
+            </form>
+
+            <form id="register-panel" class="mt-6 hidden space-y-4" role="tabpanel" aria-labelledby="register-tab">
+                <label class="block text-sm font-medium text-zinc-300">
+                    Full name
+                    <input class="field mt-2" name="fullName" type="text" autocomplete="name" maxlength="120" required>
+                </label>
+                <label class="block text-sm font-medium text-zinc-300">
+                    Username
+                    <input class="field mt-2" name="username" type="text" autocomplete="username" minlength="3" maxlength="30" pattern="[A-Za-z0-9_]+" title="Use 3–30 letters, numbers, or underscores." required>
+                </label>
+                <label class="block text-sm font-medium text-zinc-300">
+                    Email
+                    <input class="field mt-2" name="email" type="email" autocomplete="email" placeholder="you@example.com" required>
+                </label>
+                <label class="block text-sm font-medium text-zinc-300">
+                    Phone number
+                    <input class="field mt-2" name="phoneNumber" type="tel" autocomplete="tel" placeholder="+1 555 123 4567" required>
+                </label>
+                <div class="grid gap-4 sm:grid-cols-2">
+                    <label class="block text-sm font-medium text-zinc-300">
+                        Create password
+                        <input class="field mt-2" name="password" type="password" autocomplete="new-password" minlength="8" required>
+                    </label>
+                    <label class="block text-sm font-medium text-zinc-300">
+                        Confirm password
+                        <input class="field mt-2" name="confirmPassword" type="password" autocomplete="new-password" minlength="8" required>
+                    </label>
+                </div>
+                <button class="w-full rounded-xl bg-rose-500 px-4 py-3 font-bold text-white transition hover:bg-rose-600 disabled:cursor-wait disabled:opacity-60" type="submit">Create account</button>
+            </form>
+            <p id="form-message" class="mt-5 hidden rounded-xl border p-3 text-sm" role="status"></p>
+            <p class="mt-6 text-center text-xs leading-5 text-zinc-500">By continuing, you agree to use EarnTok respectfully. Your account information is stored in Firebase.</p>
+        </section>
+    </main>
+
+    <script type="module">
+        import { auth, db } from './firebase.js';
+        import {
+            createUserWithEmailAndPassword, deleteUser, signInWithEmailAndPassword, updateProfile
+        } from 'https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js';
+        import {
+            collection, doc, getDoc, runTransaction, serverTimestamp
+        } from 'https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js';
+
+        const loginTab = document.getElementById('login-tab');
+        const registerTab = document.getElementById('register-tab');
+        const loginForm = document.getElementById('login-panel');
+        const registerForm = document.getElementById('register-panel');
+        const message = document.getElementById('form-message');
+        const returnTo = new URLSearchParams(location.search).get('returnTo');
+
+        function setTab(tab) {
+            const isLogin = tab === 'login';
+            loginForm.classList.toggle('hidden', !isLogin);
+            registerForm.classList.toggle('hidden', isLogin);
+            loginTab.classList.toggle('tab-active', isLogin);
+            loginTab.classList.toggle('border-transparent', !isLogin);
+            loginTab.classList.toggle('text-zinc-400', !isLogin);
+            registerTab.classList.toggle('tab-active', !isLogin);
+            registerTab.classList.toggle('border-transparent', isLogin);
+            registerTab.classList.toggle('text-zinc-400', isLogin);
+            loginTab.setAttribute('aria-selected', String(isLogin));
+            registerTab.setAttribute('aria-selected', String(!isLogin));
+            message.classList.add('hidden');
+        }
+
+        function showMessage(text, isError = true) {
+            message.textContent = text;
+            message.classList.remove('hidden', 'border-rose-900', 'bg-rose-950/60', 'text-rose-200', 'border-emerald-900', 'bg-emerald-950/50', 'text-emerald-200');
+            message.classList.add(...(isError
+                ? ['border-rose-900', 'bg-rose-950/60', 'text-rose-200']
+                : ['border-emerald-900', 'bg-emerald-950/50', 'text-emerald-200']));
+        }
+
+        function authError(error) {
+            const messages = {
+                'auth/email-already-in-use': 'An account already exists for this email.',
+                'auth/invalid-credential': 'The email or password is incorrect.',
+                'auth/invalid-email': 'Enter a valid email address.',
+                'auth/weak-password': 'Choose a stronger password with at least 8 characters.',
+                'auth/operation-not-allowed': 'Email and password sign-in is not enabled for this Firebase project.'
+            };
+            return messages[error.code] || error.message || 'Something went wrong. Please try again.';
+        }
+
+        function goToFeed() {
+            const destination = returnTo && returnTo.startsWith('/') && !returnTo.startsWith('//')
+                ? returnTo
+                : './index.html';
+            location.replace(destination);
+        }
+
+        loginTab.addEventListener('click', () => setTab('login'));
+        registerTab.addEventListener('click', () => setTab('register'));
+
+        loginForm.addEventListener('submit', async event => {
+            event.preventDefault();
+            const button = loginForm.querySelector('button[type="submit"]');
+            button.disabled = true;
+            button.textContent = 'Signing in…';
+            try {
+                const formData = new FormData(loginForm);
+                await signInWithEmailAndPassword(auth, String(formData.get('email')).trim(), String(formData.get('password')));
+                goToFeed();
+            } catch (error) {
+                console.error('Login failed:', error);
+                showMessage(authError(error));
+            } finally {
+                button.disabled = false;
+                button.textContent = 'Log in';
+            }
+        });
+
+        registerForm.addEventListener('submit', async event => {
+            event.preventDefault();
+            const button = registerForm.querySelector('button[type="submit"]');
+            const formData = new FormData(registerForm);
+            const fullName = String(formData.get('fullName')).trim();
+            const username = String(formData.get('username')).trim();
+            const usernameLower = username.toLowerCase();
+            const email = String(formData.get('email')).trim();
+            const phoneNumber = String(formData.get('phoneNumber')).trim();
+            const password = String(formData.get('password'));
+            const confirmPassword = String(formData.get('confirmPassword'));
+            if (password !== confirmPassword) {
+                showMessage('Your passwords do not match.');
+                return;
+            }
+            if (password.length < 8) {
+                showMessage('Choose a password with at least 8 characters.');
+                return;
+            }
+
+            button.disabled = true;
+            button.textContent = 'Creating account…';
+            let createdUser = null;
+            try {
+                const usernameRef = doc(db, 'usernames', usernameLower);
+                const existing = await getDoc(usernameRef);
+                if (existing.exists()) {
+                    showMessage('That username is already taken.');
+                    return;
+                }
+                const credential = await createUserWithEmailAndPassword(auth, email, password);
+                createdUser = credential.user;
+                await updateProfile(credential.user, { displayName: fullName });
+                await runTransaction(db, async transaction => {
+                    const usernameSnapshot = await transaction.get(usernameRef);
+                    if (usernameSnapshot.exists()) throw new Error('That username is already taken.');
+                    transaction.set(usernameRef, { uid: credential.user.uid });
+                    transaction.set(doc(db, 'users', credential.user.uid), {
+                        uid: credential.user.uid,
+                        fullName,
+                        username,
+                        usernameLower,
+                        email,
+                        phoneNumber,
+                        profilePic: '',
+                        createdAt: serverTimestamp()
+                    });
+                });
+                goToFeed();
+            } catch (error) {
+                console.error('Registration failed:', error);
+                if (createdUser) {
+                    try {
+                        await deleteUser(createdUser);
+                    } catch (cleanupError) {
+                        console.error('Could not remove the incomplete account:', cleanupError);
+                    }
+                }
+                showMessage(authError(error));
+            } finally {
+                button.disabled = false;
+                button.textContent = 'Create account';
+            }
+        });
+    </script>
+</body>
+</html>

@@ -132,7 +132,7 @@
             </div>
 
             <!-- Search Icon -->
-            <button onclick="showToast('Search feature opened')" class="text-white/90 hover:text-white transition group">
+            <button onclick="requireUser().then(user => user && (trackPageActivity('search_opened'), showToast('Search feature opened')))" class="text-white/90 hover:text-white transition group">
                 <i data-lucide="search" class="w-6 h-6 group-hover:scale-105 transition"></i>
             </button>
         </header>
@@ -157,7 +157,7 @@
                 <!-- RIGHT SIDE ACTIONS COLUMN -->
                 <div class="absolute right-3 bottom-6 z-20 flex flex-col items-center space-y-5">
                     <!-- Profile Avatar + Follow Badge -->
-                    <div class="relative group cursor-pointer" onclick="showToast('Viewing @alex_cyberpunk profile')">
+                    <div class="relative group cursor-pointer" onclick="requireUser().then(user => user && (trackPageActivity('view_profile', { creator: '@alex_cyberpunk' }), showToast('Viewing @alex_cyberpunk profile')))">
                         <img src="https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=150&q=80" class="w-12 h-12 rounded-full border-2 border-white object-cover shadow-lg group-hover:scale-105 transition">
                         <button onclick="event.stopPropagation(); toggleFollow(this)" class="follow-btn absolute -bottom-1.5 left-1/2 -translate-x-1/2 bg-tiktok-red hover:bg-red-600 text-white rounded-full p-0.5 shadow-md transition transform active:scale-90">
                             <i data-lucide="plus" class="w-3.5 h-3.5"></i>
@@ -197,7 +197,7 @@
                     </div>
 
                     <!-- Audio Vinyl Spinner -->
-                    <div class="mt-2 cursor-pointer" onclick="showToast('Audio: Original Sound - @alex_cyberpunk')">
+                    <div class="mt-2 cursor-pointer" onclick="requireUser().then(user => user && (trackPageActivity('view_audio', { audio: 'Original Sound - @alex_cyberpunk' }), showToast('Audio: Original Sound - @alex_cyberpunk')))">
                         <div class="w-10 h-10 rounded-full bg-gray-900 border-2 border-gray-700 flex items-center justify-center animate-spin-slow music-disc-glow relative overflow-hidden">
                             <img src="https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=100&q=80" class="w-6 h-6 rounded-full object-cover">
                         </div>
@@ -207,7 +207,7 @@
                 <!-- BOTTOM OVERLAY DETAILS -->
                 <div class="absolute bottom-2 left-0 right-16 z-20 p-4 bg-gradient-to-t from-black/80 via-black/30 to-transparent pointer-events-none">
                     <div class="pointer-events-auto">
-                        <h3 class="font-bold text-base drop-shadow-md hover:underline cursor-pointer inline-block" onclick="showToast('@alex_cyberpunk')">@alex_cyberpunk</h3>
+                        <h3 class="font-bold text-base drop-shadow-md hover:underline cursor-pointer inline-block" onclick="requireUser().then(user => user && (trackPageActivity('view_profile', { creator: '@alex_cyberpunk' }), showToast('@alex_cyberpunk')))">@alex_cyberpunk</h3>
                         <p class="text-sm mt-1 text-gray-100 line-clamp-2 leading-snug drop-shadow-sm">Exploring the neon city at midnight! 🌃 High energy vibes always <span class="font-semibold text-tiktok-cyan cursor-pointer">#cyberpunk</span> <span class="font-semibold text-tiktok-cyan cursor-pointer">#neon</span></p>
                         
                         <!-- Marquee Audio Banner -->
@@ -237,7 +237,7 @@
 
                 <!-- RIGHT SIDE ACTIONS COLUMN -->
                 <div class="absolute right-3 bottom-6 z-20 flex flex-col items-center space-y-5">
-                    <div class="relative group cursor-pointer" onclick="showToast('Viewing @chef_mario profile')">
+                    <div class="relative group cursor-pointer" onclick="requireUser().then(user => user && (trackPageActivity('view_profile', { creator: '@chef_mario' }), showToast('Viewing @chef_mario profile')))">
                         <img src="https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?auto=format&fit=crop&w=150&q=80" class="w-12 h-12 rounded-full border-2 border-white object-cover shadow-lg group-hover:scale-105 transition">
                         <button onclick="event.stopPropagation(); toggleFollow(this)" class="follow-btn absolute -bottom-1.5 left-1/2 -translate-x-1/2 bg-tiktok-red hover:bg-red-600 text-white rounded-full p-0.5 shadow-md transition transform active:scale-90">
                             <i data-lucide="plus" class="w-3.5 h-3.5"></i>
@@ -272,7 +272,7 @@
                         <span class="text-xs font-semibold drop-shadow-md mt-0.5">12.8K</span>
                     </div>
 
-                    <div class="mt-2 cursor-pointer" onclick="showToast('Audio: Delicious Cooking Beats')">
+                    <div class="mt-2 cursor-pointer" onclick="requireUser().then(user => user && (trackPageActivity('view_audio', { audio: 'Delicious Cooking Beats' }), showToast('Audio: Delicious Cooking Beats')))">
                         <div class="w-10 h-10 rounded-full bg-gray-900 border-2 border-gray-700 flex items-center justify-center animate-spin-slow music-disc-glow relative overflow-hidden">
                             <img src="https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?auto=format&fit=crop&w=100&q=80" class="w-6 h-6 rounded-full object-cover">
                         </div>
@@ -282,7 +282,7 @@
                 <!-- BOTTOM OVERLAY DETAILS -->
                 <div class="absolute bottom-2 left-0 right-16 z-20 p-4 bg-gradient-to-t from-black/80 via-black/30 to-transparent pointer-events-none">
                     <div class="pointer-events-auto">
-                        <h3 class="font-bold text-base drop-shadow-md hover:underline cursor-pointer inline-block" onclick="showToast('@chef_mario')">@chef_mario</h3>
+                        <h3 class="font-bold text-base drop-shadow-md hover:underline cursor-pointer inline-block" onclick="requireUser().then(user => user && (trackPageActivity('view_profile', { creator: '@chef_mario' }), showToast('@chef_mario')))">@chef_mario</h3>
                         <p class="text-sm mt-1 text-gray-100 line-clamp-2 leading-snug drop-shadow-sm">Making the ULTIMATE crispy artisan garlic bread 🥖🧄 Would you eat this whole loaf? <span class="font-semibold text-tiktok-cyan cursor-pointer">#foodie</span> <span class="font-semibold text-tiktok-cyan cursor-pointer">#recipe</span></p>
                         
                         <div class="flex items-center space-x-2 mt-3 text-xs font-medium text-gray-200">
@@ -311,7 +311,7 @@
 
                 <!-- RIGHT SIDE ACTIONS COLUMN -->
                 <div class="absolute right-3 bottom-6 z-20 flex flex-col items-center space-y-5">
-                    <div class="relative group cursor-pointer" onclick="showToast('Viewing @nature_escapes profile')">
+                    <div class="relative group cursor-pointer" onclick="requireUser().then(user => user && (trackPageActivity('view_profile', { creator: '@nature_escapes' }), showToast('Viewing @nature_escapes profile')))">
                         <img src="https://images.unsplash.com/photo-1544005313-94ddf0286df2?auto=format&fit=crop&w=150&q=80" class="w-12 h-12 rounded-full border-2 border-white object-cover shadow-lg group-hover:scale-105 transition">
                         <button onclick="event.stopPropagation(); toggleFollow(this)" class="follow-btn absolute -bottom-1.5 left-1/2 -translate-x-1/2 bg-tiktok-red hover:bg-red-600 text-white rounded-full p-0.5 shadow-md transition transform active:scale-90">
                             <i data-lucide="plus" class="w-3.5 h-3.5"></i>
@@ -346,7 +346,7 @@
                         <span class="text-xs font-semibold drop-shadow-md mt-0.5">8,900</span>
                     </div>
 
-                    <div class="mt-2 cursor-pointer" onclick="showToast('Audio: Chill Lofi Ambient Rain')">
+                    <div class="mt-2 cursor-pointer" onclick="requireUser().then(user => user && (trackPageActivity('view_audio', { audio: 'Chill Lofi Ambient Rain' }), showToast('Audio: Chill Lofi Ambient Rain')))">
                         <div class="w-10 h-10 rounded-full bg-gray-900 border-2 border-gray-700 flex items-center justify-center animate-spin-slow music-disc-glow relative overflow-hidden">
                             <img src="https://images.unsplash.com/photo-1544005313-94ddf0286df2?auto=format&fit=crop&w=100&q=80" class="w-6 h-6 rounded-full object-cover">
                         </div>
@@ -356,7 +356,7 @@
                 <!-- BOTTOM OVERLAY DETAILS -->
                 <div class="absolute bottom-2 left-0 right-16 z-20 p-4 bg-gradient-to-t from-black/80 via-black/30 to-transparent pointer-events-none">
                     <div class="pointer-events-auto">
-                        <h3 class="font-bold text-base drop-shadow-md hover:underline cursor-pointer inline-block" onclick="showToast('@nature_escapes')">@nature_escapes</h3>
+                        <h3 class="font-bold text-base drop-shadow-md hover:underline cursor-pointer inline-block" onclick="requireUser().then(user => user && (trackPageActivity('view_profile', { creator: '@nature_escapes' }), showToast('@nature_escapes')))">@nature_escapes</h3>
                         <p class="text-sm mt-1 text-gray-100 line-clamp-2 leading-snug drop-shadow-sm">Serene sunset above the clouds in the Swiss Alps 🏔️ Real peace exists right here. <span class="font-semibold text-tiktok-cyan cursor-pointer">#travel</span> <span class="font-semibold text-tiktok-cyan cursor-pointer">#mountains</span></p>
                         
                         <div class="flex items-center space-x-2 mt-3 text-xs font-medium text-gray-200">
@@ -383,7 +383,7 @@
                 <span>Friends</span>
             </button>
             <!-- Create Button (+) with TikTok Dual-Glow Effect -->
-            <button onclick="showToast('Create Video Camera feature')" class="relative flex items-center justify-center group active:scale-95 transition">
+            <button id="create-media-button" class="relative flex items-center justify-center group active:scale-95 transition" aria-label="Create a video or photo">
                 <div class="w-11 h-7 rounded-lg bg-tiktok-cyan absolute -left-1"></div>
                 <div class="w-11 h-7 rounded-lg bg-tiktok-red absolute -right-1"></div>
                 <div class="w-11 h-7 rounded-lg bg-white relative flex items-center justify-center text-black">
@@ -400,6 +400,59 @@
                 <span>Profile</span>
             </button>
         </nav>
+
+        <dialog id="create-camera-dialog" class="fixed inset-0 m-0 h-full w-full max-h-none max-w-none bg-black/95 p-0 text-white backdrop:bg-black/90">
+            <div class="mx-auto flex h-full w-full max-w-md flex-col bg-black">
+                <header class="flex items-center justify-between px-4 py-4">
+                    <button id="close-camera" class="rounded-full p-2 text-white/80 hover:bg-white/10" type="button" aria-label="Close camera">✕</button>
+                    <h2 class="font-semibold">Create</h2>
+                    <span class="w-10"></span>
+                </header>
+                <div class="relative flex min-h-0 flex-1 items-center justify-center overflow-hidden bg-zinc-950">
+                    <video id="camera-preview" class="hidden h-full w-full object-contain" autoplay muted playsinline></video>
+                    <div id="camera-placeholder" class="px-8 text-center">
+                        <div class="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-white/10 text-3xl">＋</div>
+                        <p class="font-semibold">Create a post</p>
+                        <p class="mt-2 text-sm text-zinc-400">Choose a video or photo, or open your camera.</p>
+                    </div>
+                    <p id="camera-status" class="absolute bottom-4 left-4 right-4 text-center text-sm text-white drop-shadow"></p>
+                </div>
+                <div class="flex items-center justify-center gap-7 px-5 py-5">
+                    <button id="upload-media-button" class="flex flex-col items-center gap-2 text-xs text-zinc-300" type="button">
+                        <span class="flex h-12 w-12 items-center justify-center rounded-full bg-zinc-800 text-xl">▧</span>
+                        Upload
+                    </button>
+                    <button id="capture-media-button" class="flex h-[4.5rem] w-[4.5rem] items-center justify-center rounded-full border-4 border-white" type="button" aria-label="Take photo">
+                        <span class="h-14 w-14 rounded-full bg-rose-500"></span>
+                    </button>
+                    <button id="camera-mode-button" class="flex flex-col items-center gap-2 text-xs text-zinc-300" type="button">
+                        <span class="flex h-12 w-12 items-center justify-center rounded-full bg-zinc-800 text-xl">◉</span>
+                        Use camera
+                    </button>
+                </div>
+                <button id="record-video-button" class="mx-auto mb-6 hidden rounded-full bg-rose-500 px-5 py-2 text-sm font-semibold" type="button">Start recording</button>
+                <input id="local-media-input" class="hidden" type="file" accept="video/*,image/*">
+            </div>
+        </dialog>
+
+        <dialog id="create-details-dialog" class="w-[min(32rem,calc(100%-2rem))] max-h-[92vh] overflow-y-auto rounded-2xl border border-gray-700 bg-tiktok-card p-0 text-white shadow-2xl">
+            <form id="create-details-form" class="p-5 sm:p-7">
+                <div class="mb-5 flex items-center justify-between">
+                    <div><p class="text-xs font-bold uppercase tracking-[.2em] text-tiktok-cyan">New draft</p><h2 class="mt-1 text-2xl font-bold">Add a description</h2></div>
+                    <button id="close-details" class="rounded-lg px-3 py-2 text-gray-400 hover:bg-white/10 hover:text-white" type="button" aria-label="Close details">✕</button>
+                </div>
+                <div id="media-review" class="mb-5 flex max-h-72 justify-center overflow-hidden rounded-xl bg-black"></div>
+                <label class="block text-sm font-medium text-gray-300">
+                    Description
+                    <textarea id="create-description" class="mt-2 min-h-28 w-full resize-y rounded-xl border border-gray-700 bg-black px-4 py-3 text-white outline-none focus:border-tiktok-cyan" maxlength="5000" placeholder="Write a caption…" required></textarea>
+                </label>
+                <div id="create-upload-status" class="mt-4 hidden rounded-xl border border-gray-700 bg-black p-3 text-sm text-gray-300" role="status"></div>
+                <div class="mt-6 flex justify-end gap-2">
+                    <button id="cancel-details" class="rounded-xl bg-gray-800 px-4 py-2.5 font-semibold hover:bg-gray-700" type="button">Cancel</button>
+                    <button id="save-draft-button" class="rounded-xl bg-tiktok-red px-5 py-2.5 font-semibold hover:bg-red-600 disabled:cursor-wait disabled:opacity-60" type="submit">Save draft</button>
+                </div>
+            </form>
+        </dialog>
 
         <!-- COMMENTS SLIDING DRAWER MODAL -->
         <div id="comment-drawer" class="fixed inset-x-0 bottom-0 max-w-md mx-auto z-50 transform translate-y-full transition-transform duration-300 ease-in-out bg-tiktok-dark rounded-t-2xl shadow-2xl flex flex-col h-[70dvh] max-h-[70%] border-t border-gray-800" style="height:70vh;height:70dvh;padding-bottom:env(safe-area-inset-bottom)">
@@ -436,15 +489,15 @@
                     <div class="w-12 h-12 rounded-full bg-gray-800 flex items-center justify-center group-hover:bg-gray-700 transition"><i data-lucide="link" class="w-6 h-6 text-tiktok-cyan"></i></div>
                     <span>Copy Link</span>
                 </button>
-                <button onclick="showToast('Shared to WhatsApp!')" class="flex flex-col items-center space-y-1 group">
+                <button onclick="shareVideo('whatsapp')" class="flex flex-col items-center space-y-1 group">
                     <div class="w-12 h-12 rounded-full bg-green-600 flex items-center justify-center group-hover:bg-green-500 transition"><i data-lucide="message-circle" class="w-6 h-6"></i></div>
                     <span>WhatsApp</span>
                 </button>
-                <button onclick="showToast('Shared to Stories!')" class="flex flex-col items-center space-y-1 group">
+                <button onclick="shareVideo('stories')" class="flex flex-col items-center space-y-1 group">
                     <div class="w-12 h-12 rounded-full bg-gradient-to-tr from-yellow-500 via-pink-500 to-purple-600 flex items-center justify-center group-hover:opacity-90 transition"><i data-lucide="instagram" class="w-6 h-6"></i></div>
                     <span>Stories</span>
                 </button>
-                <button onclick="showToast('Reposted!')" class="flex flex-col items-center space-y-1 group">
+                <button onclick="shareVideo('repost')" class="flex flex-col items-center space-y-1 group">
                     <div class="w-12 h-12 rounded-full bg-tiktok-red flex items-center justify-center group-hover:bg-red-600 transition"><i data-lucide="repeat" class="w-6 h-6"></i></div>
                     <span>Repost</span>
                 </button>
@@ -463,21 +516,14 @@
     </div>
 
     <script>
-        // Mock Comments database
-        const commentsData = {
-            '1': [
-                { id: 101, user: '@cyber_fan', avatar: 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?auto=format&fit=crop&w=100&q=80', text: 'This lighting setup is insane 🔥!', likes: 242 },
-                { id: 102, user: '@tokyo_drift', avatar: 'https://images.unsplash.com/photo-1494790108377-be9c29b29330?auto=format&fit=crop&w=100&q=80', text: 'Where in Tokyo was this shot?', likes: 89 },
-                { id: 103, user: '@synthwave_boy', avatar: 'https://images.unsplash.com/photo-1570295999919-56ceb5ecca61?auto=format&fit=crop&w=100&q=80', text: 'Adding this song to my playlist right now!', likes: 31 }
-            ],
-            '2': [
-                { id: 201, user: '@foodie_101', avatar: 'https://images.unsplash.com/photo-1527980965255-d3b416303d12?auto=format&fit=crop&w=100&q=80', text: 'I can literally smell this video 🤤🥖', likes: 1204 },
-                { id: 202, user: '@baker_sam', avatar: 'https://images.unsplash.com/photo-1580489944761-15a19d654956?auto=format&fit=crop&w=100&q=80', text: 'Needs more garlic powder! Jk looks delicious!', likes: 450 }
-            ],
-            '3': [
-                { id: 301, user: '@hiker_dave', avatar: 'https://images.unsplash.com/photo-1500648767791-00dcc994a43e?auto=format&fit=crop&w=100&q=80', text: 'Heaven on earth ⛰️☁️', likes: 512 }
-            ]
-        };
+        const commentsData = Object.create(null);
+        window.commentsData = commentsData;
+        const feed = document.getElementById('video-feed');
+        feed.replaceChildren();
+        const loadingMessage = document.createElement('div');
+        loadingMessage.className = 'absolute inset-0 flex items-center justify-center text-sm text-gray-300';
+        loadingMessage.textContent = 'Loading videos…';
+        feed.append(loadingMessage);
 
         let currentActiveCard = null;
         let activeVideoId = '1';
@@ -496,14 +542,18 @@
             
             const observer = new IntersectionObserver((entries) => {
                 entries.forEach(entry => {
-                    const video = entry.target.querySelector('video');
+                    const media = entry.target.querySelector('.video-player');
                     if (entry.isIntersecting) {
                         currentActiveCard = entry.target;
                         activeVideoId = entry.target.getAttribute('data-id');
-                        video.play().catch(err => console.log('Autoplay blocked:', err));
+                        if (media instanceof HTMLVideoElement) {
+                            media.play().catch(err => console.log('Autoplay blocked:', err));
+                        }
                     } else {
-                        video.pause();
-                        video.currentTime = 0;
+                        if (media instanceof HTMLVideoElement) {
+                            media.pause();
+                            media.currentTime = 0;
+                        }
                     }
                 });
             }, { threshold: 0.6 });
@@ -513,19 +563,27 @@
             // Single tap to play/pause video
             videoCards.forEach(card => {
                 const video = card.querySelector('video');
+                if (!video) return;
                 const playOverlay = card.querySelector('.play-icon-overlay');
 
                 card.addEventListener('click', (e) => {
                     // Prevent trigger if clicking action buttons or drawer
                     if (e.target.closest('button') || e.target.closest('#comment-drawer')) return;
 
-                    if (video.paused) {
-                        video.play();
-                        playOverlay.classList.add('opacity-0');
-                    } else {
-                        video.pause();
-                        playOverlay.classList.remove('opacity-0');
-                    }
+                    window.requireUser().then(user => {
+                        if (!user) return;
+                        if (video instanceof HTMLVideoElement) {
+                            window.recordVideoActivity(card.dataset.id, video.paused ? 'play' : 'pause')
+                                .catch(error => console.error('Unable to record playback activity:', error));
+                        }
+                        if (video.paused) {
+                            video.play();
+                            playOverlay.classList.add('opacity-0');
+                        } else {
+                            video.pause();
+                            playOverlay.classList.remove('opacity-0');
+                        }
+                    });
                 });
             });
         }
@@ -572,7 +630,9 @@
             setTimeout(() => heart.remove(), 900);
         }
 
-        function toggleLike(btn) {
+        async function toggleLike(btn) {
+            if (btn.disabled) return;
+            btn.disabled = true;
             const card = btn.closest('.video-card');
             const isLiked = card.getAttribute('data-liked') === 'true';
             const countSpan = card.querySelector('.like-count');
@@ -591,26 +651,78 @@
             }
             card.setAttribute('data-likes', likes);
             countSpan.textContent = formatNumber(likes);
+            const likedIds = window.getLikedVideoIds();
+            const videoId = card.dataset.id;
+            const nextLikedIds = isLiked
+                ? likedIds.filter(id => id !== videoId)
+                : [...new Set([...likedIds, videoId])];
+            try {
+                await window.recordVideoActivity(videoId, isLiked ? 'unlike' : 'like', {}, {
+                    field: 'likesCount',
+                    delta: isLiked ? -1 : 1
+                });
+                window.storeLikedVideoIds(nextLikedIds);
+            } catch (error) {
+                console.error('Unable to save like activity:', error);
+                card.dataset.liked = String(isLiked);
+                card.dataset.likes = String(isLiked ? likes + 1 : likes - 1);
+                countSpan.textContent = formatNumber(Number(card.dataset.likes));
+                btn.classList.toggle('text-tiktok-red', isLiked);
+                btn.classList.toggle('text-white', !isLiked);
+                showToast('Your like could not be saved. Please try again.');
+            } finally {
+                btn.disabled = false;
+            }
         }
 
-        function toggleBookmark(btn) {
+        async function toggleBookmark(btn) {
+            const user = await window.requireUser();
+            if (!user) return;
+            if (btn.disabled) return;
+            btn.disabled = true;
             const card = btn.closest('.video-card');
             const isBookmarked = card.getAttribute('data-bookmarked') === 'true';
 
+            try {
+                await window.recordVideoActivity(card.dataset.id, isBookmarked ? 'unsave' : 'save', {}, {
+                    field: 'savesCount',
+                    delta: isBookmarked ? -1 : 1
+                });
+            } catch (error) {
+                console.error('Unable to save bookmark activity:', error);
+                showToast('This video could not be saved. Please try again.');
+                btn.disabled = false;
+                return;
+            }
             if (!isBookmarked) {
                 card.setAttribute('data-bookmarked', 'true');
                 btn.classList.add('text-yellow-400');
                 btn.classList.remove('text-white');
+                card.dataset.saves = String(Number(card.dataset.saves || 0) + 1);
+                card.querySelector('.bookmark-count').textContent = formatNumber(Number(card.dataset.saves));
                 showToast('Saved to Favorites');
             } else {
                 card.setAttribute('data-bookmarked', 'false');
                 btn.classList.remove('text-yellow-400');
                 btn.classList.add('text-white');
+                card.dataset.saves = String(Math.max(0, Number(card.dataset.saves || 0) - 1));
+                card.querySelector('.bookmark-count').textContent = formatNumber(Number(card.dataset.saves));
                 showToast('Removed from Favorites');
             }
+            btn.disabled = false;
         }
 
-        function toggleFollow(btn) {
+        async function toggleFollow(btn) {
+            const user = await window.requireUser();
+            if (!user) return;
+            const videoId = btn.closest('.video-card')?.dataset.id;
+            try {
+                if (videoId) await window.recordVideoActivity(videoId, 'follow_creator', { creator: btn.closest('.video-card').dataset.username });
+            } catch (error) {
+                console.error('Unable to record follow activity:', error);
+                showToast('Could not follow this creator. Please try again.');
+                return;
+            }
             btn.classList.add('scale-0');
             setTimeout(() => {
                 btn.parentElement.classList.add('ring-2', 'ring-tiktok-cyan');
@@ -618,7 +730,13 @@
             }, 200);
         }
 
-        function toggleMute() {
+        async function toggleMute() {
+            const user = await window.requireUser();
+            if (!user) return;
+            if (currentActiveCard) {
+                window.recordVideoActivity(currentActiveCard.dataset.id, 'toggle_sound', { muted: !isMuted })
+                    .catch(error => console.error('Unable to record sound activity:', error));
+            }
             const videos = document.querySelectorAll('video');
             const muteIcon = document.getElementById('mute-icon');
             isMuted = !isMuted;
@@ -629,7 +747,16 @@
             showToast(isMuted ? 'Sound Off' : 'Sound On');
         }
 
-        function openComments(id) {
+        async function openComments(id) {
+            const user = await window.requireUser();
+            if (!user) return;
+            try {
+                await window.recordVideoActivity(id, 'view_comments');
+            } catch (error) {
+                console.error('Unable to record comment view:', error);
+                showToast('Comments could not be loaded. Please try again.');
+                return;
+            }
             activeVideoId = id;
             const drawer = document.getElementById('comment-drawer');
             const list = document.getElementById('comments-list');
@@ -638,14 +765,14 @@
             const comments = commentsData[id] || [];
             countHeader.textContent = `${comments.length.toLocaleString()} comments`;
 
-            list.innerHTML = comments.map(c => `
+            list.innerHTML = comments.map((c, index) => `
                 <div class="flex items-start justify-between space-x-3">
-                    <img src="${c.avatar}" class="w-8 h-8 rounded-full object-cover">
+                    <img src="${escapeHtml(safeImageUrl(c.avatar))}" alt="" class="w-8 h-8 rounded-full object-cover">
                     <div class="flex-1 text-xs">
-                        <span class="font-bold text-gray-400">${c.user}</span>
-                        <p class="text-white mt-0.5">${c.text}</p>
+                        <span class="font-bold text-gray-400">${escapeHtml(c.user)}</span>
+                        <p class="text-white mt-0.5">${escapeHtml(c.text)}</p>
                     </div>
-                    <button onclick="likeComment(this)" class="flex flex-col items-center text-gray-400 hover:text-tiktok-red transition">
+                    <button data-comment-index="${index}" onclick="likeComment(this)" class="flex flex-col items-center text-gray-400 hover:text-tiktok-red transition">
                         <i data-lucide="heart" class="w-4 h-4"></i>
                         <span class="text-[10px]">${c.likes}</span>
                     </button>
@@ -660,30 +787,71 @@
             document.getElementById('comment-drawer').classList.add('translate-y-full');
         }
 
-        function postComment() {
+        async function postComment() {
+            const user = await window.requireUser();
+            if (!user) return;
             const input = document.getElementById('comment-input');
             const text = input.value.trim();
             if (!text) return;
 
+            const comment = {
+                id: Date.now(),
+                user: user.displayName || user.email?.split('@')[0] || 'User',
+                profileImageLink: user.photoURL || '',
+                text,
+                likes: 0
+            };
+            try {
+                await window.persistVideoComment(activeVideoId, comment);
+            } catch (error) {
+                console.error('Unable to post comment:', error);
+                showToast('Your comment could not be posted. Please try again.');
+                return;
+            }
             if (!commentsData[activeVideoId]) commentsData[activeVideoId] = [];
             commentsData[activeVideoId].unshift({
-                id: Date.now(),
-                user: '@you',
-                avatar: 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?auto=format&fit=crop&w=100&q=80',
-                text: text,
+                id: comment.id,
+                user: comment.user,
+                avatar: safeImageUrl(comment.profileImageLink),
+                text,
                 likes: 0
             });
+            const card = document.querySelector(`.video-card[data-id="${CSS.escape(activeVideoId)}"]`);
+            if (card) {
+                card.dataset.comments = String(Number(card.dataset.comments || 0) + 1);
+                card.querySelector('.comment-count').textContent = formatNumber(Number(card.dataset.comments));
+            }
 
             input.value = '';
             openComments(activeVideoId);
             showToast('Comment posted!');
         }
 
-        function likeComment(btn) {
-            btn.classList.toggle('text-tiktok-red');
+        async function likeComment(btn) {
+            const user = await window.requireUser();
+            if (!user) return;
+            const videoId = activeVideoId;
+            const commentIndex = Number(btn.dataset.commentIndex);
+            try {
+                const comments = commentsData[videoId] || [];
+                const comment = comments[commentIndex];
+                if (!comment) return;
+                const wasLiked = btn.classList.contains('text-tiktok-red');
+                const nextLikes = Math.max(0, Number(comment.likes || 0) + (wasLiked ? -1 : 1));
+                await window.toggleCommentLike(videoId, commentIndex, nextLikes, wasLiked ? 'unlike_comment' : 'like_comment');
+                comment.likes = nextLikes;
+                btn.classList.toggle('text-tiktok-red', !wasLiked);
+                btn.querySelector('span').textContent = String(nextLikes);
+            } catch (error) {
+                console.error('Unable to record comment like:', error);
+                showToast('Could not like this comment. Please try again.');
+            }
         }
 
-        function switchTab(tab) {
+        async function switchTab(tab) {
+            const user = await window.requireUser();
+            if (!user) return;
+            await window.trackPageActivity('feed_tab', { tab });
             const indFollowing = document.getElementById('indicator-following');
             const indForYou = document.getElementById('indicator-foryou');
             const btnFollowing = document.getElementById('tab-following');
@@ -702,7 +870,10 @@
             }
         }
 
-        function switchNavTab(tab) {
+        async function switchNavTab(tab) {
+            const user = await window.requireUser();
+            if (!user) return;
+            await window.trackPageActivity('navigation', { tab });
             const tabs = ['home', 'friends', 'inbox', 'profile'];
             tabs.forEach(t => {
                 const el = document.getElementById(`nav-${t}`);
@@ -716,7 +887,9 @@
         }
 
         // Share Drawer Shortcuts
-        function openShareModal() {
+        async function openShareModal() {
+            const user = await window.requireUser();
+            if (!user) return;
             const modal = document.getElementById('share-modal');
             modal.classList.remove('hidden', 'translate-y-full');
         }
@@ -727,22 +900,59 @@
             setTimeout(() => modal.classList.add('hidden'), 300);
         }
 
-        function copyVideoLink() {
+        async function copyVideoLink() {
+            const user = await window.requireUser();
+            if (!user) return;
             const dummy = document.createElement('input');
             document.body.appendChild(dummy);
             dummy.value = window.location.href;
             dummy.select();
-            document.execCommand('copy');
+            const copied = document.execCommand('copy');
             document.body.removeChild(dummy);
+            if (copied) {
+                try {
+                    await recordShare('copy_link');
+                } catch (error) {
+                    console.error('Unable to save share activity:', error);
+                    showToast('The link was copied, but the share could not be recorded.');
+                    closeShareModal();
+                    return;
+                }
+            }
             closeShareModal();
-            showToast('Link copied to clipboard!');
+            showToast(copied ? 'Link copied to clipboard!' : 'Could not copy the link.');
+        }
+
+        async function recordShare(method) {
+            if (!currentActiveCard) return;
+            await window.recordVideoActivity(currentActiveCard.dataset.id, 'share', { method }, {
+                field: 'sharesCount',
+                delta: 1
+            });
+            currentActiveCard.dataset.shares = String(Number(currentActiveCard.dataset.shares || 0) + 1);
+            currentActiveCard.querySelector('.share-count').textContent =
+                formatNumber(Number(currentActiveCard.dataset.shares));
+        }
+
+        async function shareVideo(method) {
+            const user = await window.requireUser();
+            if (!user) return;
+            try {
+                await recordShare(method);
+                closeShareModal();
+                showToast(method === 'repost' ? 'Reposted!' : `Shared to ${method === 'whatsapp' ? 'WhatsApp' : 'Stories'}!`);
+            } catch (error) {
+                console.error('Unable to save share activity:', error);
+                showToast('Could not share this video. Please try again.');
+            }
         }
 
         // Keyboard navigation support
         function setupKeyboardNavigation() {
             const feed = document.getElementById('video-feed');
             document.addEventListener('keydown', (e) => {
-                if (e.target.tagName === 'INPUT') return;
+                if (e.target instanceof HTMLElement
+                    && (e.target.isContentEditable || ['INPUT', 'TEXTAREA', 'SELECT'].includes(e.target.tagName))) return;
 
                 if (e.key === 'ArrowDown' || e.key === 'j') {
                     feed.scrollBy({ top: feed.clientHeight, behavior: 'smooth' });
@@ -751,8 +961,11 @@
                 } else if (e.key === ' ') {
                     e.preventDefault();
                     if (currentActiveCard) {
-                        const video = currentActiveCard.querySelector('video');
-                        video.paused ? video.play() : video.pause();
+                        window.requireUser().then(user => {
+                            if (!user) return;
+                            const video = currentActiveCard.querySelector('video');
+                            if (video) video.paused ? video.play() : video.pause();
+                        });
                     }
                 } else if (e.key.toLowerCase() === 'l') {
                     if (currentActiveCard) {
@@ -777,6 +990,639 @@
             if (num >= 1000000) return (num / 1000000).toFixed(1) + 'M';
             if (num >= 1000) return (num / 1000).toFixed(1) + 'K';
             return num.toString();
+        }
+
+        function escapeHtml(value) {
+            return String(value ?? '').replace(/[&<>"']/g, character => ({
+                '&': '&amp;',
+                '<': '&lt;',
+                '>': '&gt;',
+                '"': '&quot;',
+                "'": '&#39;'
+            })[character]);
+        }
+
+        function safeImageUrl(value) {
+            try {
+                const url = new URL(value);
+                return url.protocol === 'https:' || url.protocol === 'http:' ? url.href : '';
+            } catch {
+                return '';
+            }
+        }
+    </script>
+    <script type="module">
+        import { auth, db } from './firebase.js';
+        import { onAuthStateChanged } from 'https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js';
+        import {
+            addDoc, collection, doc, getDoc, getDocs, query, runTransaction,
+            serverTimestamp, where, writeBatch
+        } from 'https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js';
+
+        const videoFeed = document.getElementById('video-feed');
+        const feedCommentsData = window.commentsData;
+        const cameraDialog = document.getElementById('create-camera-dialog');
+        const detailsDialog = document.getElementById('create-details-dialog');
+        const cameraPreview = document.getElementById('camera-preview');
+        const cameraStatus = document.getElementById('camera-status');
+        const cameraPlaceholder = document.getElementById('camera-placeholder');
+        const cameraCaptureButton = document.getElementById('capture-media-button');
+        const recordVideoButton = document.getElementById('record-video-button');
+        const localMediaInput = document.getElementById('local-media-input');
+        const createUploadStatus = document.getElementById('create-upload-status');
+        const PENDING_CLOUD_NAME = 'hjkjnzpz';
+        const PENDING_UPLOAD_PRESET = 'pending_review';
+        let authReadyResolve;
+        const authReady = new Promise(resolve => { authReadyResolve = resolve; });
+        let currentUser = auth.currentUser;
+        let selectedMedia = null;
+        let cameraStream = null;
+        let mediaRecorder = null;
+        let activeRecordingDiscarded = null;
+        let recordedChunks = [];
+        let mediaPreviewUrl = '';
+
+        onAuthStateChanged(auth, user => {
+            currentUser = user;
+            authReadyResolve(user);
+            if (user) restoreLikedState();
+        }, error => {
+            console.error('Unable to observe Firebase authentication state:', error);
+            authReadyResolve(null);
+        });
+
+        function getGuestId() {
+            let guestId = localStorage.getItem('earntok_guest_id');
+            if (!guestId) {
+                guestId = crypto.randomUUID();
+                localStorage.setItem('earntok_guest_id', guestId);
+            }
+            return guestId;
+        }
+
+        function identityKey() {
+            return currentUser?.uid ?? getGuestId();
+        }
+
+        function likedVideosKey() {
+            return `earntok_liked_videos_${identityKey()}`;
+        }
+
+        window.getLikedVideoIds = () => {
+            try {
+                return JSON.parse(localStorage.getItem(likedVideosKey()) || '[]');
+            } catch (error) {
+                console.error('Unable to restore liked video state:', error);
+                return [];
+            }
+        };
+        window.storeLikedVideoIds = ids => localStorage.setItem(likedVideosKey(), JSON.stringify(ids));
+
+        function restoreLikedState() {
+            let likedIds = [];
+            try {
+                likedIds = JSON.parse(localStorage.getItem(likedVideosKey()) || '[]');
+            } catch (error) {
+                console.error('Unable to restore liked video state:', error);
+            }
+            document.querySelectorAll('.video-card').forEach(card => {
+                const liked = likedIds.includes(card.dataset.id);
+                card.dataset.liked = String(liked);
+                const button = card.querySelector('.like-btn');
+                if (button) {
+                    button.classList.toggle('text-tiktok-red', liked);
+                    button.classList.toggle('text-white', !liked);
+                }
+            });
+        }
+
+        window.requireUser = async () => {
+            await authReady;
+            if (currentUser) return currentUser;
+            window.showToast('Sign in or create an account to use this feature.');
+            setTimeout(() => {
+                const returnTo = `${window.location.pathname}${window.location.search}${window.location.hash}`;
+                window.location.href = `./oauth.html?returnTo=${encodeURIComponent(returnTo)}`;
+            }, 1000);
+            return null;
+        };
+
+        async function persistActivity(videoId, action, details = {}, update = null) {
+            const actorId = currentUser?.uid ?? getGuestId();
+            const videoRef = doc(db, 'videos', videoId);
+            const activityRef = doc(collection(db, 'activity'));
+            await runTransaction(db, async transaction => {
+                const videoSnapshot = await transaction.get(videoRef);
+                if (!videoSnapshot.exists()) throw new Error('This video is no longer available.');
+                const updates = {};
+                if (update) {
+                    const value = videoSnapshot.data()[update.field];
+                    updates[update.field] = Math.max(0, numberValue(value) + update.delta);
+                }
+                if (update) transaction.update(videoRef, updates);
+                transaction.set(activityRef, {
+                    videoId,
+                    userId: actorId,
+                    action,
+                    details,
+                    createdAt: serverTimestamp()
+                });
+            });
+        }
+
+        async function persistComment(videoId, comment) {
+            const actorId = currentUser?.uid;
+            if (!actorId) throw new Error('Sign in before commenting.');
+            const videoRef = doc(db, 'videos', videoId);
+            const activityRef = doc(collection(db, 'activity'));
+            await runTransaction(db, async transaction => {
+                const videoSnapshot = await transaction.get(videoRef);
+                if (!videoSnapshot.exists()) throw new Error('This video is no longer available.');
+                const existingComments = Array.isArray(videoSnapshot.data().comments)
+                    ? videoSnapshot.data().comments
+                    : [];
+                transaction.update(videoRef, { comments: [comment, ...existingComments] });
+                transaction.set(activityRef, {
+                    videoId,
+                    userId: actorId,
+                    action: 'comment',
+                    details: { text: comment.text },
+                    createdAt: serverTimestamp()
+                });
+            });
+        }
+
+        async function persistCommentLike(videoId, commentIndex, likes, action) {
+            const actorId = currentUser?.uid;
+            if (!actorId) throw new Error('Sign in before liking comments.');
+            const videoRef = doc(db, 'videos', videoId);
+            const activityRef = doc(collection(db, 'activity'));
+            await runTransaction(db, async transaction => {
+                const videoSnapshot = await transaction.get(videoRef);
+                if (!videoSnapshot.exists()) throw new Error('This video is no longer available.');
+                const comments = Array.isArray(videoSnapshot.data().comments)
+                    ? [...videoSnapshot.data().comments]
+                    : [];
+                if (!comments[commentIndex]) throw new Error('This comment is no longer available.');
+                const comment = comments[commentIndex];
+                comments[commentIndex] = typeof comment === 'string'
+                    ? { text: comment, likes }
+                    : { ...comment, likes };
+                transaction.update(videoRef, { comments });
+                transaction.set(activityRef, {
+                    videoId,
+                    userId: actorId,
+                    action,
+                    details: { commentIndex },
+                    createdAt: serverTimestamp()
+                });
+            });
+        }
+
+        window.recordVideoActivity = (videoId, action, details, update) =>
+            persistActivity(videoId, action, details, update);
+        window.persistVideoComment = persistComment;
+        window.toggleCommentLike = persistCommentLike;
+        window.trackPageActivity = async (action, details = {}) => {
+            try {
+                await addDoc(collection(db, 'activity'), {
+                    userId: currentUser?.uid ?? getGuestId(),
+                    action,
+                    details,
+                    createdAt: serverTimestamp()
+                });
+            } catch (error) {
+                console.error(`Unable to record ${action} activity:`, error);
+                window.showToast('This activity could not be saved.');
+            }
+        };
+
+        function stopCamera() {
+            if (mediaRecorder?.state === 'recording') {
+                if (activeRecordingDiscarded) activeRecordingDiscarded.value = true;
+                mediaRecorder.stop();
+            }
+            if (cameraStream) {
+                cameraStream.getTracks().forEach(track => track.stop());
+                cameraStream = null;
+            }
+            cameraPreview.srcObject = null;
+            cameraPreview.classList.add('hidden');
+            cameraPlaceholder.classList.remove('hidden');
+            recordVideoButton.classList.add('hidden');
+            recordVideoButton.textContent = 'Start recording';
+            recordVideoButton.classList.remove('bg-zinc-700');
+            recordVideoButton.classList.add('bg-rose-500');
+            cameraStatus.textContent = '';
+            mediaRecorder = null;
+            recordedChunks = [];
+            activeRecordingDiscarded = null;
+        }
+
+        function setSelectedMedia(file) {
+            if (!file || (!file.type.startsWith('video/') && !file.type.startsWith('image/'))) {
+                window.showToast('Choose a video or image file.');
+                return;
+            }
+            if (mediaPreviewUrl) URL.revokeObjectURL(mediaPreviewUrl);
+            selectedMedia = file;
+            mediaPreviewUrl = URL.createObjectURL(file);
+            const preview = document.getElementById('media-review');
+            preview.replaceChildren();
+            const media = document.createElement(file.type.startsWith('video/') ? 'video' : 'img');
+            media.src = mediaPreviewUrl;
+            media.className = 'max-h-72 max-w-full object-contain';
+            if (media instanceof HTMLVideoElement) {
+                media.controls = true;
+                media.playsInline = true;
+            } else {
+                media.alt = 'Selected photo preview';
+            }
+            preview.append(media);
+            document.getElementById('create-description').value = '';
+            createUploadStatus.classList.add('hidden');
+            detailsDialog.showModal();
+        }
+
+        function uploadPendingMedia(file) {
+            const resourceType = file.type.startsWith('image/') ? 'image' : 'video';
+            const body = new FormData();
+            body.append('file', file);
+            body.append('upload_preset', PENDING_UPLOAD_PRESET);
+            const endpoint = `https://api.cloudinary.com/v1_1/${PENDING_CLOUD_NAME}/${resourceType}/upload`;
+            return new Promise((resolve, reject) => {
+                const request = new XMLHttpRequest();
+                request.open('POST', endpoint);
+                request.upload.addEventListener('progress', event => {
+                    if (event.lengthComputable) {
+                        createUploadStatus.textContent = `Uploading draft… ${Math.round(event.loaded / event.total * 100)}%`;
+                    }
+                });
+                request.addEventListener('load', () => {
+                    let response;
+                    try {
+                        response = JSON.parse(request.responseText);
+                    } catch {
+                        reject(new Error('Cloudinary returned an unreadable upload response.'));
+                        return;
+                    }
+                    if (request.status < 200 || request.status >= 300 || !response.secure_url) {
+                        reject(new Error(response.error?.message || `Draft upload failed (${request.status}).`));
+                        return;
+                    }
+                    resolve({ link: response.secure_url, mediaType: resourceType });
+                });
+                request.addEventListener('error', () => reject(new Error('Network error while uploading the draft.')));
+                request.send(body);
+            });
+        }
+
+        document.getElementById('create-media-button').addEventListener('click', async () => {
+            if (!await window.requireUser()) return;
+            if (currentActiveCard) {
+                await window.recordVideoActivity(currentActiveCard.dataset.id, 'open_create');
+            }
+            cameraDialog.showModal();
+        });
+        document.getElementById('close-camera').addEventListener('click', () => cameraDialog.close());
+        cameraDialog.addEventListener('close', stopCamera);
+        document.getElementById('upload-media-button').addEventListener('click', () => localMediaInput.click());
+        localMediaInput.addEventListener('change', () => {
+            const [file] = localMediaInput.files;
+            if (file) {
+                cameraDialog.close();
+                setSelectedMedia(file);
+            }
+            localMediaInput.value = '';
+        });
+        document.getElementById('camera-mode-button').addEventListener('click', async () => {
+            if (!navigator.mediaDevices?.getUserMedia) {
+                cameraStatus.textContent = 'Camera access is not supported here. Use Upload instead.';
+                return;
+            }
+            try {
+                stopCamera();
+                try {
+                    cameraStream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'environment' }, audio: true });
+                } catch {
+                    cameraStream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'environment' } });
+                }
+                cameraPreview.srcObject = cameraStream;
+                cameraPreview.classList.remove('hidden');
+                cameraPlaceholder.classList.add('hidden');
+                cameraCaptureButton.setAttribute('aria-label', 'Take photo');
+                cameraStatus.textContent = 'Tap the shutter for a photo, or record a video.';
+                if (window.MediaRecorder && MediaRecorder.isTypeSupported('video/webm;codecs=vp8,opus')) {
+                    recordVideoButton.classList.remove('hidden');
+                } else if (window.MediaRecorder) {
+                    recordVideoButton.classList.remove('hidden');
+                } else {
+                    cameraStatus.textContent = 'Video recording is not supported. You can still take a photo.';
+                }
+            } catch (error) {
+                console.error('Unable to open device camera:', error);
+                cameraStatus.textContent = 'Camera permission was denied or the camera is unavailable. Use Upload instead.';
+            }
+        });
+        cameraCaptureButton.addEventListener('click', () => {
+            if (!cameraStream || !cameraPreview.videoWidth) {
+                localMediaInput.click();
+                return;
+            }
+            const canvas = document.createElement('canvas');
+            canvas.width = cameraPreview.videoWidth;
+            canvas.height = cameraPreview.videoHeight;
+            canvas.getContext('2d').drawImage(cameraPreview, 0, 0);
+            canvas.toBlob(blob => {
+                if (!blob) {
+                    cameraStatus.textContent = 'Could not capture the photo. Please try again.';
+                    return;
+                }
+                cameraDialog.close();
+                setSelectedMedia(new File([blob], `earntok-${Date.now()}.jpg`, { type: 'image/jpeg' }));
+            }, 'image/jpeg', .92);
+        });
+        recordVideoButton.addEventListener('click', () => {
+            if (!cameraStream) return;
+            if (mediaRecorder?.state === 'recording') {
+                mediaRecorder.stop();
+                recordVideoButton.textContent = 'Start recording';
+                recordVideoButton.classList.remove('bg-zinc-700');
+                recordVideoButton.classList.add('bg-rose-500');
+                return;
+            }
+            recordedChunks = [];
+            let options = {};
+            if (MediaRecorder.isTypeSupported('video/webm;codecs=vp8,opus')) {
+                options = { mimeType: 'video/webm;codecs=vp8,opus' };
+            }
+            try {
+                mediaRecorder = new MediaRecorder(cameraStream, options);
+                const activeRecorder = mediaRecorder;
+                const chunks = recordedChunks;
+                const discarded = { value: false };
+                activeRecordingDiscarded = discarded;
+                mediaRecorder.addEventListener('dataavailable', event => {
+                    if (event.data.size) chunks.push(event.data);
+                });
+                mediaRecorder.addEventListener('stop', () => {
+                    if (discarded.value) return;
+                    if (!chunks.length) {
+                        cameraStatus.textContent = 'No video was recorded.';
+                        return;
+                    }
+                    const video = new Blob(chunks, { type: activeRecorder.mimeType || 'video/webm' });
+                    cameraDialog.close();
+                    setSelectedMedia(new File([video], `earntok-${Date.now()}.webm`, { type: video.type }));
+                }, { once: true });
+                mediaRecorder.start();
+                recordVideoButton.textContent = 'Stop recording';
+                recordVideoButton.classList.remove('bg-rose-500');
+                recordVideoButton.classList.add('bg-zinc-700');
+                cameraStatus.textContent = 'Recording… tap Stop recording when you are done.';
+            } catch (error) {
+                console.error('Unable to record video:', error);
+                cameraStatus.textContent = 'Could not start recording. Check camera permissions and try again.';
+            }
+        });
+        document.getElementById('close-details').addEventListener('click', () => detailsDialog.close());
+        document.getElementById('cancel-details').addEventListener('click', () => detailsDialog.close());
+        detailsDialog.addEventListener('close', () => {
+            if (mediaPreviewUrl) URL.revokeObjectURL(mediaPreviewUrl);
+            mediaPreviewUrl = '';
+            selectedMedia = null;
+        });
+        document.getElementById('create-details-form').addEventListener('submit', async event => {
+            event.preventDefault();
+            if (!selectedMedia) {
+                window.showToast('Choose or capture a photo or video first.');
+                return;
+            }
+            const user = await window.requireUser();
+            if (!user) return;
+            const saveButton = document.getElementById('save-draft-button');
+            saveButton.disabled = true;
+            saveButton.textContent = 'Uploading…';
+            createUploadStatus.classList.remove('hidden');
+            createUploadStatus.textContent = 'Uploading media for review…';
+            try {
+                const [userSnapshot, uploaded] = await Promise.all([
+                    getDoc(doc(db, 'users', user.uid)),
+                    uploadPendingMedia(selectedMedia)
+                ]);
+                const profile = userSnapshot.exists() ? userSnapshot.data() : {};
+                const videoData = {
+                    link: uploaded.link,
+                    mediaType: uploaded.mediaType,
+                    description: document.getElementById('create-description').value.trim(),
+                    uploadedBy: String(profile.username ?? user.displayName ?? 'User'),
+                    profileImageLink: String(profile.profilePic ?? ''),
+                    likesCount: 0,
+                    savesCount: 0,
+                    sharesCount: 0,
+                    comments: [],
+                    admin: 'no',
+                    createdAt: serverTimestamp(),
+                    userId: user.uid
+                };
+                const videoRef = doc(collection(db, 'videos'));
+                const activityRef = doc(collection(db, 'activity'));
+                const batch = writeBatch(db);
+                batch.set(videoRef, videoData);
+                batch.set(activityRef, {
+                    videoId: videoRef.id,
+                    userId: user.uid,
+                    action: 'submit_draft',
+                    details: { mediaType: uploaded.mediaType },
+                    createdAt: serverTimestamp()
+                });
+                await batch.commit();
+                detailsDialog.close();
+                window.showToast('Your post was submitted for review.');
+            } catch (error) {
+                console.error('Unable to submit draft:', error);
+                createUploadStatus.textContent = error.message || 'Could not save the draft. Check the upload and database settings.';
+                createUploadStatus.classList.remove('text-gray-300');
+                createUploadStatus.classList.add('text-rose-200');
+            } finally {
+                saveButton.disabled = false;
+                saveButton.textContent = 'Save draft';
+            }
+        });
+
+        const escapeHtml = value => String(value ?? '').replace(/[&<>"']/g, character => ({
+            '&': '&amp;',
+            '<': '&lt;',
+            '>': '&gt;',
+            '"': '&quot;',
+            "'": '&#39;'
+        })[character]);
+
+        function validMediaUrl(value) {
+            try {
+                const url = new URL(value);
+                return url.protocol === 'https:' || url.protocol === 'http:' ? url.href : '';
+            } catch {
+                return '';
+            }
+        }
+
+        function numberValue(value) {
+            const number = Number(value);
+            return Number.isFinite(number) && number > 0 ? Math.floor(number) : 0;
+        }
+
+        function normalizeComment(comment, index) {
+            if (typeof comment === 'string') {
+                return { id: index, user: 'User', text: comment, avatar: '', likes: 0 };
+            }
+            if (!comment || typeof comment !== 'object') {
+                return { id: index, user: 'User', text: '', avatar: '', likes: 0 };
+            }
+            return {
+                id: String(comment.id ?? index),
+                user: String(comment.user ?? comment.username ?? comment.uploadedBy ?? comment.name ?? 'User'),
+                text: String(comment.text ?? comment.comment ?? comment.message ?? ''),
+                avatar: validMediaUrl(comment.profileImageLink ?? comment.avatar ?? ''),
+                likes: numberValue(comment.likes)
+            };
+        }
+
+        function makeCard(id, video) {
+            const link = validMediaUrl(video.link);
+            if (!link) return null;
+
+            const description = String(video.description ?? '');
+            const uploadedBy = String(video.uploadedBy ?? 'Unknown creator');
+            const profileImage = validMediaUrl(video.profileImageLink);
+            const likes = numberValue(video.likesCount);
+            const saves = numberValue(video.savesCount);
+            const shares = numberValue(video.sharesCount);
+            const comments = Array.isArray(video.comments) ? video.comments.map(normalizeComment) : [];
+            const mediaType = video.mediaType === 'image' ? 'image' : 'video';
+            feedCommentsData[id] = comments;
+
+            const card = document.createElement('section');
+            card.className = 'video-card snap-start relative w-full h-full flex-shrink-0 bg-black overflow-hidden';
+            card.dataset.id = id;
+            card.dataset.liked = 'false';
+            card.dataset.bookmarked = 'false';
+            card.dataset.likes = String(likes);
+            card.dataset.saves = String(saves);
+            card.dataset.shares = String(shares);
+            card.dataset.comments = String(comments.length);
+            card.dataset.username = uploadedBy;
+            card.dataset.desc = description;
+
+            const avatar = profileImage
+                ? `<img src="${escapeHtml(profileImage)}" alt="" class="w-12 h-12 rounded-full border-2 border-white object-cover shadow-lg">`
+                : `<div class="w-12 h-12 rounded-full border-2 border-white bg-gray-700 flex items-center justify-center font-bold">${escapeHtml(uploadedBy.slice(0, 1).toUpperCase())}</div>`;
+
+            const mediaElement = mediaType === 'image'
+                ? `<img class="video-player h-full w-full object-cover" src="${escapeHtml(link)}" alt="${escapeHtml(description)}">`
+                : `<video class="video-player w-full h-full object-cover cursor-pointer" src="${escapeHtml(link)}" loop playsinline muted preload="metadata"></video>`;
+            card.innerHTML = `
+                ${mediaElement}
+                <div class="play-icon-overlay absolute inset-0 flex items-center justify-center opacity-0 pointer-events-none transition-opacity duration-200">
+                    <div class="w-16 h-16 bg-black/50 rounded-full flex items-center justify-center backdrop-blur-sm">
+                        <i data-lucide="play" class="w-8 h-8 text-white fill-white ml-1"></i>
+                    </div>
+                </div>
+                <div class="absolute right-3 bottom-6 z-20 flex flex-col items-center space-y-5">
+                    <div class="relative">${avatar}</div>
+                    <div class="flex flex-col items-center">
+                        <button type="button" class="like-btn p-2 rounded-full hover:bg-white/10 transition active:scale-75 text-white" aria-label="Like video">
+                            <i data-lucide="heart" class="w-8 h-8 transition-colors"></i>
+                        </button>
+                        <span class="like-count text-xs font-semibold drop-shadow-md mt-0.5">${escapeHtml(window.formatNumber(likes))}</span>
+                    </div>
+                    <div class="flex flex-col items-center">
+                        <button type="button" class="comments-btn p-2 rounded-full hover:bg-white/10 transition active:scale-75 text-white" aria-label="View comments">
+                            <i data-lucide="message-circle" class="w-8 h-8 drop-shadow-md"></i>
+                        </button>
+                        <span class="comment-count text-xs font-semibold drop-shadow-md mt-0.5">${escapeHtml(window.formatNumber(comments.length))}</span>
+                    </div>
+                    <div class="flex flex-col items-center">
+                        <button type="button" class="bookmark-btn p-2 rounded-full hover:bg-white/10 transition active:scale-75 text-white" aria-label="Save video">
+                            <i data-lucide="bookmark" class="w-8 h-8 transition-colors drop-shadow-md"></i>
+                        </button>
+                        <span class="bookmark-count text-xs font-semibold drop-shadow-md mt-0.5">${escapeHtml(window.formatNumber(saves))}</span>
+                    </div>
+                    <div class="flex flex-col items-center">
+                        <button type="button" class="share-btn p-2 rounded-full hover:bg-white/10 transition active:scale-75 text-white" aria-label="Share video">
+                            <i data-lucide="share-2" class="w-8 h-8 drop-shadow-md"></i>
+                        </button>
+                        <span class="share-count text-xs font-semibold drop-shadow-md mt-0.5">${escapeHtml(window.formatNumber(shares))}</span>
+                    </div>
+                </div>
+                <div class="absolute bottom-2 left-0 right-16 z-20 p-4 bg-gradient-to-t from-black/80 via-black/30 to-transparent pointer-events-none">
+                    <div class="pointer-events-auto">
+                        <h3 class="font-bold text-base drop-shadow-md inline-block">${escapeHtml(uploadedBy)}</h3>
+                        <p class="text-sm mt-1 text-gray-100 line-clamp-3 leading-snug drop-shadow-sm">${escapeHtml(description)}</p>
+                    </div>
+                </div>`;
+
+            const likedIds = window.getLikedVideoIds();
+            const liked = likedIds.includes(id);
+            card.dataset.liked = String(liked);
+            if (liked) {
+                const likeButton = card.querySelector('.like-btn');
+                likeButton.classList.add('text-tiktok-red');
+                likeButton.classList.remove('text-white');
+            }
+
+            card.querySelector('.like-btn').addEventListener('click', event => window.toggleLike(event.currentTarget));
+            card.querySelector('.comments-btn').addEventListener('click', () => window.openComments(id));
+            card.querySelector('.bookmark-btn').addEventListener('click', event => window.toggleBookmark(event.currentTarget));
+            card.querySelector('.share-btn').addEventListener('click', () => window.openShareModal());
+            card.querySelector('.video-player').addEventListener('error', () => {
+                card.querySelector('.play-icon-overlay').classList.remove('opacity-0');
+                window.showToast(`Could not load video ${id}`);
+            });
+            return card;
+        }
+
+        async function loadVideos() {
+            videoFeed.replaceChildren();
+            const loading = document.createElement('div');
+            loading.className = 'absolute inset-0 flex items-center justify-center text-sm text-gray-300';
+            loading.textContent = 'Loading videos…';
+            videoFeed.append(loading);
+
+            try {
+                const videosQuery = query(collection(db, 'videos'), where('admin', '==', 'yes'));
+                const snapshot = await getDocs(videosQuery);
+                const cards = snapshot.docs
+                    .map(videoDoc => makeCard(videoDoc.id, videoDoc.data()))
+                    .filter(Boolean);
+                videoFeed.replaceChildren();
+                if (!cards.length) {
+                    const empty = document.createElement('div');
+                    empty.className = 'absolute inset-0 flex items-center justify-center px-8 text-center text-sm text-gray-300';
+                    empty.textContent = 'No admin videos are available yet.';
+                    videoFeed.append(empty);
+                    return;
+                }
+                cards.forEach(card => videoFeed.append(card));
+                restoreLikedState();
+                lucide.createIcons();
+                window.setupIntersectionObserver();
+                window.setupDoubleTapHearts();
+            } catch (error) {
+                console.error('Unable to load videos from Firestore:', error);
+                videoFeed.replaceChildren();
+                const message = document.createElement('div');
+                message.className = 'absolute inset-0 flex items-center justify-center px-8 text-center text-sm text-red-300';
+                message.textContent = 'Videos could not be loaded. Check the Firestore connection and read rules, then refresh.';
+                videoFeed.append(message);
+            }
+        }
+
+        window.commentsData = feedCommentsData;
+        if (document.readyState === 'loading') {
+            window.addEventListener('DOMContentLoaded', loadVideos, { once: true });
+        } else {
+            loadVideos();
         }
     </script>
 </body>
