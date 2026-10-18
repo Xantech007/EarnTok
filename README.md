@@ -10,6 +10,7 @@ The public feed in `index.html` reads documents from the Firestore `videos` coll
 - `likesCount`, `savesCount`, `sharesCount`: numeric counters
 - `comments`: array of comment strings or comment objects; comment objects may include `username`, `userId`, `text`, and `profileImageLink`
 - `uploadedBy`: creator name
+- `username`, `userId`: the creator's reserved username and profile ID
 - `profileImageLink`: Cloudinary profile-image URL
 - `admin`: `"yes"` to include the video in the public feed
 
@@ -17,7 +18,7 @@ The public feed in `index.html` reads documents from the Firestore `videos` coll
 
 Open `superadmin.html` to upload and manage media. The sign-in page compares the entered `username` and `password` with the `admin/login` Firestore document. Admin uploads saved as drafts use cloud `hjkjnzpz` and preset `pending_review`; publishing transfers those assets to cloud `s35mxosr` using preset and folder `user_uploads`. Admin uploads published immediately go directly to the publishing cloud.
 
-The admin page manages every field listed above, including counters, comments, and published/draft visibility. Its Users tab lists follower/following totals, allows editing all fields in a user's private document, and provides a verification toggle. Verification is stored as `"yes"` or `"no"` in both `users/{uid}` and `profiles/{uid}`; public badges read the public profile value. The raw user-field editor represents Firestore timestamps with a `$firestoreTimestamp` ISO-date marker. Deleting a video removes its Firestore document; the unsigned Cloudinary configuration cannot delete the uploaded asset. Its credential check runs in the browser and is only a UI gate; it does not secure Firestore. Do not rely on it for authorization. Protect the database with restrictive Firestore Security Rules and a server-enforced authentication design before using it with sensitive or production data.
+The admin page requires a creator username when adding or editing a video. It reuses an existing username or creates and reserves Firestore `users` and `profiles` records for a new creator, and saves the creator's `userId` and username on the video. This creates profile records only, not a Firebase Authentication account. The admin page manages every field listed above, including counters, comments, and published/draft visibility. Its Users tab lists follower/following totals, allows editing all fields in a user's private document, and provides a verification toggle. Verification is stored as `"yes"` or `"no"` in both `users/{uid}` and `profiles/{uid}`; public badges read the public profile value. The raw user-field editor represents Firestore timestamps with a `$firestoreTimestamp` ISO-date marker. Deleting a video removes its Firestore document; the unsigned Cloudinary configuration cannot delete the uploaded asset. Its credential check runs in the browser and is only a UI gate; it does not secure Firestore. Do not rely on it for authorization. Protect the database with restrictive Firestore Security Rules and a server-enforced authentication design before using it with sensitive or production data.
 
 ## User accounts and feed activity
 

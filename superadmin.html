@@ -184,9 +184,14 @@
                     Caption / description
                     <textarea id="description" class="field mt-2 min-h-24 resize-y" maxlength="5000" placeholder="Write a caption…" required></textarea>
                 </label>
+                <label class="block text-sm font-medium text-zinc-300 sm:col-span-2">
+                    Creator username <span id="creator-username-required" class="text-rose-500">(required for new videos)</span>
+                    <input id="creator-username" class="field mt-2" maxlength="30" minlength="3" pattern="[A-Za-z0-9_]{3,30}" placeholder="creator_username" autocomplete="off" aria-describedby="creator-username-help" required>
+                    <span id="creator-username-help" class="mt-1 block text-xs text-zinc-500">Set the profile username for this video. An account profile will be created if this username is new.</span>
+                </label>
                 <label class="block text-sm font-medium text-zinc-300">
                     Creator name
-                    <input id="uploaded-by" class="field mt-2" maxlength="120" placeholder="@creator" required>
+                    <input id="uploaded-by" class="field mt-2" maxlength="120" placeholder="Creator display name" required>
                 </label>
                 <label class="block text-sm font-medium text-zinc-300">
                     Profile image URL
@@ -269,6 +274,7 @@
         const CLOUDINARY_UPLOAD_PRESET = 'user_uploads';
         const CLOUDINARY_FOLDER = 'user_uploads';
         const PENDING_CLOUD_NAME = 'hjkjnzpz';
+        const ADMIN_SESSION_KEY = 'earntok_admin_session';
         const videosCollection = collection(db, 'videos');
         const loginScreen = document.getElementById('login-screen');
         const adminApp = document.getElementById('admin-app');
@@ -419,9 +425,9 @@
             });
         }
 
-        async function prepareCommentUsers(comments) {
+        async function prepareCommentUsers(comments, additionalUsers = []) {
             const identities = new Map();
-            for (const comment of comments) {
+            for (const comment of [...additionalUsers, ...comments]) {
                 const username = String(comment.username || '').trim().replace(/^@/, '');
                 if (!username) continue;
                 if (!/^[A-Za-z0-9_]{3,30}$/.test(username)) {
@@ -430,33 +436,45 @@
                 const usernameLower = username.toLowerCase();
                 if (identities.has(usernameLower)) continue;
 
-                const [matchingUsersByLowercase, matchingUsersByName, usernameReservation] = await Promise.all([
+                const [
+                    matchingUsersByLowercase,
+                    matchingUsersByName,
+                    matchingProfilesByLowercase,
+                    matchingProfilesByName,
+                    usernameReservation
+                ] = await Promise.all([
                     getDocs(query(collection(db, 'users'), where('usernameLower', '==', usernameLower), limit(1))),
                     getDocs(query(collection(db, 'users'), where('username', '==', username), limit(1))),
+                    getDocs(query(collection(db, 'profiles'), where('usernameLower', '==', usernameLower), limit(1))),
+                    getDocs(query(collection(db, 'profiles'), where('username', '==', username), limit(1))),
                     getDoc(doc(db, 'usernames', usernameLower))
                 ]);
                 const existingUser = matchingUsersByLowercase.docs[0] || matchingUsersByName.docs[0] || null;
+                const existingProfile = matchingProfilesByLowercase.docs[0] || matchingProfilesByName.docs[0] || null;
                 const reservedUid = usernameReservation.exists() ? usernameReservation.data().uid : '';
-                if (existingUser && reservedUid && existingUser.id !== reservedUid) {
-                    throw new Error(`Username "${username}" is reserved by a different account.`);
+                const matchingUids = new Set([existingUser?.id, existingProfile?.id, reservedUid].filter(Boolean));
+                if (matchingUids.size > 1) {
+                    throw new Error(`Username "${username}" is linked to multiple user profiles.`);
                 }
 
-                const uid = existingUser?.id || reservedUid || doc(collection(db, 'users')).id;
+                const uid = existingUser?.id || existingProfile?.id || reservedUid || doc(collection(db, 'users')).id;
                 let userData = existingUser?.data() || null;
-                let profileData = null;
-                if (!userData && reservedUid) {
-                    const userSnapshot = await getDoc(doc(db, 'users', reservedUid));
+                if (!userData) {
+                    const userSnapshot = await getDoc(doc(db, 'users', uid));
                     if (userSnapshot.exists()) {
                         userData = userSnapshot.data();
                     }
                 }
-                const profileSnapshot = await getDoc(doc(db, 'profiles', uid));
-                if (profileSnapshot.exists()) profileData = profileSnapshot.data();
+                let profileData = existingProfile?.id === uid ? existingProfile.data() : null;
+                if (!profileData) {
+                    const profileSnapshot = await getDoc(doc(db, 'profiles', uid));
+                    if (profileSnapshot.exists()) profileData = profileSnapshot.data();
+                }
                 identities.set(usernameLower, {
                     uid,
                     username: String(userData?.username || profileData?.username || username).replace(/^@/, ''),
                     usernameLower,
-                    fullName: userData?.fullName || profileData?.fullName || username,
+                    fullName: userData?.fullName || profileData?.fullName || comment.fullName || username,
                     profilePic: userData?.profilePic || profileData?.profilePic || comment.profileImageLink || '',
                     existingUser: Boolean(userData),
                     userData,
@@ -466,7 +484,7 @@
 
             const newUsers = [...identities.values()].filter(identity => !identity.existingUser);
             if (newUsers.length > 150) {
-                throw new Error('A single save cannot create more than 150 commenter accounts.');
+                throw new Error('A single save cannot create more than 150 user accounts.');
             }
             const preparedComments = comments.map(comment => {
                 const usernameLower = String(comment.username || '').trim().replace(/^@/, '').toLowerCase();
@@ -580,6 +598,7 @@
                     showMessage(loginMessage, 'Incorrect username or password.', true);
                     return;
                 }
+                sessionStorage.setItem(ADMIN_SESSION_KEY, 'active');
                 loginScreen.classList.add('hidden');
                 adminApp.classList.remove('hidden');
                 setAdminTab('videos', false);
@@ -594,6 +613,13 @@
                 loginButton.textContent = 'Sign in';
             }
         });
+
+        if (sessionStorage.getItem(ADMIN_SESSION_KEY) === 'active') {
+            loginScreen.classList.add('hidden');
+            adminApp.classList.remove('hidden');
+            setAdminTab('videos', false);
+            loadVideos();
+        }
 
         async function loadVideos() {
             videoList.innerHTML = '<p class="p-8 text-center text-sm text-zinc-400">Loading videos…</p>';
@@ -1059,11 +1085,19 @@
             clearMessage(uploadStatus);
             document.getElementById('video-id').value = video?.id ?? '';
             document.getElementById('dialog-title').textContent = video ? 'Edit video' : 'Add video';
+            const creatorUsernameInput = document.getElementById('creator-username');
+            creatorUsernameInput.required = !video;
+            document.getElementById('creator-username-required').textContent = video ? '(optional)' : '(required for new videos)';
+            document.getElementById('creator-username-help').textContent = video
+                ? 'Leave blank to keep the current creator username.'
+                : 'Set the profile username for this video. An account profile will be created if this username is new.';
             document.getElementById('file-required-label').textContent = video ? '· leave empty to keep the current video' : '· required for new videos';
             document.getElementById('current-video-label').textContent = video?.link
                 ? `Current ${mediaTypeFor(video)}: ${video.link}`
                 : '';
             document.getElementById('description').value = video?.description ?? '';
+            document.getElementById('creator-username').value = String(video?.username || '')
+                .trim().replace(/^@/, '');
             document.getElementById('uploaded-by').value = video?.uploadedBy ?? '';
             document.getElementById('profile-image-url').value = video?.profileImageLink ?? '';
             document.getElementById('likes-count').value = video?.likesCount ?? 0;
@@ -1082,6 +1116,7 @@
         document.getElementById('refresh-button').addEventListener('click', loadVideos);
         document.getElementById('search-input').addEventListener('input', renderVideos);
         document.getElementById('logout-button').addEventListener('click', () => {
+            sessionStorage.removeItem(ADMIN_SESSION_KEY);
             adminApp.classList.add('hidden');
             loginScreen.classList.remove('hidden');
             loginForm.reset();
@@ -1139,8 +1174,13 @@
             const videoFile = document.getElementById('video-file').files[0];
             const imageFile = document.getElementById('profile-image-file').files[0];
             const current = videos.find(video => video.id === id);
+            const creatorUsername = document.getElementById('creator-username').value.trim().replace(/^@/, '');
             if (!current && !videoFile) {
                 showMessage(uploadStatus, 'Select a video file to create a video.', true);
+                return;
+            }
+            if ((!current || creatorUsername) && !/^[A-Za-z0-9_]{3,30}$/.test(creatorUsername)) {
+                showMessage(uploadStatus, 'Creator username must contain 3–30 letters, numbers, or underscores.', true);
                 return;
             }
 
@@ -1163,10 +1203,8 @@
             saveButton.disabled = true;
             saveButton.textContent = 'Saving…';
             uploadStatus.classList.remove('hidden');
-            uploadStatus.textContent = 'Checking commenter usernames and saving video details…';
+            uploadStatus.textContent = 'Checking creator and commenter usernames…';
             try {
-                const prepared = await prepareCommentUsers(comments);
-                comments = prepared.comments;
                 let link = current?.link ?? '';
                 let mediaType = current ? mediaTypeFor(current) : 'video';
                 let profileImageLink = document.getElementById('profile-image-url').value.trim();
@@ -1181,6 +1219,16 @@
                 if (profileImageLink && !validHttpUrl(profileImageLink)) {
                     throw new Error('Profile image URL must begin with http:// or https://.');
                 }
+                const prepared = await prepareCommentUsers(comments, creatorUsername ? [{
+                    username: creatorUsername,
+                    fullName: document.getElementById('uploaded-by').value.trim(),
+                    profileImageLink
+                }] : []);
+                comments = prepared.comments;
+                const creator = creatorUsername
+                    ? prepared.identities.find(identity => identity.usernameLower === creatorUsername.toLowerCase())
+                    : null;
+                if (creatorUsername && !creator) throw new Error('Could not prepare the creator profile.');
                 const adminStatus = document.getElementById('admin-status').value;
                 if (current && current.admin !== 'yes' && adminStatus === 'yes') {
                     uploadStatus.textContent = 'Transferring draft media to the publishing account…';
@@ -1193,7 +1241,8 @@
                     mediaType,
                     description: document.getElementById('description').value.trim(),
                     uploadedBy: document.getElementById('uploaded-by').value.trim(),
-                    profileImageLink,
+                    ...(creator ? { username: creator.username, userId: creator.uid } : {}),
+                    profileImageLink: profileImageLink || creator?.profilePic || current?.profileImageLink || '',
                     likesCount: countValues[0],
                     savesCount: countValues[1],
                     sharesCount: countValues[2],
