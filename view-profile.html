@@ -1,0 +1,158 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="theme-color" content="#09090b">
+    <title>EarnTok · Profile</title>
+    <link rel="icon" type="image/png" href="./earntok-logo.png">
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        :root { color-scheme: dark; }
+        body { min-height: 100vh; }
+        .tab-active { color: white; border-color: #fe2c55; }
+    </style>
+</head>
+<body class="bg-zinc-950 text-zinc-100 antialiased">
+    <header class="sticky top-0 z-20 border-b border-zinc-800 bg-zinc-950/90 backdrop-blur">
+        <div class="mx-auto flex max-w-5xl items-center justify-between px-4 py-3">
+            <a href="./index.html" class="flex items-center" aria-label="EarnTok home"><img src="./earntok-logo.png" class="h-9 w-9 object-contain" alt="EarnTok logo"></a>
+            <a href="./index.html" class="rounded-xl bg-zinc-800 px-4 py-2 text-sm font-semibold hover:bg-zinc-700">Back to feed</a>
+        </div>
+    </header>
+    <main class="mx-auto max-w-5xl px-4 pb-16">
+        <section class="border-b border-zinc-800 py-8 sm:py-10">
+            <div class="flex flex-col gap-6 sm:flex-row sm:items-center">
+                <img id="profile-pic" class="h-28 w-28 self-center rounded-full bg-zinc-800 object-cover sm:self-auto" alt="Profile picture">
+                <div class="min-w-0 flex-1 text-center sm:text-left">
+                    <p class="text-sm text-zinc-500">EarnTok profile</p>
+                    <h1 id="profile-name" class="mt-1 truncate text-3xl font-bold">Loading profile…</h1>
+                    <p id="profile-username" class="mt-1 text-zinc-400"></p>
+                    <div class="mt-4 flex justify-center gap-7 text-sm sm:justify-start">
+                        <span><strong id="post-count" class="text-white">0</strong> posts</span>
+                        <span><strong id="pinned-count" class="text-white">0</strong> pinned</span>
+                    </div>
+                    <p id="profile-bio" class="mx-auto mt-4 max-w-xl whitespace-pre-wrap text-sm text-zinc-300 sm:mx-0"></p>
+                </div>
+            </div>
+            <div class="mt-7">
+                <h2 class="mb-3 text-xs font-bold uppercase tracking-[.18em] text-zinc-500">Pinned posts</h2>
+                <div id="pinned-grid" class="grid grid-cols-3 gap-2 sm:gap-4"></div>
+            </div>
+        </section>
+        <section class="mt-4">
+            <div class="border-b border-zinc-800 px-4 py-3 text-sm font-semibold">Published posts</div>
+            <div id="posts-grid" class="grid grid-cols-2 gap-3 py-4 sm:grid-cols-3 sm:gap-4">
+                <p class="col-span-full py-12 text-center text-sm text-zinc-500">Loading posts…</p>
+            </div>
+        </section>
+    </main>
+    <script type="module">
+        import { auth, db } from './firebase.js';
+        import { onAuthStateChanged } from 'https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js';
+        import { collection, doc, getDoc, getDocs, query, serverTimestamp, where, addDoc } from 'https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js';
+
+        const params = new URLSearchParams(location.search);
+        const targetUid = params.get('uid');
+        const targetUsername = params.get('username')?.replace(/^@/, '').toLowerCase();
+
+        function getCurrentUser() {
+            return new Promise(resolve => {
+                const unsubscribe = onAuthStateChanged(auth, current => {
+                    unsubscribe();
+                    resolve(current);
+                }, error => {
+                    console.error('Unable to read sign-in state:', error);
+                    resolve(null);
+                });
+            });
+        }
+
+        function escapeHtml(value) {
+            return String(value ?? '').replace(/[&<>"']/g, character => ({
+                '&': '&#38;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;'
+            })[character]);
+        }
+
+        function mediaType(video) {
+            if (video.mediaType) return video.mediaType;
+            return /\.(avif|gif|jpe?g|png|webp|bmp|heic)(?:\?|$)/i.test(video.link || '') ? 'image' : 'video';
+        }
+
+        function card(video, pinned = false) {
+            const image = mediaType(video) === 'image'
+                ? `<img class="aspect-[3/4] w-full object-cover" src="${escapeHtml(video.link)}" alt="${escapeHtml(video.description || '')}" loading="lazy">`
+                : `<video class="aspect-[3/4] w-full object-cover" src="${escapeHtml(video.link)}" muted playsinline preload="metadata"></video>`;
+            return `<article class="relative overflow-hidden rounded-xl bg-zinc-900">${image}<div class="absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/90 to-transparent p-3 pt-10"><p class="line-clamp-2 text-xs">${escapeHtml(video.description || '')}</p>${pinned ? '<span class="mt-2 inline-block rounded-full bg-rose-500 px-2 py-1 text-[10px] font-semibold">Pinned</span>' : ''}</div></article>`;
+        }
+
+        async function load() {
+            let profileDoc;
+            if (targetUid) {
+                profileDoc = await getDoc(doc(db, 'profiles', targetUid));
+            } else if (targetUsername) {
+                const matches = await getDocs(query(collection(db, 'profiles'), where('usernameLower', '==', targetUsername)));
+                profileDoc = matches.docs[0] || null;
+            } else {
+                throw new Error('This profile link is missing its user ID.');
+            }
+            if (!profileDoc?.exists?.()) {
+                document.getElementById('profile-name').textContent = 'Profile not found';
+                document.getElementById('posts-grid').innerHTML = '<p class="col-span-full py-12 text-center text-zinc-500">This profile is unavailable.</p>';
+                return;
+            }
+            const userId = profileDoc.id;
+            const profile = profileDoc.data();
+            const [authUser, postsSnapshot] = await Promise.all([
+                getCurrentUser(),
+                getDocs(query(collection(db, 'videos'), where('userId', '==', userId)))
+            ]);
+            const posts = postsSnapshot.docs.map(item => ({ id: item.id, ...item.data() })).filter(post => post.admin === 'yes');
+            const pinnedIds = Array.isArray(profile.pinnedVideos) ? profile.pinnedVideos : [];
+            const pinned = pinnedIds.map(id => posts.find(post => post.id === id)).filter(Boolean).slice(0, 3);
+            document.getElementById('profile-name').textContent = profile.fullName || 'EarnTok user';
+            document.getElementById('profile-username').textContent = profile.username ? `@${profile.username}` : '';
+            document.getElementById('profile-bio').textContent = profile.bio || '';
+            document.getElementById('post-count').textContent = posts.length;
+            document.getElementById('pinned-count').textContent = pinned.length;
+            const avatar = document.getElementById('profile-pic');
+            avatar.src = profile.profilePic || '';
+            avatar.onerror = () => avatar.removeAttribute('src');
+            document.getElementById('pinned-grid').innerHTML = pinned.length
+                ? pinned.map(post => card(post, true)).join('')
+                : '<p class="col-span-full rounded-xl border border-dashed border-zinc-800 py-6 text-center text-xs text-zinc-600">No pinned posts yet.</p>';
+            document.getElementById('posts-grid').innerHTML = posts.length
+                ? posts.map(post => card(post)).join('')
+                : '<p class="col-span-full py-12 text-center text-sm text-zinc-500">No published posts yet.</p>';
+            if (authUser?.uid !== userId) {
+                try {
+                    let viewerId = authUser?.uid;
+                    if (!viewerId) {
+                        let guestId = localStorage.getItem('earntok_guest_id');
+                        if (!guestId) {
+                            guestId = crypto.randomUUID();
+                            localStorage.setItem('earntok_guest_id', guestId);
+                        }
+                        viewerId = `guest-${guestId}`;
+                    }
+                    await addDoc(collection(db, 'activity'), {
+                        profileId: userId,
+                        userId: viewerId,
+                        action: 'profile_view',
+                        details: {},
+                        createdAt: serverTimestamp()
+                    });
+                } catch (error) {
+                    console.error('Unable to record profile view:', error);
+                }
+            }
+        }
+
+        load().catch(error => {
+            console.error('Unable to load profile:', error);
+            document.getElementById('profile-name').textContent = 'Could not load profile';
+            document.getElementById('posts-grid').innerHTML = '<p class="col-span-full py-12 text-center text-sm text-rose-300">Check your connection and Firestore read permissions, then try again.</p>';
+        });
+    </script>
+</body>
+</html>

@@ -5,6 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <meta name="theme-color" content="#09090b">
     <title>EarnTok · Superadmin</title>
+    <link rel="icon" type="image/png" href="./earntok-logo.png">
     <script src="https://cdn.tailwindcss.com"></script>
     <style>
         :root { color-scheme: dark; }
@@ -37,10 +38,8 @@
     <main id="login-screen" class="min-h-screen flex items-center justify-center p-5">
         <section class="glass w-full max-w-md rounded-3xl border border-zinc-800 p-7 shadow-2xl sm:p-9">
             <div class="mb-8">
-                <div class="mb-5 flex h-12 w-12 items-center justify-center rounded-2xl bg-rose-500/15 text-rose-400">
-                    <span class="text-xl font-black">E</span>
-                </div>
-                <p class="text-xs font-bold uppercase tracking-[.22em] text-cyan-300">EarnTok control room</p>
+                <img src="./earntok-logo.png" class="mb-5 h-12 w-12 object-contain" alt="EarnTok logo">
+                <p class="text-xs font-bold uppercase tracking-[.22em] text-cyan-300">Control room</p>
                 <h1 class="mt-2 text-3xl font-bold tracking-tight">Superadmin</h1>
                 <p class="mt-2 text-sm text-zinc-400">Sign in to manage the video library.</p>
             </div>
@@ -64,8 +63,8 @@
         <header class="sticky top-0 z-20 border-b border-zinc-800 bg-zinc-950/90 backdrop-blur">
             <div class="mx-auto flex max-w-7xl items-center justify-between gap-4 px-4 py-4 sm:px-6 lg:px-8">
                 <a href="./index.html" class="flex items-center gap-3" aria-label="EarnTok home">
-                    <span class="flex h-10 w-10 items-center justify-center rounded-xl bg-rose-500/15 font-black text-rose-400">E</span>
-                    <span><strong class="block">EarnTok</strong><span class="text-xs text-zinc-500">Video administration</span></span>
+                    <img src="./earntok-logo.png" class="h-10 w-10 object-contain" alt="">
+                    <span class="text-xs text-zinc-500">Video administration</span>
                 </a>
                 <div class="flex items-center gap-2">
                     <a class="btn btn-muted hidden sm:inline-flex" href="./index.html">View feed</a>
@@ -255,20 +254,29 @@
                 ? comment.text ?? comment.comment ?? comment.message ?? ''
                 : comment;
             const row = document.createElement('div');
-            row.className = 'comment-row grid gap-2 rounded-xl border border-zinc-800 bg-zinc-950/70 p-3 sm:grid-cols-[minmax(8rem,.7fr)_minmax(0,2fr)_auto] sm:items-start';
+            row.className = 'comment-row grid gap-2 rounded-xl border border-zinc-800 bg-zinc-950/70 p-3 sm:grid-cols-[minmax(8rem,.7fr)_minmax(0,1fr)_minmax(0,1.5fr)_minmax(0,1.5fr)_auto] sm:items-start';
             row.originalComment = isObject ? { ...comment } : null;
+            const username = isObject
+                ? comment.username ?? String(comment.user ?? '').replace(/^@/, '')
+                : '';
+            const profileImageLink = isObject ? comment.profileImageLink ?? comment.avatar ?? '' : '';
             row.innerHTML = `
                 <label class="block text-xs font-medium text-zinc-400">
-                    Name <span class="font-normal text-zinc-600">(optional)</span>
-                    <input class="comment-author field mt-1.5 py-2 text-sm" maxlength="120" placeholder="e.g. Alex">
+                    Username
+                    <input class="comment-username field mt-1.5 py-2 text-sm" maxlength="120" placeholder="e.g. alex">
                 </label>
                 <label class="block text-xs font-medium text-zinc-400">
                     Comment
                     <textarea class="comment-text field mt-1.5 min-h-10 resize-y py-2 text-sm" maxlength="1000" rows="2" placeholder="Write a comment…" required></textarea>
                 </label>
+                <label class="block text-xs font-medium text-zinc-400">
+                    Profile image URL
+                    <input class="comment-profile-image field mt-1.5 py-2 text-sm" type="url" placeholder="https://…">
+                </label>
                 <button class="remove-comment btn btn-danger mt-5 text-sm sm:mt-6" type="button">Remove</button>`;
-            row.querySelector('.comment-author').value = String(author ?? '');
+            row.querySelector('.comment-username').value = String(username ?? author ?? '').replace(/^@/, '');
             row.querySelector('.comment-text').value = String(text ?? '');
+            row.querySelector('.comment-profile-image').value = String(profileImageLink ?? '');
             commentsList.append(row);
             commentsEmpty.classList.toggle('hidden', commentsList.children.length > 0);
         }
@@ -277,11 +285,16 @@
             return [...commentsList.querySelectorAll('.comment-row')].flatMap(row => {
                 const text = row.querySelector('.comment-text').value.trim();
                 if (!text) return [];
-                const author = row.querySelector('.comment-author').value.trim();
-                if (!author && !row.originalComment) return [text];
+                const username = row.querySelector('.comment-username').value.trim().replace(/^@/, '');
+                const profileImageLink = row.querySelector('.comment-profile-image').value.trim();
+                if (profileImageLink && !validHttpUrl(profileImageLink)) {
+                    throw new Error('Each comment profile image URL must begin with http:// or https://.');
+                }
                 return [{
                     ...(row.originalComment ?? {}),
-                    ...(author ? { user: author } : {}),
+                    username,
+                    user: username ? `@${username}` : row.originalComment?.user ?? 'User',
+                    profileImageLink,
                     text
                 }];
             });
@@ -555,7 +568,13 @@
                 return;
             }
 
-            const comments = getCommentsFromEditor();
+            let comments;
+            try {
+                comments = getCommentsFromEditor();
+            } catch (error) {
+                showMessage(uploadStatus, error.message, true);
+                return;
+            }
 
             saveButton.disabled = true;
             saveButton.textContent = 'Saving…';

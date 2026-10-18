@@ -3,7 +3,8 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-    <title>TikTok - Make Your Day</title>
+    <title>EarnTok - Watch Your Feed</title>
+    <link rel="icon" type="image/png" href="./earntok-logo.png">
     <!-- Tailwind CSS CDN -->
     <script src="https://cdn.tailwindcss.com"></script>
     <!-- Lucide Icons CDN -->
@@ -395,10 +396,10 @@
                 <span class="absolute top-0 right-3 w-2 h-2 bg-tiktok-red rounded-full"></span>
                 <span>Inbox</span>
             </button>
-            <button onclick="switchNavTab('profile')" id="nav-profile" class="flex flex-col items-center text-gray-400 hover:text-white space-y-0.5">
+            <a href="./profile.html" id="nav-profile" class="flex flex-col items-center text-gray-400 hover:text-white space-y-0.5">
                 <i data-lucide="user" class="w-6 h-6"></i>
                 <span>Profile</span>
-            </button>
+            </a>
         </nav>
 
         <dialog id="create-camera-dialog" class="fixed inset-0 m-0 h-full w-full max-h-none max-w-none bg-black/95 p-0 text-white backdrop:bg-black/90">
@@ -472,7 +473,7 @@
 
             <!-- Input Comment Form -->
             <div class="p-3 border-t border-gray-800 bg-black/50 flex items-center space-x-2">
-                <img src="https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?auto=format&fit=crop&w=100&q=80" class="w-8 h-8 rounded-full object-cover">
+                <img id="comment-form-avatar" src="https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?auto=format&fit=crop&w=100&q=80" alt="Your profile picture" class="h-8 w-8 rounded-full object-cover">
                 <input id="comment-input" type="text" placeholder="Add comment..." class="flex-1 bg-gray-800 text-white text-sm rounded-full px-4 py-2 focus:outline-none focus:ring-1 focus:ring-tiktok-red">
                 <button onclick="postComment()" class="text-tiktok-red hover:text-red-400 font-bold text-sm px-2">Post</button>
             </div>
@@ -763,13 +764,32 @@
             const countHeader = document.getElementById('drawer-comment-count');
 
             const comments = commentsData[id] || [];
+            const missingProfiles = [...new Set(comments
+                .filter(comment => comment.userId)
+                .map(comment => comment.userId))];
+            await Promise.all(missingProfiles.map(async uid => {
+                try {
+                    const publicProfileSnapshot = await getDoc(doc(db, 'profiles', uid));
+                    const profile = publicProfileSnapshot.exists() ? publicProfileSnapshot.data() : {};
+                    comments.forEach(comment => {
+                        if (comment.userId !== uid) return;
+                        comment.avatar = safeImageUrl(profile.profilePic || comment.avatar || '');
+                    });
+                } catch (error) {
+                    console.error(`Unable to load commenter profile ${uid}:`, error);
+                }
+            }));
             countHeader.textContent = `${comments.length.toLocaleString()} comments`;
 
             list.innerHTML = comments.map((c, index) => `
                 <div class="flex items-start justify-between space-x-3">
-                    <img src="${escapeHtml(safeImageUrl(c.avatar))}" alt="" class="w-8 h-8 rounded-full object-cover">
+                    ${c.username
+                        ? `<a href="./view-profile.html?username=${encodeURIComponent(c.username)}" class="shrink-0" aria-label="View ${escapeHtml(c.user)} profile"><img src="${escapeHtml(safeImageUrl(c.avatar) || 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?auto=format&fit=crop&w=100&q=80')}" alt="${escapeHtml(c.user)} profile picture" class="h-8 w-8 rounded-full object-cover"></a>`
+                        : `<button type="button" data-profile-locked class="shrink-0" aria-label="Profile locked"><img src="${escapeHtml(safeImageUrl(c.avatar) || 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?auto=format&fit=crop&w=100&q=80')}" alt="${escapeHtml(c.user)} profile picture" class="h-8 w-8 rounded-full object-cover"></button>`}
                     <div class="flex-1 text-xs">
-                        <span class="font-bold text-gray-400">${escapeHtml(c.user)}</span>
+                        ${c.username
+                            ? `<a href="./view-profile.html?username=${encodeURIComponent(c.username)}" class="font-bold text-gray-400 hover:text-white">${escapeHtml(c.user)}</a>`
+                            : `<button type="button" data-profile-locked class="font-bold text-gray-400 hover:text-white">${escapeHtml(c.user)}</button>`}
                         <p class="text-white mt-0.5">${escapeHtml(c.text)}</p>
                     </div>
                     <button data-comment-index="${index}" onclick="likeComment(this)" class="flex flex-col items-center text-gray-400 hover:text-tiktok-red transition">
@@ -787,6 +807,12 @@
             document.getElementById('comment-drawer').classList.add('translate-y-full');
         }
 
+        document.getElementById('comments-list').addEventListener('click', event => {
+            if (event.target.closest('[data-profile-locked]')) {
+                window.alert('Profile locked');
+            }
+        });
+
         async function postComment() {
             const user = await window.requireUser();
             if (!user) return;
@@ -794,10 +820,26 @@
             const text = input.value.trim();
             if (!text) return;
 
+            let authorProfile;
+            try {
+                authorProfile = await loadOwnCommentProfile(user);
+            } catch (error) {
+                console.error('Unable to load commenter account:', error);
+                showToast(error.message || 'Could not load your account username. Please try again.');
+                return;
+            }
+            const username = String(authorProfile.username || '').trim().replace(/^@/, '');
+            if (!username) {
+                showToast('The username field is empty in users/' + user.uid + '.');
+                return;
+            }
+            const profilePic = String(authorProfile.profilePic || user.photoURL || '');
             const comment = {
                 id: Date.now(),
-                user: user.displayName || user.email?.split('@')[0] || 'User',
-                profileImageLink: user.photoURL || '',
+                userId: user.uid,
+                username,
+                user: `@${username}`,
+                profileImageLink: profilePic,
                 text,
                 likes: 0
             };
@@ -811,7 +853,9 @@
             if (!commentsData[activeVideoId]) commentsData[activeVideoId] = [];
             commentsData[activeVideoId].unshift({
                 id: comment.id,
-                user: comment.user,
+                user: `@${comment.username}`,
+                userId: user.uid,
+                username: String(authorProfile.username || '').replace(/^@/, ''),
                 avatar: safeImageUrl(comment.profileImageLink),
                 text,
                 likes: 0
@@ -848,6 +892,23 @@
             }
         }
 
+        async function loadOwnCommentProfile(user) {
+            if (!user?.uid) throw new Error('You must be signed in to load your account username.');
+            let accountSnapshot;
+            try {
+                accountSnapshot = await getDoc(doc(db, 'users', user.uid));
+            } catch (error) {
+                console.error('Firestore users document read failed:', error);
+                const errorCode = error && typeof error === 'object' && 'code' in error ? error.code : 'unknown error';
+                const errorMessage = error instanceof Error ? error.message : String(error);
+                throw new Error(`Firestore could not read users/${user.uid} (${errorCode}): ${errorMessage}`);
+            }
+            if (!accountSnapshot.exists()) {
+                throw new Error(`No users/${user.uid} account document exists.`);
+            }
+            return accountSnapshot.data();
+        }
+
         async function switchTab(tab) {
             const user = await window.requireUser();
             if (!user) return;
@@ -882,6 +943,7 @@
                 } else {
                     el.className = 'flex flex-col items-center text-gray-400 hover:text-white space-y-0.5';
                 }
+
             });
             if (tab !== 'home') showToast(`${tab.toUpperCase()} page opened`);
         }
@@ -1045,11 +1107,28 @@
         onAuthStateChanged(auth, user => {
             currentUser = user;
             authReadyResolve(user);
-            if (user) restoreLikedState();
+            if (user) {
+                restoreLikedState();
+                updateCommentFormAvatar(user);
+            }
         }, error => {
             console.error('Unable to observe Firebase authentication state:', error);
             authReadyResolve(null);
         });
+
+        async function updateCommentFormAvatar(user) {
+            const avatar = document.getElementById('comment-form-avatar');
+            avatar.src = user.photoURL || 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?auto=format&fit=crop&w=100&q=80';
+            try {
+                const profile = await loadOwnCommentProfile(user);
+                if (profile.profilePic) avatar.src = profile.profilePic;
+            } catch (error) {
+                console.error('Unable to load comment form profile picture:', error);
+            }
+            avatar.onerror = () => {
+                avatar.src = 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?auto=format&fit=crop&w=100&q=80';
+            };
+        }
 
         function getGuestId() {
             let guestId = localStorage.getItem('earntok_guest_id');
@@ -1114,12 +1193,25 @@
             await runTransaction(db, async transaction => {
                 const videoSnapshot = await transaction.get(videoRef);
                 if (!videoSnapshot.exists()) throw new Error('This video is no longer available.');
+                let userSnapshot = null;
+                if (currentUser && ['like', 'unlike', 'save', 'unsave'].includes(action)) {
+                    userSnapshot = await transaction.get(doc(db, 'users', currentUser.uid));
+                }
                 const updates = {};
                 if (update) {
                     const value = videoSnapshot.data()[update.field];
                     updates[update.field] = Math.max(0, numberValue(value) + update.delta);
                 }
                 if (update) transaction.update(videoRef, updates);
+                if (userSnapshot?.exists()) {
+                    const userData = userSnapshot.data();
+                    const field = action === 'like' || action === 'unlike' ? 'likedVideoIds' : 'savedVideoIds';
+                    const ids = Array.isArray(userData[field]) ? userData[field] : [];
+                    const nextIds = action === 'like' || action === 'save'
+                        ? [...new Set([...ids, videoId])]
+                        : ids.filter(id => id !== videoId);
+                    transaction.set(doc(db, 'users', currentUser.uid), { [field]: nextIds }, { merge: true });
+                }
                 transaction.set(activityRef, {
                     videoId,
                     userId: actorId,
@@ -1474,14 +1566,16 @@
 
         function normalizeComment(comment, index) {
             if (typeof comment === 'string') {
-                return { id: index, user: 'User', text: comment, avatar: '', likes: 0 };
+                return { id: index, user: 'User', username: '', userId: '', text: comment, avatar: '', likes: 0 };
             }
             if (!comment || typeof comment !== 'object') {
-                return { id: index, user: 'User', text: '', avatar: '', likes: 0 };
+                return { id: index, user: 'User', username: '', userId: '', text: '', avatar: '', likes: 0 };
             }
             return {
                 id: String(comment.id ?? index),
-                user: String(comment.user ?? comment.username ?? comment.uploadedBy ?? comment.name ?? 'User'),
+                user: String(comment.username ? `@${comment.username}` : comment.user ?? comment.uploadedBy ?? comment.name ?? 'User'),
+                username: String(comment.username ?? ''),
+                userId: String(comment.userId ?? ''),
                 text: String(comment.text ?? comment.comment ?? comment.message ?? ''),
                 avatar: validMediaUrl(comment.profileImageLink ?? comment.avatar ?? ''),
                 likes: numberValue(comment.likes)

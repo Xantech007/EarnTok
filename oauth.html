@@ -5,6 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <meta name="theme-color" content="#09090b">
     <title>EarnTok · Sign in</title>
+    <link rel="icon" type="image/png" href="./earntok-logo.png">
     <script src="https://cdn.tailwindcss.com"></script>
     <style>
         :root { color-scheme: dark; }
@@ -23,8 +24,7 @@
     <main class="flex min-h-screen items-center justify-center p-5">
         <section class="w-full max-w-lg rounded-3xl border border-zinc-800 bg-zinc-900/90 p-6 shadow-2xl sm:p-9">
             <a href="./index.html" class="mb-7 inline-flex items-center gap-3">
-                <span class="flex h-11 w-11 items-center justify-center rounded-2xl bg-rose-500/15 text-xl font-black text-rose-400">E</span>
-                <span class="text-lg font-bold">EarnTok</span>
+                <img src="./earntok-logo.png" class="h-12 w-12 object-contain" alt="EarnTok logo">
             </a>
             <h1 class="text-3xl font-bold tracking-tight">Welcome to your feed</h1>
             <p class="mt-2 text-sm text-zinc-400">Sign in or create an account to join the conversation.</p>
@@ -203,6 +203,16 @@
                         email,
                         phoneNumber,
                         profilePic: '',
+                        createdAt: serverTimestamp()
+                    });
+                    transaction.set(doc(db, 'profiles', credential.user.uid), {
+                        uid: credential.user.uid,
+                        fullName,
+                        username,
+                        usernameLower,
+                        profilePic: '',
+                        bio: '',
+                        pinnedVideos: [],
                         createdAt: serverTimestamp()
                     });
                 });
