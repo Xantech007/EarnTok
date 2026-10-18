@@ -3,48 +3,91 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
-    <meta name="theme-color" content="#09090b">
+    <meta name="theme-color" content="#ffffff">
     <title>EarnTok · Your profile</title>
     <link rel="icon" type="image/png" href="./earntok-logo.png">
     <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://unpkg.com/lucide@latest"></script>
     <style>
-        :root { color-scheme: dark; }
+        :root { color-scheme: light; }
         body { min-height: 100vh; }
         .field { width: 100%; border: 1px solid #3f3f46; border-radius: .75rem; background: #09090b; padding: .75rem .875rem; color: #fafafa; outline: none; }
         .field:focus { border-color: #25f4ee; }
         .tab-active { color: white; border-color: #fe2c55; }
         dialog { color: #fafafa; }
         dialog::backdrop { background: rgba(0,0,0,.75); backdrop-filter: blur(5px); }
+        body.bg-zinc-950 { background: #fff !important; color: #161823 !important; }
+        .bg-zinc-950, .bg-zinc-950\/90, .bg-zinc-950\/95 { background-color: #fff !important; }
+        .bg-zinc-900, .bg-zinc-900\/90, .bg-zinc-900\/70, .bg-zinc-900\/50 { background-color: #f8f8fa !important; }
+        .bg-zinc-800 { background-color: #f1f1f2 !important; }
+        .text-zinc-100 { color: #161823 !important; }
+        .profile-video-viewer .text-white { color: #fff !important; }
+        .text-zinc-300 { color: #454550 !important; }
+        .text-zinc-400, .text-zinc-500, .text-zinc-600 { color: #777782 !important; }
+        .border-zinc-800, .border-zinc-700 { border-color: #e4e4e8 !important; }
+        .field { background: #fff; border-color: #d8d8de; color: #161823; }
+        dialog { background: #fff; color: #161823; border-color: #e4e4e8; }
+        .tab-active { color: #161823; }
+        .text-sky-400 { color: #0284c7 !important; }
+        p.text-cyan-300 { color: #0e7490 !important; }
+        p.text-rose-300 { color: #be123c !important; }
     </style>
 </head>
 <body class="bg-zinc-950 text-zinc-100 antialiased">
     <header class="sticky top-0 z-20 border-b border-zinc-800 bg-zinc-950/90 backdrop-blur">
         <div class="mx-auto flex max-w-5xl items-center justify-between px-4 py-3">
             <a href="./index.html" class="flex items-center" aria-label="EarnTok home"><img src="./earntok-logo.png" class="h-9 w-9 object-contain" alt="EarnTok logo"></a>
-            <a href="./index.html" class="rounded-xl bg-zinc-800 px-4 py-2 text-sm font-semibold hover:bg-zinc-700">Back to feed</a>
+            <a href="./index.html" class="rounded-xl bg-zinc-800 px-4 py-2 text-sm font-semibold hover:bg-zinc-700"><i data-lucide="arrow-left" class="mr-2 h-4 w-4" aria-hidden="true"></i>Back to feed</a>
         </div>
     </header>
-    <main class="mx-auto max-w-5xl px-4 pb-16">
+    <!-- BOTTOM MOBILE NAVIGATION BAR -->
+    <nav class="fixed inset-x-0 bottom-0 z-30 flex items-center justify-around border-t border-zinc-200 bg-white px-3 pt-2 pb-[max(.5rem,env(safe-area-inset-bottom))] text-xs font-medium shadow-[0_-4px_16px_rgba(0,0,0,.06)]">
+        <a href="./index.html" class="flex flex-col items-center space-y-0.5 text-gray-400 hover:text-black" aria-label="Home">
+            <i data-lucide="home" class="h-6 w-6" aria-hidden="true"></i><span>Home</span>
+        </a>
+        <button onclick="switchNavTab('friends')" id="nav-friends" class="flex flex-col items-center text-gray-400 hover:text-black space-y-0.5">
+            <i data-lucide="users" class="w-6 h-6" aria-hidden="true"></i>
+            <span>Friends</span>
+        </button>
+        <!-- Create Button (+) with TikTok Dual-Glow Effect -->
+        <a href="./index.html?openCreate=1" class="group relative flex h-8 w-[54px] items-center justify-center active:scale-95 transition" aria-label="Create a video or photo">
+            <span class="absolute left-0 z-0 h-7 w-[50px] rounded-lg bg-cyan-400" style="background-color:#25f4ee"></span>
+            <span class="absolute right-0 z-0 h-7 w-[50px] rounded-lg bg-rose-500" style="background-color:#fe2c55"></span>
+            <span class="relative z-10 flex h-7 w-11 items-center justify-center rounded-lg bg-black text-white">
+                <i data-lucide="plus" class="w-5 h-5 stroke-[3]" aria-hidden="true"></i>
+            </span>
+        </a>
+        <button onclick="switchNavTab('inbox')" id="nav-inbox" class="flex flex-col items-center text-gray-400 hover:text-black space-y-0.5 relative">
+            <i data-lucide="message-square" class="w-6 h-6" aria-hidden="true"></i>
+            <span class="absolute top-0 right-3 w-2 h-2 bg-tiktok-red rounded-full"></span>
+            <span>Inbox</span>
+        </button>
+        <a href="./profile.html" id="nav-profile" class="flex flex-col items-center text-rose-500 hover:text-black space-y-0.5">
+            <i data-lucide="user" class="w-6 h-6" aria-hidden="true"></i>
+            <span>Profile</span>
+        </a>
+    </nav>
+    <main class="mx-auto max-w-5xl px-4 pb-24 sm:pb-16">
         <section class="border-b border-zinc-800 py-8 sm:py-10">
             <div class="flex flex-col gap-6 sm:flex-row sm:items-center">
                 <button id="profile-pic-button" class="relative h-28 w-28 shrink-0 self-center overflow-hidden rounded-full bg-zinc-800 sm:self-auto" type="button" aria-label="Change profile picture">
                     <img id="profile-pic" class="h-full w-full object-cover" alt="Your profile picture">
-                    <span class="absolute inset-x-0 bottom-0 bg-black/60 py-1 text-center text-xs">Edit photo</span>
+                    <span class="absolute inset-x-0 bottom-0 bg-black/60 py-1 text-center text-xs text-white">Edit photo</span>
                 </button>
                 <div class="min-w-0 flex-1 text-center sm:text-left">
                     <p class="text-sm text-zinc-500">Your profile</p>
                     <h1 id="profile-name" class="mt-1 truncate text-3xl font-bold">Loading profile…</h1>
-                    <p id="profile-username" class="mt-1 text-zinc-400"></p>
+                    <p class="mt-1 text-zinc-400"><span class="inline-flex items-center gap-1"><span id="profile-username"></span><i id="profile-verified" data-lucide="badge-check" class="inline-block h-4 w-4 align-middle text-sky-400" title="Verified creator" aria-label="Verified creator"></i></span></p>
                     <div class="mt-4 flex flex-wrap justify-center gap-x-7 gap-y-2 text-sm sm:justify-start">
-                        <span><strong id="post-count" class="text-white">0</strong> posts</span>
-                        <span><strong id="pinned-count" class="text-white">0</strong> pinned</span>
-                        <span><strong id="follower-count" class="text-white">0</strong> followers</span>
-                        <span><strong id="following-count" class="text-white">0</strong> following</span>
-                        <span><strong id="like-count" class="text-white">0</strong> likes</span>
-                        <button id="viewers-tab-button" class="hover:text-cyan-300"><strong id="viewer-count" class="text-white">0</strong> viewers</button>
+                        <span><strong id="post-count" class="text-zinc-950">0</strong> posts</span>
+                        <span><strong id="pinned-count" class="text-zinc-950">0</strong> pinned</span>
+                        <span><strong id="follower-count" class="text-zinc-950">0</strong> followers</span>
+                        <span><strong id="following-count" class="text-zinc-950">0</strong> following</span>
+                        <span><strong id="like-count" class="text-zinc-950">0</strong> likes</span>
+                        <button id="viewers-tab-button" class="hover:text-cyan-300"><strong id="viewer-count" class="text-zinc-950">0</strong> viewers</button>
                     </div>
                     <p id="profile-bio" class="mx-auto mt-4 max-w-xl whitespace-pre-wrap text-sm text-zinc-300 sm:mx-0"></p>
-                    <button id="edit-profile-button" class="mt-4 rounded-xl border border-zinc-700 px-4 py-2 text-sm font-semibold hover:bg-zinc-800" type="button">Edit profile</button>
+                    <button id="edit-profile-button" class="mt-4 rounded-xl border border-zinc-300 bg-zinc-100 px-4 py-2 text-sm font-semibold text-zinc-900 hover:bg-zinc-200" type="button">Edit profile</button>
                 </div>
             </div>
             <div class="mt-7">
@@ -81,7 +124,7 @@
             <p id="edit-message" class="hidden rounded-xl border p-3 text-sm" role="status"></p>
             <div class="flex justify-end gap-2">
                 <button id="cancel-edit" class="rounded-xl bg-zinc-800 px-4 py-2.5 font-semibold" type="button">Cancel</button>
-                <button id="save-profile" class="rounded-xl bg-rose-500 px-4 py-2.5 font-semibold disabled:opacity-60" type="submit">Save changes</button>
+                <button id="save-profile" class="rounded-xl bg-rose-500 px-4 py-2.5 font-semibold text-white disabled:opacity-60" type="submit">Save changes</button>
             </div>
         </form>
     </dialog>
@@ -96,6 +139,7 @@
             setDoc, updateDoc, where
         } from 'https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js';
 
+        lucide.createIcons();
         const CLOUD_NAME = 's35mxosr';
         const UPLOAD_PRESET = 'user_uploads';
         const contentGrid = document.getElementById('content-grid');
@@ -136,6 +180,7 @@
         function loadProfileHeader() {
             document.getElementById('profile-name').textContent = profile.fullName || user.displayName || 'EarnTok user';
             document.getElementById('profile-username').textContent = profile.username ? `@${profile.username}` : user.email || '';
+            document.getElementById('profile-verified').classList.toggle('hidden', profile.verify !== 'yes');
             document.getElementById('profile-bio').textContent = profile.bio || '';
             const pic = document.getElementById('profile-pic');
             pic.src = profile.profilePic || user.photoURL || 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?auto=format&fit=crop&w=200&q=80';
@@ -158,10 +203,14 @@
                 ? `<img class="aspect-[3/4] w-full object-cover" src="${src}" alt="${escapeHtml(video.description || '')}" loading="lazy">`
                 : `<video class="aspect-[3/4] w-full object-cover" src="${src}" muted playsinline preload="metadata"></video>`;
             const status = video.admin === 'yes' ? 'Published' : 'Draft';
+            const verifiedBadge = profile.verify === 'yes'
+                ? '<span class="ml-1 inline-flex align-middle items-center"><i data-lucide="badge-check" class="h-3.5 w-3.5 text-sky-400" title="Verified creator" aria-label="Verified creator"></i></span>'
+                : '';
             return `<article class="group relative overflow-hidden rounded-xl bg-zinc-900" data-profile-video-id="${escapeHtml(video.id)}">
                 ${media}
                 ${video.admin === 'yes' ? `<button class="open-profile-video absolute inset-0 z-10 flex items-center justify-center bg-black/10 text-3xl text-white opacity-0 transition hover:bg-black/30 hover:opacity-100" data-id="${escapeHtml(video.id)}" type="button" aria-label="Watch ${escapeHtml(video.description || 'post')}">▶</button>` : ''}
                 <div class="absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/90 via-black/50 to-transparent p-3 pt-10">
+                    <p class="mb-1 text-xs font-semibold">${escapeHtml(profile.username ? `@${profile.username}` : 'You')}${verifiedBadge}</p>
                     <p class="line-clamp-2 text-xs text-white">${escapeHtml(video.description || 'Untitled')}</p>
                     <div class="relative z-20 mt-2 flex items-center justify-between gap-1">
                         <span class="rounded-full bg-black/50 px-2 py-1 text-[10px] ${video.admin === 'yes' ? 'text-emerald-300' : 'text-amber-300'}">${status}</span>
@@ -178,6 +227,7 @@
             const grid = document.getElementById('pinned-grid');
             grid.innerHTML = pinnedItems.length ? pinnedItems.map(video => mediaMarkup(video, true, true)).join('')
                 : '<p class="col-span-full rounded-xl border border-dashed border-zinc-800 py-6 text-center text-xs text-zinc-600">Pin up to three published posts to feature them here.</p>';
+            lucide.createIcons();
         }
 
         function renderContent() {
@@ -199,6 +249,7 @@
                         ${activity.userId.startsWith('guest-')
                             ? `<div class="col-span-full flex items-center gap-3 border-b border-zinc-800 py-3"><span class="flex h-10 w-10 items-center justify-center rounded-full bg-zinc-800 text-sm font-bold">?</span><span><strong class="block text-sm">Anonymous viewer</strong><span class="text-xs text-zinc-500">${activity.createdAt?.toDate?.().toLocaleString?.() || 'Viewed your profile'}</span></span></div>`
                             : `<a class="col-span-full flex items-center gap-3 border-b border-zinc-800 py-3" href="./view-profile.html?uid=${encodeURIComponent(activity.userId)}"><img class="h-10 w-10 rounded-full bg-zinc-800 object-cover" src="${escapeHtml(activity.visitorPic || '')}" alt=""><span><strong class="block text-sm">${escapeHtml(activity.visitorName || 'EarnTok user')}</strong><span class="text-xs text-zinc-500">${activity.createdAt?.toDate?.().toLocaleString?.() || 'Viewed your profile'}</span></span></a>`}`).join('') : '<p class="col-span-full py-12 text-center text-sm text-zinc-500">No profile views yet.</p>';
+                lucide.createIcons();
                 return;
             }
             let items = activeTab === 'liked' ? likedVideos : activeTab === 'saved' ? savedVideos : uploads;
@@ -207,6 +258,7 @@
             }
             contentGrid.innerHTML = items.length ? items.map(video => mediaMarkup(video, pinnedVideos.includes(video.id), activeTab === 'uploads')).join('')
                 : `<p class="col-span-full py-12 text-center text-sm text-zinc-500">${activeTab === 'uploads' ? activeFilter === 'draft' ? 'No drafts yet.' : 'No uploads yet.' : activeTab === 'liked' ? 'Videos you like will appear here.' : 'Videos you save will appear here.'}</p>`;
+            lucide.createIcons();
         }
 
         async function loadVideosByIds(ids) {
@@ -273,6 +325,7 @@
             }
             uploads = ownVideosSnapshot.docs.map(item => ({ id: item.id, ...item.data() }));
             const accountData = userSnapshot.exists() ? userSnapshot.data() : {};
+            profile.verify = profile.verify === 'yes' || accountData.verify === 'yes' ? 'yes' : 'no';
             pinnedVideos = Array.isArray(profile.pinnedVideos)
                 ? profile.pinnedVideos.slice(0, 3)
                 : Array.isArray(accountData.pinnedVideos) ? accountData.pinnedVideos.slice(0, 3) : [];
@@ -301,7 +354,11 @@
             if (!button) return;
             const videoId = button.dataset.id;
             const publishedVideos = uploads.filter(video => video.admin === 'yes');
-            videoViewer.open(publishedVideos, videoId);
+            videoViewer.open(publishedVideos.map(video => ({
+                ...video,
+                creatorUsername: profile.username ? `@${profile.username}` : user.displayName,
+                creatorVerified: profile.verify === 'yes'
+            })), videoId);
         }
         document.getElementById('content-grid').addEventListener('click', openProfileVideo);
         document.getElementById('pinned-grid').addEventListener('click', openProfileVideo);

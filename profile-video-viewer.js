@@ -53,7 +53,7 @@ export function createProfileVideoViewer() {
             slide.innerHTML = `
                 ${media}
                 <div class="pointer-events-none absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/90 via-black/35 to-transparent px-5 pb-10 pt-28">
-                    <p class="text-sm font-semibold">${escapeHtml(video.uploadedBy || 'Creator')}</p>
+                    <p class="text-sm font-semibold"><span class="inline-flex items-center">${escapeHtml(video.creatorUsername || video.uploadedBy || 'Creator')}${video.creatorVerified ? ' <span class="ml-1 inline-flex align-middle items-center"><i data-lucide="badge-check" class="h-4 w-4 text-sky-400" title="Verified creator" aria-label="Verified creator"></i></span>' : ''}</span></p>
                     <p class="mt-2 max-w-xl text-sm">${escapeHtml(video.description || '')}</p>
                     <p class="mt-2 text-xs text-white/75">♥ ${Number.isFinite(Number(video.likesCount)) ? Math.max(0, Number(video.likesCount)).toLocaleString() : '0'}</p>
                 </div>`;
@@ -61,6 +61,7 @@ export function createProfileVideoViewer() {
             observer.observe(slide);
         }
 
+        lucide.createIcons();
         if (!dialog.open) dialog.showModal();
         requestAnimationFrame(() => {
             const selected = feed.querySelector(`[data-video-id="${CSS.escape(startId)}"]`);

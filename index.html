@@ -115,7 +115,7 @@
         <header class="absolute top-0 left-0 right-0 z-30 flex items-center justify-between px-4 pb-3 safe-top bg-gradient-to-b from-black/80 via-black/40 to-transparent pointer-events-auto">
             <!-- LIVE Button -->
             <button class="flex items-center space-x-1 text-white/90 hover:text-white transition group">
-                <i data-lucide="tv" class="w-6 h-6 text-white group-hover:scale-105 transition"></i>
+                <i data-lucide="tv" class="w-6 h-6 text-white group-hover:scale-105 transition" aria-hidden="true"></i>
                 <span class="text-xs font-semibold uppercase tracking-wider hidden sm:inline">LIVE</span>
             </button>
 
@@ -134,7 +134,7 @@
 
             <!-- Search Icon -->
             <button onclick="requireUser().then(user => user && (trackPageActivity('search_opened'), showToast('Search feature opened')))" class="text-white/90 hover:text-white transition group">
-                <i data-lucide="search" class="w-6 h-6 group-hover:scale-105 transition"></i>
+                <i data-lucide="search" class="w-6 h-6 group-hover:scale-105 transition" aria-hidden="true"></i>
             </button>
         </header>
 
@@ -151,7 +151,7 @@
                 <!-- Play/Pause Indicator Overlay -->
                 <div class="play-icon-overlay absolute inset-0 flex items-center justify-center opacity-0 pointer-events-none transition-opacity duration-200">
                     <div class="w-16 h-16 bg-black/50 rounded-full flex items-center justify-center backdrop-blur-sm">
-                        <i data-lucide="play" class="w-8 h-8 text-white fill-white ml-1"></i>
+                        <i data-lucide="play" class="w-8 h-8 text-white fill-white ml-1" aria-hidden="true"></i>
                     </div>
                 </div>
 
@@ -161,14 +161,14 @@
                     <div class="relative group cursor-pointer" onclick="requireUser().then(user => user && (trackPageActivity('view_profile', { creator: '@alex_cyberpunk' }), showToast('Viewing @alex_cyberpunk profile')))">
                         <img src="https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=150&q=80" class="w-12 h-12 rounded-full border-2 border-white object-cover shadow-lg group-hover:scale-105 transition">
                         <button onclick="event.stopPropagation(); toggleFollow(this)" class="follow-btn absolute -bottom-1.5 left-1/2 -translate-x-1/2 bg-tiktok-red hover:bg-red-600 text-white rounded-full p-0.5 shadow-md transition transform active:scale-90">
-                            <i data-lucide="plus" class="w-3.5 h-3.5"></i>
+                            <i data-lucide="plus" class="w-3.5 h-3.5" aria-hidden="true"></i>
                         </button>
                     </div>
 
                     <!-- Like Button -->
                     <div class="flex flex-col items-center">
                         <button onclick="toggleLike(this)" class="like-btn p-2 rounded-full hover:bg-white/10 transition active:scale-75 text-white">
-                            <i data-lucide="heart" class="w-8 h-8 transition-colors"></i>
+                            <i data-lucide="heart" class="w-8 h-8 transition-colors" aria-hidden="true"></i>
                         </button>
                         <span class="like-count text-xs font-semibold drop-shadow-md mt-0.5">142.5K</span>
                     </div>
@@ -176,7 +176,7 @@
                     <!-- Comment Button -->
                     <div class="flex flex-col items-center">
                         <button onclick="openComments('1')" class="p-2 rounded-full hover:bg-white/10 transition active:scale-75 text-white">
-                            <i data-lucide="message-circle" class="w-8 h-8 drop-shadow-md"></i>
+                            <i data-lucide="message-circle" class="w-8 h-8 drop-shadow-md" aria-hidden="true"></i>
                         </button>
                         <span class="comment-count text-xs font-semibold drop-shadow-md mt-0.5">2,380</span>
                     </div>
@@ -184,7 +184,7 @@
                     <!-- Bookmark / Favorite Button -->
                     <div class="flex flex-col items-center">
                         <button onclick="toggleBookmark(this)" class="bookmark-btn p-2 rounded-full hover:bg-white/10 transition active:scale-75 text-white">
-                            <i data-lucide="bookmark" class="w-8 h-8 transition-colors drop-shadow-md"></i>
+                            <i data-lucide="bookmark" class="w-8 h-8 transition-colors drop-shadow-md" aria-hidden="true"></i>
                         </button>
                         <span class="bookmark-count text-xs font-semibold drop-shadow-md mt-0.5">18.4K</span>
                     </div>
@@ -192,7 +192,7 @@
                     <!-- Share Button -->
                     <div class="flex flex-col items-center">
                         <button onclick="openShareModal()" class="p-2 rounded-full hover:bg-white/10 transition active:scale-75 text-white">
-                            <i data-lucide="share-2" class="w-8 h-8 drop-shadow-md"></i>
+                            <i data-lucide="share-2" class="w-8 h-8 drop-shadow-md" aria-hidden="true"></i>
                         </button>
                         <span class="text-xs font-semibold drop-shadow-md mt-0.5">4,120</span>
                     </div>
@@ -213,7 +213,7 @@
                         
                         <!-- Marquee Audio Banner -->
                         <div class="flex items-center space-x-2 mt-3 text-xs font-medium text-gray-200">
-                            <i data-lucide="music" class="w-3.5 h-3.5 animate-pulse text-tiktok-cyan"></i>
+                            <i data-lucide="music" class="w-3.5 h-3.5 animate-pulse text-tiktok-cyan" aria-hidden="true"></i>
                             <div class="overflow-hidden w-48 relative h-4">
                                 <div class="whitespace-nowrap animate-marquee absolute inset-0">
                                     Original Sound - @alex_cyberpunk &bull; High Energy Synthbeat &bull; Original Sound - @alex_cyberpunk
@@ -232,7 +232,7 @@
 
                 <div class="play-icon-overlay absolute inset-0 flex items-center justify-center opacity-0 pointer-events-none transition-opacity duration-200">
                     <div class="w-16 h-16 bg-black/50 rounded-full flex items-center justify-center backdrop-blur-sm">
-                        <i data-lucide="play" class="w-8 h-8 text-white fill-white ml-1"></i>
+                        <i data-lucide="play" class="w-8 h-8 text-white fill-white ml-1" aria-hidden="true"></i>
                     </div>
                 </div>
 
@@ -241,34 +241,34 @@
                     <div class="relative group cursor-pointer" onclick="requireUser().then(user => user && (trackPageActivity('view_profile', { creator: '@chef_mario' }), showToast('Viewing @chef_mario profile')))">
                         <img src="https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?auto=format&fit=crop&w=150&q=80" class="w-12 h-12 rounded-full border-2 border-white object-cover shadow-lg group-hover:scale-105 transition">
                         <button onclick="event.stopPropagation(); toggleFollow(this)" class="follow-btn absolute -bottom-1.5 left-1/2 -translate-x-1/2 bg-tiktok-red hover:bg-red-600 text-white rounded-full p-0.5 shadow-md transition transform active:scale-90">
-                            <i data-lucide="plus" class="w-3.5 h-3.5"></i>
+                            <i data-lucide="plus" class="w-3.5 h-3.5" aria-hidden="true"></i>
                         </button>
                     </div>
 
                     <div class="flex flex-col items-center">
                         <button onclick="toggleLike(this)" class="like-btn p-2 rounded-full hover:bg-white/10 transition active:scale-75 text-white">
-                            <i data-lucide="heart" class="w-8 h-8 transition-colors"></i>
+                            <i data-lucide="heart" class="w-8 h-8 transition-colors" aria-hidden="true"></i>
                         </button>
                         <span class="like-count text-xs font-semibold drop-shadow-md mt-0.5">892K</span>
                     </div>
 
                     <div class="flex flex-col items-center">
                         <button onclick="openComments('2')" class="p-2 rounded-full hover:bg-white/10 transition active:scale-75 text-white">
-                            <i data-lucide="message-circle" class="w-8 h-8 drop-shadow-md"></i>
+                            <i data-lucide="message-circle" class="w-8 h-8 drop-shadow-md" aria-hidden="true"></i>
                         </button>
                         <span class="comment-count text-xs font-semibold drop-shadow-md mt-0.5">9,410</span>
                     </div>
 
                     <div class="flex flex-col items-center">
                         <button onclick="toggleBookmark(this)" class="bookmark-btn p-2 rounded-full hover:bg-white/10 transition active:scale-75 text-white">
-                            <i data-lucide="bookmark" class="w-8 h-8 transition-colors drop-shadow-md"></i>
+                            <i data-lucide="bookmark" class="w-8 h-8 transition-colors drop-shadow-md" aria-hidden="true"></i>
                         </button>
                         <span class="bookmark-count text-xs font-semibold drop-shadow-md mt-0.5">52.1K</span>
                     </div>
 
                     <div class="flex flex-col items-center">
                         <button onclick="openShareModal()" class="p-2 rounded-full hover:bg-white/10 transition active:scale-75 text-white">
-                            <i data-lucide="share-2" class="w-8 h-8 drop-shadow-md"></i>
+                            <i data-lucide="share-2" class="w-8 h-8 drop-shadow-md" aria-hidden="true"></i>
                         </button>
                         <span class="text-xs font-semibold drop-shadow-md mt-0.5">12.8K</span>
                     </div>
@@ -287,7 +287,7 @@
                         <p class="text-sm mt-1 text-gray-100 line-clamp-2 leading-snug drop-shadow-sm">Making the ULTIMATE crispy artisan garlic bread 🥖🧄 Would you eat this whole loaf? <span class="font-semibold text-tiktok-cyan cursor-pointer">#foodie</span> <span class="font-semibold text-tiktok-cyan cursor-pointer">#recipe</span></p>
                         
                         <div class="flex items-center space-x-2 mt-3 text-xs font-medium text-gray-200">
-                            <i data-lucide="music" class="w-3.5 h-3.5 animate-pulse text-tiktok-cyan"></i>
+                            <i data-lucide="music" class="w-3.5 h-3.5 animate-pulse text-tiktok-cyan" aria-hidden="true"></i>
                             <div class="overflow-hidden w-48 relative h-4">
                                 <div class="whitespace-nowrap animate-marquee absolute inset-0">
                                     Delicious Cooking Beats - Chef Mario &bull; Italian Vibes &bull; Delicious Cooking Beats
@@ -306,7 +306,7 @@
 
                 <div class="play-icon-overlay absolute inset-0 flex items-center justify-center opacity-0 pointer-events-none transition-opacity duration-200">
                     <div class="w-16 h-16 bg-black/50 rounded-full flex items-center justify-center backdrop-blur-sm">
-                        <i data-lucide="play" class="w-8 h-8 text-white fill-white ml-1"></i>
+                        <i data-lucide="play" class="w-8 h-8 text-white fill-white ml-1" aria-hidden="true"></i>
                     </div>
                 </div>
 
@@ -315,34 +315,34 @@
                     <div class="relative group cursor-pointer" onclick="requireUser().then(user => user && (trackPageActivity('view_profile', { creator: '@nature_escapes' }), showToast('Viewing @nature_escapes profile')))">
                         <img src="https://images.unsplash.com/photo-1544005313-94ddf0286df2?auto=format&fit=crop&w=150&q=80" class="w-12 h-12 rounded-full border-2 border-white object-cover shadow-lg group-hover:scale-105 transition">
                         <button onclick="event.stopPropagation(); toggleFollow(this)" class="follow-btn absolute -bottom-1.5 left-1/2 -translate-x-1/2 bg-tiktok-red hover:bg-red-600 text-white rounded-full p-0.5 shadow-md transition transform active:scale-90">
-                            <i data-lucide="plus" class="w-3.5 h-3.5"></i>
+                            <i data-lucide="plus" class="w-3.5 h-3.5" aria-hidden="true"></i>
                         </button>
                     </div>
 
                     <div class="flex flex-col items-center">
                         <button onclick="toggleLike(this)" class="like-btn p-2 rounded-full hover:bg-white/10 transition active:scale-75 text-white">
-                            <i data-lucide="heart" class="w-8 h-8 transition-colors"></i>
+                            <i data-lucide="heart" class="w-8 h-8 transition-colors" aria-hidden="true"></i>
                         </button>
                         <span class="like-count text-xs font-semibold drop-shadow-md mt-0.5">320.1K</span>
                     </div>
 
                     <div class="flex flex-col items-center">
                         <button onclick="openComments('3')" class="p-2 rounded-full hover:bg-white/10 transition active:scale-75 text-white">
-                            <i data-lucide="message-circle" class="w-8 h-8 drop-shadow-md"></i>
+                            <i data-lucide="message-circle" class="w-8 h-8 drop-shadow-md" aria-hidden="true"></i>
                         </button>
                         <span class="comment-count text-xs font-semibold drop-shadow-md mt-0.5">1,540</span>
                     </div>
 
                     <div class="flex flex-col items-center">
                         <button onclick="toggleBookmark(this)" class="bookmark-btn p-2 rounded-full hover:bg-white/10 transition active:scale-75 text-white">
-                            <i data-lucide="bookmark" class="w-8 h-8 transition-colors drop-shadow-md"></i>
+                            <i data-lucide="bookmark" class="w-8 h-8 transition-colors drop-shadow-md" aria-hidden="true"></i>
                         </button>
                         <span class="bookmark-count text-xs font-semibold drop-shadow-md mt-0.5">31.2K</span>
                     </div>
 
                     <div class="flex flex-col items-center">
                         <button onclick="openShareModal()" class="p-2 rounded-full hover:bg-white/10 transition active:scale-75 text-white">
-                            <i data-lucide="share-2" class="w-8 h-8 drop-shadow-md"></i>
+                            <i data-lucide="share-2" class="w-8 h-8 drop-shadow-md" aria-hidden="true"></i>
                         </button>
                         <span class="text-xs font-semibold drop-shadow-md mt-0.5">8,900</span>
                     </div>
@@ -361,7 +361,7 @@
                         <p class="text-sm mt-1 text-gray-100 line-clamp-2 leading-snug drop-shadow-sm">Serene sunset above the clouds in the Swiss Alps 🏔️ Real peace exists right here. <span class="font-semibold text-tiktok-cyan cursor-pointer">#travel</span> <span class="font-semibold text-tiktok-cyan cursor-pointer">#mountains</span></p>
                         
                         <div class="flex items-center space-x-2 mt-3 text-xs font-medium text-gray-200">
-                            <i data-lucide="music" class="w-3.5 h-3.5 animate-pulse text-tiktok-cyan"></i>
+                            <i data-lucide="music" class="w-3.5 h-3.5 animate-pulse text-tiktok-cyan" aria-hidden="true"></i>
                             <div class="overflow-hidden w-48 relative h-4">
                                 <div class="whitespace-nowrap animate-marquee absolute inset-0">
                                     Chill Lofi Ambient Rain - Nature Escapes &bull; Relaxing Waves
@@ -375,12 +375,11 @@
 
         <!-- BOTTOM MOBILE NAVIGATION BAR -->
         <nav class="relative shrink-0 z-30 bg-black border-t border-gray-800 px-3 pt-2 safe-bottom flex items-center justify-around text-xs font-medium">
-            <button onclick="switchNavTab('home')" id="nav-home" class="flex flex-col items-center text-white space-y-0.5">
-                <i data-lucide="home" class="w-6 h-6"></i>
-                <span>Home</span>
-            </button>
+            <a href="./index.html" class="flex flex-col items-center space-y-0.5 text-rose-500 hover:text-white" aria-label="Home">
+                <i data-lucide="home" class="h-6 w-6" aria-hidden="true"></i><span>Home</span>
+            </a>
             <button onclick="switchNavTab('friends')" id="nav-friends" class="flex flex-col items-center text-gray-400 hover:text-white space-y-0.5">
-                <i data-lucide="users" class="w-6 h-6"></i>
+                <i data-lucide="users" class="w-6 h-6" aria-hidden="true"></i>
                 <span>Friends</span>
             </button>
             <!-- Create Button (+) with TikTok Dual-Glow Effect -->
@@ -388,16 +387,16 @@
                 <div class="w-11 h-7 rounded-lg bg-tiktok-cyan absolute -left-1"></div>
                 <div class="w-11 h-7 rounded-lg bg-tiktok-red absolute -right-1"></div>
                 <div class="w-11 h-7 rounded-lg bg-white relative flex items-center justify-center text-black">
-                    <i data-lucide="plus" class="w-5 h-5 stroke-[3]"></i>
+                    <i data-lucide="plus" class="w-5 h-5 stroke-[3]" aria-hidden="true"></i>
                 </div>
             </button>
             <button onclick="switchNavTab('inbox')" id="nav-inbox" class="flex flex-col items-center text-gray-400 hover:text-white space-y-0.5 relative">
-                <i data-lucide="message-square" class="w-6 h-6"></i>
+                <i data-lucide="message-square" class="w-6 h-6" aria-hidden="true"></i>
                 <span class="absolute top-0 right-3 w-2 h-2 bg-tiktok-red rounded-full"></span>
                 <span>Inbox</span>
             </button>
             <a href="./profile.html" id="nav-profile" class="flex flex-col items-center text-gray-400 hover:text-white space-y-0.5">
-                <i data-lucide="user" class="w-6 h-6"></i>
+                <i data-lucide="user" class="w-6 h-6" aria-hidden="true"></i>
                 <span>Profile</span>
             </a>
         </nav>
@@ -462,7 +461,7 @@
                 <div class="w-10 h-1 bg-gray-600 rounded-full absolute top-2 left-1/2 -translate-x-1/2"></div>
                 <h4 id="drawer-comment-count" class="w-full text-center text-xs font-bold pt-2 text-gray-200">2,380 comments</h4>
                 <button onclick="closeComments()" class="absolute right-3 top-3 text-gray-400 hover:text-white p-1">
-                    <i data-lucide="x" class="w-5 h-5"></i>
+                    <i data-lucide="x" class="w-5 h-5" aria-hidden="true"></i>
                 </button>
             </div>
 
@@ -483,23 +482,23 @@
         <div id="share-modal" class="fixed inset-x-0 bottom-0 max-w-md mx-auto z-50 transform translate-y-full transition-transform duration-300 ease-in-out bg-tiktok-dark rounded-t-2xl p-4 border-t border-gray-800 hidden">
             <div class="flex justify-between items-center mb-4">
                 <h4 class="text-sm font-bold">Share to</h4>
-                <button onclick="closeShareModal()" class="text-gray-400 hover:text-white"><i data-lucide="x" class="w-5 h-5"></i></button>
+                <button onclick="closeShareModal()" class="text-gray-400 hover:text-white"><i data-lucide="x" class="w-5 h-5" aria-hidden="true"></i></button>
             </div>
             <div class="grid grid-cols-4 gap-4 text-center text-xs mb-4">
                 <button onclick="copyVideoLink()" class="flex flex-col items-center space-y-1 group">
-                    <div class="w-12 h-12 rounded-full bg-gray-800 flex items-center justify-center group-hover:bg-gray-700 transition"><i data-lucide="link" class="w-6 h-6 text-tiktok-cyan"></i></div>
+                    <div class="w-12 h-12 rounded-full bg-gray-800 flex items-center justify-center group-hover:bg-gray-700 transition"><i data-lucide="link" class="w-6 h-6 text-tiktok-cyan" aria-hidden="true"></i></div>
                     <span>Copy Link</span>
                 </button>
                 <button onclick="shareVideo('whatsapp')" class="flex flex-col items-center space-y-1 group">
-                    <div class="w-12 h-12 rounded-full bg-green-600 flex items-center justify-center group-hover:bg-green-500 transition"><i data-lucide="message-circle" class="w-6 h-6"></i></div>
+                    <div class="w-12 h-12 rounded-full bg-green-600 flex items-center justify-center group-hover:bg-green-500 transition"><i data-lucide="message-circle" class="w-6 h-6" aria-hidden="true"></i></div>
                     <span>WhatsApp</span>
                 </button>
                 <button onclick="shareVideo('stories')" class="flex flex-col items-center space-y-1 group">
-                    <div class="w-12 h-12 rounded-full bg-gradient-to-tr from-yellow-500 via-pink-500 to-purple-600 flex items-center justify-center group-hover:opacity-90 transition"><i data-lucide="instagram" class="w-6 h-6"></i></div>
+                    <div class="w-12 h-12 rounded-full bg-gradient-to-tr from-yellow-500 via-pink-500 to-purple-600 flex items-center justify-center group-hover:opacity-90 transition"><i data-lucide="instagram" class="w-6 h-6" aria-hidden="true"></i></div>
                     <span>Stories</span>
                 </button>
                 <button onclick="shareVideo('repost')" class="flex flex-col items-center space-y-1 group">
-                    <div class="w-12 h-12 rounded-full bg-tiktok-red flex items-center justify-center group-hover:bg-red-600 transition"><i data-lucide="repeat" class="w-6 h-6"></i></div>
+                    <div class="w-12 h-12 rounded-full bg-tiktok-red flex items-center justify-center group-hover:bg-red-600 transition"><i data-lucide="repeat" class="w-6 h-6" aria-hidden="true"></i></div>
                     <span>Repost</span>
                 </button>
             </div>
@@ -507,7 +506,7 @@
 
         <!-- MUTE/UNMUTE BUTTON TOP RIGHT -->
         <button id="mute-btn" onclick="toggleMute()" class="absolute top-16 right-4 z-30 bg-black/40 hover:bg-black/60 backdrop-blur-md p-2 rounded-full text-white transition">
-            <i data-lucide="volume-x" id="mute-icon" class="w-5 h-5"></i>
+            <i data-lucide="volume-x" id="mute-icon" class="w-5 h-5" aria-hidden="true"></i>
         </button>
 
         <!-- TOAST NOTIFICATION CONTAINER -->
@@ -517,6 +516,7 @@
     </div>
 
     <script>
+        lucide.createIcons();
         const commentsData = Object.create(null);
         window.commentsData = commentsData;
         const feed = document.getElementById('video-feed');
@@ -532,7 +532,6 @@
 
         // Initialize icons and video behavior on DOM ready
         document.addEventListener('DOMContentLoaded', () => {
-            lucide.createIcons();
             setupIntersectionObserver();
             setupDoubleTapHearts();
             setupKeyboardNavigation();
@@ -798,6 +797,7 @@
                     comments.forEach(comment => {
                         if (comment.userId !== uid) return;
                         comment.avatar = safeImageUrl(profile.profilePic || comment.avatar || '');
+                        comment.verified = profile.verify === 'yes' || comment.verified;
                     });
                 } catch (error) {
                     console.error(`Unable to load commenter profile ${uid}:`, error);
@@ -812,18 +812,18 @@
                         : `<button type="button" data-profile-locked class="shrink-0" aria-label="Profile locked"><img src="${escapeHtml(safeImageUrl(c.avatar) || 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?auto=format&fit=crop&w=100&q=80')}" alt="${escapeHtml(c.user)} profile picture" class="h-8 w-8 rounded-full object-cover"></button>`}
                     <div class="flex-1 text-xs">
                         ${c.username
-                            ? `<a href="./view-profile.html?username=${encodeURIComponent(c.username)}" class="font-bold text-gray-400 hover:text-white">${escapeHtml(c.user)}</a>`
+                            ? `<a href="./view-profile.html?username=${encodeURIComponent(c.username)}" class="font-bold text-gray-400 hover:text-white">${escapeHtml(c.user)}</a>${window.verifiedBadge(c.verified)}`
                             : `<button type="button" data-profile-locked class="font-bold text-gray-400 hover:text-white">${escapeHtml(c.user)}</button>`}
                         <p class="text-white mt-0.5">${escapeHtml(c.text)}</p>
                     </div>
                     <button data-comment-index="${index}" onclick="likeComment(this)" class="flex flex-col items-center text-gray-400 hover:text-tiktok-red transition">
-                        <i data-lucide="heart" class="w-4 h-4"></i>
+                        <i data-lucide="heart" class="w-4 h-4" aria-hidden="true"></i>
                         <span class="text-[10px]">${c.likes}</span>
                     </button>
                 </div>
             `).join('');
-
             lucide.createIcons();
+
             drawer.classList.remove('translate-y-full');
         }
 
@@ -867,6 +867,7 @@
                 username,
                 user: `@${username}`,
                 profileImageLink: profilePic,
+                verify: authorProfile.verify === 'yes' ? 'yes' : 'no',
                 text,
                 likes: 0
             };
@@ -883,6 +884,7 @@
                 user: `@${comment.username}`,
                 userId: user.uid,
                 username: String(authorProfile.username || '').replace(/^@/, ''),
+                verified: authorProfile.verify === 'yes',
                 avatar: safeImageUrl(comment.profileImageLink),
                 text,
                 likes: 0
@@ -949,9 +951,11 @@
             tabs.forEach(t => {
                 const el = document.getElementById(`nav-${t}`);
                 if (t === tab) {
-                    el.className = 'flex flex-col items-center text-white space-y-0.5';
+                    el.className = 'flex flex-col items-center font-semibold text-white space-y-0.5';
+                    el.setAttribute('aria-current', 'page');
                 } else {
                     el.className = 'flex flex-col items-center text-gray-400 hover:text-white space-y-0.5';
+                    el.removeAttribute('aria-current');
                 }
 
             });
@@ -1073,6 +1077,10 @@
                 "'": '&#39;'
             })[character]);
         }
+
+        window.verifiedBadge = verified => verified
+            ? '<span class="ml-1 inline-flex align-middle items-center"><i data-lucide="badge-check" class="h-4 w-4 text-sky-400" title="Verified creator" aria-label="Verified creator"></i></span>'
+            : '';
 
         function safeImageUrl(value) {
             try {
@@ -1417,6 +1425,18 @@
             }
             cameraDialog.showModal();
         });
+        if (new URLSearchParams(window.location.search).get('openCreate') === '1') {
+            window.requireUser().then(user => {
+                if (!user) return;
+                const url = new URL(window.location.href);
+                url.searchParams.delete('openCreate');
+                history.replaceState(null, '', `${url.pathname}${url.search}${url.hash}`);
+                cameraDialog.showModal();
+            }).catch(error => {
+                console.error('Unable to open the create dialog from profile navigation:', error);
+                window.showToast('Could not open the create dialog. Please try again.');
+            });
+        }
         document.getElementById('close-camera').addEventListener('click', () => cameraDialog.close());
         cameraDialog.addEventListener('close', stopCamera);
         document.getElementById('upload-media-button').addEventListener('click', () => localMediaInput.click());
@@ -1650,6 +1670,7 @@
                 user: String(comment.username ? `@${comment.username}` : comment.user ?? comment.uploadedBy ?? comment.name ?? 'User'),
                 username: String(comment.username ?? ''),
                 userId: String(comment.userId ?? ''),
+                verified: comment.verify === 'yes',
                 text: String(comment.text ?? comment.comment ?? comment.message ?? ''),
                 avatar: validMediaUrl(comment.profileImageLink ?? comment.avatar ?? ''),
                 likes: numberValue(comment.likes)
@@ -1681,6 +1702,7 @@
             card.dataset.comments = String(comments.length);
             card.dataset.username = uploadedBy;
             card.dataset.userId = String(video.userId || '');
+            card.dataset.verified = String(video.creatorVerified || video.verify === 'yes');
             card.dataset.creatorUsername = String(video.username || uploadedBy).trim().replace(/^@/, '').toLowerCase();
             card.dataset.desc = description;
 
@@ -1695,7 +1717,7 @@
                 ${mediaElement}
                 <div class="play-icon-overlay absolute inset-0 flex items-center justify-center opacity-0 pointer-events-none transition-opacity duration-200">
                     <div class="w-16 h-16 bg-black/50 rounded-full flex items-center justify-center backdrop-blur-sm">
-                        <i data-lucide="play" class="w-8 h-8 text-white fill-white ml-1"></i>
+                        <i data-lucide="play" class="w-8 h-8 text-white fill-white ml-1" aria-hidden="true"></i>
                     </div>
                 </div>
                 <div class="absolute right-3 bottom-6 z-20 flex flex-col items-center space-y-5">
@@ -1705,32 +1727,32 @@
                     </div>
                     <div class="flex flex-col items-center">
                         <button type="button" class="like-btn p-2 rounded-full hover:bg-white/10 transition active:scale-75 text-white" aria-label="Like video">
-                            <i data-lucide="heart" class="w-8 h-8 transition-colors"></i>
+                            <i data-lucide="heart" class="w-8 h-8 transition-colors" aria-hidden="true"></i>
                         </button>
                         <span class="like-count text-xs font-semibold drop-shadow-md mt-0.5">${escapeHtml(window.formatNumber(likes))}</span>
                     </div>
                     <div class="flex flex-col items-center">
                         <button type="button" class="comments-btn p-2 rounded-full hover:bg-white/10 transition active:scale-75 text-white" aria-label="View comments">
-                            <i data-lucide="message-circle" class="w-8 h-8 drop-shadow-md"></i>
+                            <i data-lucide="message-circle" class="w-8 h-8 drop-shadow-md" aria-hidden="true"></i>
                         </button>
                         <span class="comment-count text-xs font-semibold drop-shadow-md mt-0.5">${escapeHtml(window.formatNumber(comments.length))}</span>
                     </div>
                     <div class="flex flex-col items-center">
                         <button type="button" class="bookmark-btn p-2 rounded-full hover:bg-white/10 transition active:scale-75 text-white" aria-label="Save video">
-                            <i data-lucide="bookmark" class="w-8 h-8 transition-colors drop-shadow-md"></i>
+                            <i data-lucide="bookmark" class="w-8 h-8 transition-colors drop-shadow-md" aria-hidden="true"></i>
                         </button>
                         <span class="bookmark-count text-xs font-semibold drop-shadow-md mt-0.5">${escapeHtml(window.formatNumber(saves))}</span>
                     </div>
                     <div class="flex flex-col items-center">
                         <button type="button" class="share-btn p-2 rounded-full hover:bg-white/10 transition active:scale-75 text-white" aria-label="Share video">
-                            <i data-lucide="share-2" class="w-8 h-8 drop-shadow-md"></i>
+                            <i data-lucide="share-2" class="w-8 h-8 drop-shadow-md" aria-hidden="true"></i>
                         </button>
                         <span class="share-count text-xs font-semibold drop-shadow-md mt-0.5">${escapeHtml(window.formatNumber(shares))}</span>
                     </div>
                 </div>
                 <div class="absolute bottom-2 left-0 right-16 z-20 p-4 bg-gradient-to-t from-black/80 via-black/30 to-transparent pointer-events-none">
                     <div class="pointer-events-auto">
-                        <h3 class="font-bold text-base drop-shadow-md inline-block">${escapeHtml(uploadedBy)}</h3>
+                        <h3 class="font-bold text-base drop-shadow-md inline-block">${escapeHtml(uploadedBy)}${window.verifiedBadge(card.dataset.verified === 'true')}</h3>
                         <p class="text-sm mt-1 text-gray-100 line-clamp-3 leading-snug drop-shadow-sm">${escapeHtml(description)}</p>
                     </div>
                 </div>`;
@@ -1769,8 +1791,24 @@
             try {
                 const videosQuery = query(collection(db, 'videos'), where('admin', '==', 'yes'));
                 const snapshot = await getDocs(videosQuery);
-                const cards = snapshot.docs
-                    .map(videoDoc => makeCard(videoDoc.id, videoDoc.data()))
+                const videos = snapshot.docs.map(videoDoc => ({ id: videoDoc.id, ...videoDoc.data() }));
+                const creatorIds = [...new Set(videos.map(video => video.userId).filter(Boolean))];
+                const verifiedCreators = new Set();
+                await Promise.all(creatorIds.map(async creatorId => {
+                    try {
+                        const profileSnapshot = await getDoc(doc(db, 'profiles', creatorId));
+                        if (profileSnapshot.exists() && profileSnapshot.data().verify === 'yes') {
+                            verifiedCreators.add(creatorId);
+                        }
+                    } catch (error) {
+                        console.error(`Unable to load verification for creator ${creatorId}:`, error);
+                    }
+                }));
+                const cards = videos
+                    .map(video => makeCard(video.id, {
+                        ...video,
+                        creatorVerified: verifiedCreators.has(video.userId) || video.verify === 'yes'
+                    }))
                     .filter(Boolean);
                 videoFeed.replaceChildren();
                 if (!cards.length) {
@@ -1781,13 +1819,13 @@
                     return;
                 }
                 cards.forEach(card => videoFeed.append(card));
+                lucide.createIcons();
                 restoreLikedState();
                 try {
                     await restoreFollowButtons(currentUser);
                 } catch (error) {
                     console.error('Unable to load followed creators:', error);
                 }
-                lucide.createIcons();
                 window.setupIntersectionObserver();
                 window.setupDoubleTapHearts();
             } catch (error) {

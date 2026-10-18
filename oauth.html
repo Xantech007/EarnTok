@@ -3,12 +3,13 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
-    <meta name="theme-color" content="#09090b">
+    <meta name="theme-color" content="#ffffff">
     <title>EarnTok · Sign in</title>
     <link rel="icon" type="image/png" href="./earntok-logo.png">
     <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://unpkg.com/lucide@latest"></script>
     <style>
-        :root { color-scheme: dark; }
+        :root { color-scheme: light; }
         body { min-height: 100vh; }
         .field {
             width: 100%; border: 1px solid #3f3f46; border-radius: .75rem;
@@ -18,6 +19,15 @@
         .field:focus { border-color: #25f4ee; }
         .field::placeholder { color: #71717a; }
         .tab-active { color: white; border-color: #fe2c55; }
+        body.bg-zinc-950 { background: #fff !important; color: #161823 !important; }
+        .bg-zinc-950, .bg-zinc-900, .bg-zinc-900\/90 { background-color: #fff !important; }
+        .text-zinc-100 { color: #161823 !important; }
+        .text-zinc-300 { color: #454550 !important; }
+        .text-zinc-400, .text-zinc-500 { color: #777782 !important; }
+        .border-zinc-800, .border-zinc-700 { border-color: #e4e4e8 !important; }
+        .field { background: #fff; border-color: #d8d8de; color: #161823; }
+        .tab-active { color: #161823; }
+        button.bg-rose-500.text-white { color: #fff !important; }
     </style>
 </head>
 <body class="bg-zinc-950 text-zinc-100 antialiased">
@@ -43,7 +53,7 @@
                     Password
                     <input class="field mt-2" name="password" type="password" autocomplete="current-password" required>
                 </label>
-                <button class="w-full rounded-xl bg-rose-500 px-4 py-3 font-bold text-white transition hover:bg-rose-600 disabled:cursor-wait disabled:opacity-60" type="submit">Log in</button>
+                <button class="w-full rounded-xl bg-rose-500 px-4 py-3 font-bold text-white transition hover:bg-rose-600 disabled:cursor-wait disabled:opacity-60" type="submit"><i data-lucide="log-in" class="mr-2 h-4 w-4" aria-hidden="true"></i>Log in</button>
             </form>
 
             <form id="register-panel" class="mt-6 hidden space-y-4" role="tabpanel" aria-labelledby="register-tab">
@@ -73,7 +83,7 @@
                         <input class="field mt-2" name="confirmPassword" type="password" autocomplete="new-password" minlength="8" required>
                     </label>
                 </div>
-                <button class="w-full rounded-xl bg-rose-500 px-4 py-3 font-bold text-white transition hover:bg-rose-600 disabled:cursor-wait disabled:opacity-60" type="submit">Create account</button>
+                <button class="w-full rounded-xl bg-rose-500 px-4 py-3 font-bold text-white transition hover:bg-rose-600 disabled:cursor-wait disabled:opacity-60" type="submit"><i data-lucide="user-plus" class="mr-2 h-4 w-4" aria-hidden="true"></i>Create account</button>
             </form>
             <p id="form-message" class="mt-5 hidden rounded-xl border p-3 text-sm" role="status"></p>
             <p class="mt-6 text-center text-xs leading-5 text-zinc-500">By continuing, you agree to use EarnTok respectfully. Your account information is stored in Firebase.</p>
@@ -90,6 +100,7 @@
             collection, doc, getDoc, runTransaction, serverTimestamp
         } from 'https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js';
 
+        lucide.createIcons();
         const loginTab = document.getElementById('login-tab');
         const registerTab = document.getElementById('register-tab');
         const loginForm = document.getElementById('login-panel');
