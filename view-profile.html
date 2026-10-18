@@ -60,6 +60,7 @@
         </section>
         <section class="mt-4">
             <div class="border-b border-zinc-800 px-4 py-3 text-sm font-semibold">Published posts</div>
+            <p id="profile-load-message" class="hidden px-4 pt-4 text-sm text-rose-600" role="alert"></p>
             <div id="posts-grid" class="grid grid-cols-2 gap-3 py-4 sm:grid-cols-3 sm:gap-4">
                 <p class="col-span-full py-12 text-center text-sm text-zinc-500">Loading posts…</p>
             </div>
@@ -105,7 +106,7 @@
             return /\.(avif|gif|jpe?g|png|webp|bmp|heic)(?:\?|$)/i.test(video.link || '') ? 'image' : 'video';
         }
 
-        function card(video, pinned = false) {
+        function card(video, profile, pinned = false) {
             const image = mediaType(video) === 'image'
                 ? `<img class="aspect-[3/4] w-full object-cover" src="${escapeHtml(video.link)}" alt="${escapeHtml(video.description || '')}" loading="lazy">`
                 : `<video class="aspect-[3/4] w-full object-cover" src="${escapeHtml(video.link)}" muted playsinline preload="metadata"></video>`;
@@ -115,12 +116,42 @@
             return `<article class="relative cursor-pointer overflow-hidden rounded-xl bg-zinc-900" data-video-id="${escapeHtml(video.id)}" tabindex="0" role="button" aria-label="Watch ${escapeHtml(video.description || 'post')}">${image}<div class="absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/90 to-transparent p-3 pt-10 text-white"><p class="mb-1 text-xs font-semibold">${escapeHtml(profile.username ? `@${profile.username}` : profile.fullName || 'Creator')}${verified}</p><p class="line-clamp-2 text-xs">${escapeHtml(video.description || '')}</p>${pinned ? '<span class="mt-2 inline-block rounded-full bg-rose-500 px-2 py-1 text-[10px] font-semibold">Pinned</span>' : ''}</div></article>`;
         }
 
+        function firestoreReadError(stage, error) {
+            const code = typeof error?.code === 'string' ? error.code : 'unknown';
+            if (code === 'permission-denied') {
+                const ruleTarget = stage === 'published posts' ? 'published videos (`videos` where `admin` is "yes")'
+                    : stage.startsWith('follow') ? 'follow records (`follows`)'
+                    : 'public profiles (`profiles`)';
+                return `Firestore denied the ${stage} read. Allow public reads of ${ruleTarget} in Firestore Security Rules.`;
+            }
+            if (code === 'failed-precondition') {
+                return `Firestore needs an index to load ${stage}. Open the index-creation link in the browser console, create the suggested index, then reload.`;
+            }
+            const detail = typeof error?.message === 'string' ? error.message.trim().replace(/[.]+$/, '') : '';
+            const codeLabel = code === 'unknown' ? '' : ` (${code})`;
+            return `Could not load ${stage}${codeLabel}${detail ? `: ${detail}` : ''}. Check your network and Firebase configuration, then try again.`;
+        }
+
+        async function readAtStage(stage, read) {
+            try {
+                return await read();
+            } catch (error) {
+                console.error(`Firestore ${stage} read failed:`, error);
+                const wrapped = new Error(firestoreReadError(stage, error), { cause: error });
+                wrapped.code = error?.code;
+                wrapped.stage = stage;
+                throw wrapped;
+            }
+        }
+
         async function load() {
             let profileDoc;
+            let stage = 'profile';
             if (targetUid) {
-                profileDoc = await getDoc(doc(db, 'profiles', targetUid));
+                profileDoc = await readAtStage(stage, () => getDoc(doc(db, 'profiles', targetUid)));
             } else if (targetUsername) {
-                const matches = await getDocs(query(collection(db, 'profiles'), where('usernameLower', '==', targetUsername)));
+                const matches = await readAtStage(stage, () =>
+                    getDocs(query(collection(db, 'profiles'), where('usernameLower', '==', targetUsername))));
                 profileDoc = matches.docs[0] || null;
             } else {
                 throw new Error('This profile link is missing its user ID.');
@@ -132,12 +163,26 @@
             }
             const userId = profileDoc.id;
             const profile = profileDoc.data();
-            const [authUser, postsSnapshot, followStats] = await Promise.all([
+            stage = 'published posts';
+            const [authUser, postsSnapshot] = await Promise.all([
                 getCurrentUser(),
-                getDocs(query(collection(db, 'videos'), where('userId', '==', userId))),
-                getUserFollowStats(userId)
+                readAtStage(stage, () => getDocs(query(collection(db, 'videos'), where('admin', '==', 'yes'))))
             ]);
-            const posts = postsSnapshot.docs.map(item => ({ id: item.id, ...item.data() })).filter(post => post.admin === 'yes');
+            const posts = postsSnapshot.docs
+                .map(item => ({ id: item.id, ...item.data() }))
+                .filter(post => post.userId === userId);
+            stage = 'follow counts';
+            let followStats = null;
+            try {
+                followStats = await getUserFollowStats(userId);
+            } catch (error) {
+                console.error('Unable to load profile follow counts:', error);
+                document.getElementById('follower-count').textContent = '—';
+                document.getElementById('following-count').textContent = '—';
+                const message = document.getElementById('profile-load-message');
+                message.textContent = firestoreReadError(stage, error);
+                message.classList.remove('hidden');
+            }
             const totalLikes = posts.reduce((total, post) => {
                 const likes = Number(post.likesCount);
                 return total + (Number.isFinite(likes) && likes > 0 ? Math.floor(likes) : 0);
@@ -150,19 +195,27 @@
             document.getElementById('profile-bio').textContent = profile.bio || '';
             document.getElementById('post-count').textContent = posts.length;
             document.getElementById('pinned-count').textContent = pinned.length;
-            document.getElementById('follower-count').textContent = formatCount(followStats.followers);
-            document.getElementById('following-count').textContent = formatCount(followStats.following);
+            if (followStats) {
+                document.getElementById('follower-count').textContent = formatCount(followStats.followers);
+                document.getElementById('following-count').textContent = formatCount(followStats.following);
+            }
             document.getElementById('like-count').textContent = formatCount(totalLikes);
             const followButton = document.getElementById('follow-button');
             const followMessage = document.getElementById('follow-message');
             if (authUser?.uid !== userId) {
                 followButton.classList.remove('hidden');
                 if (authUser) {
-                    const isFollowing = await isUserFollowing(authUser.uid, userId);
-                    followButton.innerHTML = isFollowing
-                        ? '<i data-lucide="user-check" class="mr-2 h-4 w-4" aria-hidden="true"></i>Following'
-                        : '<i data-lucide="user-plus" class="mr-2 h-4 w-4" aria-hidden="true"></i>Follow';
-                    lucide.createIcons();
+                    try {
+                        const isFollowing = await isUserFollowing(authUser.uid, userId);
+                        followButton.innerHTML = isFollowing
+                            ? '<i data-lucide="user-check" class="mr-2 h-4 w-4" aria-hidden="true"></i>Following'
+                            : '<i data-lucide="user-plus" class="mr-2 h-4 w-4" aria-hidden="true"></i>Follow';
+                        lucide.createIcons();
+                    } catch (error) {
+                        console.error('Unable to load follow status:', error);
+                        followMessage.textContent = firestoreReadError('follow status', error);
+                        followMessage.classList.remove('hidden');
+                    }
                 }
                 followButton.addEventListener('click', async () => {
                     if (!authUser) {
@@ -193,10 +246,10 @@
             avatar.src = profile.profilePic || '';
             avatar.onerror = () => avatar.removeAttribute('src');
             document.getElementById('pinned-grid').innerHTML = pinned.length
-                ? pinned.map(post => card(post, true)).join('')
+                ? pinned.map(post => card(post, profile, true)).join('')
                 : '<p class="col-span-full rounded-xl border border-dashed border-zinc-800 py-6 text-center text-xs text-zinc-600">No pinned posts yet.</p>';
             document.getElementById('posts-grid').innerHTML = posts.length
-                ? posts.map(post => card(post)).join('')
+                ? posts.map(post => card(post, profile)).join('')
                 : '<p class="col-span-full py-12 text-center text-sm text-zinc-500">No published posts yet.</p>';
             lucide.createIcons();
             const openVideo = event => {
@@ -241,9 +294,13 @@
         }
 
         load().catch(error => {
-            console.error('Unable to load profile:', error);
+            const failedStage = error?.stage || 'profile data';
+            console.error(`Unable to load ${failedStage}:`, error);
             document.getElementById('profile-name').textContent = 'Could not load profile';
-            document.getElementById('posts-grid').innerHTML = '<p class="col-span-full py-12 text-center text-sm text-rose-300">Check your connection and Firestore read permissions, then try again.</p>';
+            const message = document.getElementById('profile-load-message');
+            message.textContent = error?.stage ? error.message : firestoreReadError(failedStage, error);
+            message.classList.remove('hidden');
+            document.getElementById('posts-grid').innerHTML = '';
         });
     </script>
 </body>

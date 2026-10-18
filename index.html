@@ -158,8 +158,10 @@
                 <!-- RIGHT SIDE ACTIONS COLUMN -->
                 <div class="absolute right-3 bottom-6 z-20 flex flex-col items-center space-y-5">
                     <!-- Profile Avatar + Follow Badge -->
-                    <div class="relative group cursor-pointer" onclick="requireUser().then(user => user && (trackPageActivity('view_profile', { creator: '@alex_cyberpunk' }), showToast('Viewing @alex_cyberpunk profile')))">
-                        <img src="https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=150&q=80" class="w-12 h-12 rounded-full border-2 border-white object-cover shadow-lg group-hover:scale-105 transition">
+                    <div class="relative group">
+                        <a href="./view-profile.html?username=alex_cyberpunk" aria-label="View @alex_cyberpunk's profile" class="block rounded-full focus-visible:outline focus-visible:outline-2 focus-visible:outline-white">
+                            <img src="https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=150&q=80" class="w-12 h-12 rounded-full border-2 border-white object-cover shadow-lg transition group-hover:scale-105" alt="">
+                        </a>
                         <button onclick="event.stopPropagation(); toggleFollow(this)" class="follow-btn absolute -bottom-1.5 left-1/2 -translate-x-1/2 bg-tiktok-red hover:bg-red-600 text-white rounded-full p-0.5 shadow-md transition transform active:scale-90">
                             <i data-lucide="plus" class="w-3.5 h-3.5" aria-hidden="true"></i>
                         </button>
@@ -208,7 +210,7 @@
                 <!-- BOTTOM OVERLAY DETAILS -->
                 <div class="absolute bottom-2 left-0 right-16 z-20 p-4 bg-gradient-to-t from-black/80 via-black/30 to-transparent pointer-events-none">
                     <div class="pointer-events-auto">
-                        <h3 class="font-bold text-base drop-shadow-md hover:underline cursor-pointer inline-block" onclick="requireUser().then(user => user && (trackPageActivity('view_profile', { creator: '@alex_cyberpunk' }), showToast('@alex_cyberpunk')))">@alex_cyberpunk</h3>
+                        <h3 class="font-bold text-base drop-shadow-md inline-block"><a href="./view-profile.html?username=alex_cyberpunk" class="hover:underline">@alex_cyberpunk</a></h3>
                         <p class="text-sm mt-1 text-gray-100 line-clamp-2 leading-snug drop-shadow-sm">Exploring the neon city at midnight! 🌃 High energy vibes always <span class="font-semibold text-tiktok-cyan cursor-pointer">#cyberpunk</span> <span class="font-semibold text-tiktok-cyan cursor-pointer">#neon</span></p>
                         
                         <!-- Marquee Audio Banner -->
@@ -238,8 +240,10 @@
 
                 <!-- RIGHT SIDE ACTIONS COLUMN -->
                 <div class="absolute right-3 bottom-6 z-20 flex flex-col items-center space-y-5">
-                    <div class="relative group cursor-pointer" onclick="requireUser().then(user => user && (trackPageActivity('view_profile', { creator: '@chef_mario' }), showToast('Viewing @chef_mario profile')))">
+                    <div class="relative group">
+                        <a href="./view-profile.html?username=chef_mario" aria-label="View @chef_mario's profile" class="block rounded-full focus-visible:outline focus-visible:outline-2 focus-visible:outline-white">
                         <img src="https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?auto=format&fit=crop&w=150&q=80" class="w-12 h-12 rounded-full border-2 border-white object-cover shadow-lg group-hover:scale-105 transition">
+                        </a>
                         <button onclick="event.stopPropagation(); toggleFollow(this)" class="follow-btn absolute -bottom-1.5 left-1/2 -translate-x-1/2 bg-tiktok-red hover:bg-red-600 text-white rounded-full p-0.5 shadow-md transition transform active:scale-90">
                             <i data-lucide="plus" class="w-3.5 h-3.5" aria-hidden="true"></i>
                         </button>
@@ -283,7 +287,7 @@
                 <!-- BOTTOM OVERLAY DETAILS -->
                 <div class="absolute bottom-2 left-0 right-16 z-20 p-4 bg-gradient-to-t from-black/80 via-black/30 to-transparent pointer-events-none">
                     <div class="pointer-events-auto">
-                        <h3 class="font-bold text-base drop-shadow-md hover:underline cursor-pointer inline-block" onclick="requireUser().then(user => user && (trackPageActivity('view_profile', { creator: '@chef_mario' }), showToast('@chef_mario')))">@chef_mario</h3>
+                        <h3 class="font-bold text-base drop-shadow-md inline-block"><a href="./view-profile.html?username=chef_mario" class="hover:underline">@chef_mario</a></h3>
                         <p class="text-sm mt-1 text-gray-100 line-clamp-2 leading-snug drop-shadow-sm">Making the ULTIMATE crispy artisan garlic bread 🥖🧄 Would you eat this whole loaf? <span class="font-semibold text-tiktok-cyan cursor-pointer">#foodie</span> <span class="font-semibold text-tiktok-cyan cursor-pointer">#recipe</span></p>
                         
                         <div class="flex items-center space-x-2 mt-3 text-xs font-medium text-gray-200">
@@ -312,8 +316,10 @@
 
                 <!-- RIGHT SIDE ACTIONS COLUMN -->
                 <div class="absolute right-3 bottom-6 z-20 flex flex-col items-center space-y-5">
-                    <div class="relative group cursor-pointer" onclick="requireUser().then(user => user && (trackPageActivity('view_profile', { creator: '@nature_escapes' }), showToast('Viewing @nature_escapes profile')))">
-                        <img src="https://images.unsplash.com/photo-1544005313-94ddf0286df2?auto=format&fit=crop&w=150&q=80" class="w-12 h-12 rounded-full border-2 border-white object-cover shadow-lg group-hover:scale-105 transition">
+                    <div class="relative group">
+                        <a href="./view-profile.html?username=nature_escapes" aria-label="View @nature_escapes's profile" class="block rounded-full focus-visible:outline focus-visible:outline-2 focus-visible:outline-white">
+                            <img src="https://images.unsplash.com/photo-1544005313-94ddf0286df2?auto=format&fit=crop&w=150&q=80" class="w-12 h-12 rounded-full border-2 border-white object-cover shadow-lg transition group-hover:scale-105" alt="">
+                        </a>
                         <button onclick="event.stopPropagation(); toggleFollow(this)" class="follow-btn absolute -bottom-1.5 left-1/2 -translate-x-1/2 bg-tiktok-red hover:bg-red-600 text-white rounded-full p-0.5 shadow-md transition transform active:scale-90">
                             <i data-lucide="plus" class="w-3.5 h-3.5" aria-hidden="true"></i>
                         </button>
@@ -357,7 +363,7 @@
                 <!-- BOTTOM OVERLAY DETAILS -->
                 <div class="absolute bottom-2 left-0 right-16 z-20 p-4 bg-gradient-to-t from-black/80 via-black/30 to-transparent pointer-events-none">
                     <div class="pointer-events-auto">
-                        <h3 class="font-bold text-base drop-shadow-md hover:underline cursor-pointer inline-block" onclick="requireUser().then(user => user && (trackPageActivity('view_profile', { creator: '@nature_escapes' }), showToast('@nature_escapes')))">@nature_escapes</h3>
+                        <h3 class="font-bold text-base drop-shadow-md inline-block"><a href="./view-profile.html?username=nature_escapes" class="hover:underline">@nature_escapes</a></h3>
                         <p class="text-sm mt-1 text-gray-100 line-clamp-2 leading-snug drop-shadow-sm">Serene sunset above the clouds in the Swiss Alps 🏔️ Real peace exists right here. <span class="font-semibold text-tiktok-cyan cursor-pointer">#travel</span> <span class="font-semibold text-tiktok-cyan cursor-pointer">#mountains</span></p>
                         
                         <div class="flex items-center space-x-2 mt-3 text-xs font-medium text-gray-200">
@@ -568,7 +574,7 @@
 
                 card.addEventListener('click', (e) => {
                     // Prevent trigger if clicking action buttons or drawer
-                    if (e.target.closest('button') || e.target.closest('#comment-drawer')) return;
+                    if (e.target.closest('button, a, #comment-drawer')) return;
 
                     window.requireUser().then(user => {
                         if (!user) return;
@@ -1705,6 +1711,12 @@
             card.dataset.verified = String(video.creatorVerified || video.verify === 'yes');
             card.dataset.creatorUsername = String(video.username || uploadedBy).trim().replace(/^@/, '').toLowerCase();
             card.dataset.desc = description;
+            const creatorUsername = String(video.username || uploadedBy).trim().replace(/^@/, '');
+            const creatorProfileHref = video.userId
+                ? `./view-profile.html?uid=${encodeURIComponent(video.userId)}`
+                : creatorUsername && creatorUsername.toLowerCase() !== 'unknown creator'
+                    ? `./view-profile.html?username=${encodeURIComponent(creatorUsername)}`
+                    : '';
 
             const avatar = profileImage
                 ? `<img src="${escapeHtml(profileImage)}" alt="" class="w-12 h-12 rounded-full border-2 border-white object-cover shadow-lg">`
@@ -1722,7 +1734,9 @@
                 </div>
                 <div class="absolute right-3 bottom-6 z-20 flex flex-col items-center space-y-5">
                     <div class="relative">
-                        ${avatar}
+                        ${creatorProfileHref
+                            ? `<a href="${escapeHtml(creatorProfileHref)}" aria-label="View ${escapeHtml(uploadedBy)}'s profile" class="block rounded-full focus-visible:outline focus-visible:outline-2 focus-visible:outline-white">${avatar}</a>`
+                            : avatar}
                         <button type="button" class="follow-btn absolute -bottom-1.5 left-1/2 -translate-x-1/2 rounded-full bg-tiktok-red p-0.5 text-sm font-bold leading-none text-white shadow-md transition active:scale-90" aria-label="Follow creator">+</button>
                     </div>
                     <div class="flex flex-col items-center">
@@ -1752,7 +1766,9 @@
                 </div>
                 <div class="absolute bottom-2 left-0 right-16 z-20 p-4 bg-gradient-to-t from-black/80 via-black/30 to-transparent pointer-events-none">
                     <div class="pointer-events-auto">
-                        <h3 class="font-bold text-base drop-shadow-md inline-block">${escapeHtml(uploadedBy)}${window.verifiedBadge(card.dataset.verified === 'true')}</h3>
+                        <h3 class="font-bold text-base drop-shadow-md inline-block">${creatorProfileHref
+                            ? `<a href="${escapeHtml(creatorProfileHref)}" class="hover:underline">${escapeHtml(uploadedBy)}</a>`
+                            : escapeHtml(uploadedBy)}${window.verifiedBadge(card.dataset.verified === 'true')}</h3>
                         <p class="text-sm mt-1 text-gray-100 line-clamp-3 leading-snug drop-shadow-sm">${escapeHtml(description)}</p>
                     </div>
                 </div>`;
