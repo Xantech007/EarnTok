@@ -35,9 +35,12 @@
                     <p class="text-sm text-zinc-500">Your profile</p>
                     <h1 id="profile-name" class="mt-1 truncate text-3xl font-bold">Loading profile…</h1>
                     <p id="profile-username" class="mt-1 text-zinc-400"></p>
-                    <div class="mt-4 flex justify-center gap-7 text-sm sm:justify-start">
+                    <div class="mt-4 flex flex-wrap justify-center gap-x-7 gap-y-2 text-sm sm:justify-start">
                         <span><strong id="post-count" class="text-white">0</strong> posts</span>
                         <span><strong id="pinned-count" class="text-white">0</strong> pinned</span>
+                        <span><strong id="follower-count" class="text-white">0</strong> followers</span>
+                        <span><strong id="following-count" class="text-white">0</strong> following</span>
+                        <span><strong id="like-count" class="text-white">0</strong> likes</span>
                         <button id="viewers-tab-button" class="hover:text-cyan-300"><strong id="viewer-count" class="text-white">0</strong> viewers</button>
                     </div>
                     <p id="profile-bio" class="mx-auto mt-4 max-w-xl whitespace-pre-wrap text-sm text-zinc-300 sm:mx-0"></p>
@@ -85,6 +88,8 @@
 
     <script type="module">
         import { auth, db } from './firebase.js';
+        import { getUserFollowStats } from './follows.js';
+        import { createProfileVideoViewer } from './profile-video-viewer.js';
         import { onAuthStateChanged, updateProfile } from 'https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js';
         import {
             collection, deleteDoc, doc, getDoc, getDocs, query, serverTimestamp,
@@ -95,6 +100,7 @@
         const UPLOAD_PRESET = 'user_uploads';
         const contentGrid = document.getElementById('content-grid');
         const editDialog = document.getElementById('edit-dialog');
+        const videoViewer = createProfileVideoViewer();
         let user = null;
         let profile = {};
         let uploads = [];
@@ -123,6 +129,10 @@
             contentGrid.innerHTML = '<p class="col-span-full py-12 text-center text-sm text-rose-300">Could not load this profile data. Check Firestore permissions and try again.</p>';
         }
 
+        function formatCount(value) {
+            return new Intl.NumberFormat('en', { notation: 'compact', maximumFractionDigits: 1 }).format(value);
+        }
+
         function loadProfileHeader() {
             document.getElementById('profile-name').textContent = profile.fullName || user.displayName || 'EarnTok user';
             document.getElementById('profile-username').textContent = profile.username ? `@${profile.username}` : user.email || '';
@@ -134,17 +144,26 @@
             document.getElementById('edit-bio').value = profile.bio || '';
         }
 
+        function updateLikeCount() {
+            const totalLikes = uploads.reduce((total, video) => {
+                const likes = Number(video.likesCount);
+                return total + (video.admin === 'yes' && Number.isFinite(likes) && likes > 0 ? Math.floor(likes) : 0);
+            }, 0);
+            document.getElementById('like-count').textContent = formatCount(totalLikes);
+        }
+
         function mediaMarkup(video, pinned = false, canManage = false) {
             const src = escapeHtml(video.link);
             const media = typeOf(video) === 'image'
                 ? `<img class="aspect-[3/4] w-full object-cover" src="${src}" alt="${escapeHtml(video.description || '')}" loading="lazy">`
                 : `<video class="aspect-[3/4] w-full object-cover" src="${src}" muted playsinline preload="metadata"></video>`;
             const status = video.admin === 'yes' ? 'Published' : 'Draft';
-            return `<article class="group relative overflow-hidden rounded-xl bg-zinc-900">
+            return `<article class="group relative overflow-hidden rounded-xl bg-zinc-900" data-profile-video-id="${escapeHtml(video.id)}">
                 ${media}
+                ${video.admin === 'yes' ? `<button class="open-profile-video absolute inset-0 z-10 flex items-center justify-center bg-black/10 text-3xl text-white opacity-0 transition hover:bg-black/30 hover:opacity-100" data-id="${escapeHtml(video.id)}" type="button" aria-label="Watch ${escapeHtml(video.description || 'post')}">▶</button>` : ''}
                 <div class="absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/90 via-black/50 to-transparent p-3 pt-10">
                     <p class="line-clamp-2 text-xs text-white">${escapeHtml(video.description || 'Untitled')}</p>
-                    <div class="mt-2 flex items-center justify-between gap-1">
+                    <div class="relative z-20 mt-2 flex items-center justify-between gap-1">
                         <span class="rounded-full bg-black/50 px-2 py-1 text-[10px] ${video.admin === 'yes' ? 'text-emerald-300' : 'text-amber-300'}">${status}</span>
                         ${canManage && video.admin === 'yes' ? `<button class="pin-video rounded-full bg-black/60 px-2 py-1 text-[10px] text-white hover:bg-rose-500" data-id="${escapeHtml(video.id)}" type="button">${pinned ? 'Unpin' : 'Pin'}</button>` : ''}
                         ${canManage ? `<button class="delete-upload rounded-full bg-black/60 px-2 py-1 text-[10px] text-rose-300 hover:bg-rose-500 hover:text-white" data-id="${escapeHtml(video.id)}" type="button">Delete</button>` : ''}
@@ -219,10 +238,11 @@
         }
 
         async function loadProfile() {
-            const [userSnapshot, publicProfileSnapshot, ownVideosSnapshot] = await Promise.all([
+            const [userSnapshot, publicProfileSnapshot, ownVideosSnapshot, followStats] = await Promise.all([
                 getDoc(doc(db, 'users', user.uid)),
                 getDoc(doc(db, 'profiles', user.uid)),
-                getDocs(query(collection(db, 'videos'), where('userId', '==', user.uid)))
+                getDocs(query(collection(db, 'videos'), where('userId', '==', user.uid))),
+                getUserFollowStats(user.uid)
             ]);
             profile = publicProfileSnapshot.exists() ? publicProfileSnapshot.data() : {};
             if (!publicProfileSnapshot.exists()) {
@@ -269,9 +289,22 @@
             }
             loadProfileHeader();
             document.getElementById('post-count').textContent = uploads.length;
+            document.getElementById('follower-count').textContent = formatCount(followStats.followers);
+            document.getElementById('following-count').textContent = formatCount(followStats.following);
+            updateLikeCount();
             renderPinned();
             renderContent();
         }
+
+        function openProfileVideo(event) {
+            const button = event.target.closest('.open-profile-video');
+            if (!button) return;
+            const videoId = button.dataset.id;
+            const publishedVideos = uploads.filter(video => video.admin === 'yes');
+            videoViewer.open(publishedVideos, videoId);
+        }
+        document.getElementById('content-grid').addEventListener('click', openProfileVideo);
+        document.getElementById('pinned-grid').addEventListener('click', openProfileVideo);
 
         document.querySelectorAll('.content-tab').forEach(button => button.addEventListener('click', () => {
             activeTab = button.dataset.tab;
@@ -362,6 +395,7 @@
                     const deletedId = deleteButton.dataset.id;
                     await deleteDoc(doc(db, 'videos', deletedId));
                     uploads = uploads.filter(video => video.id !== deletedId);
+                    updateLikeCount();
                     if (pinnedVideos.includes(deletedId)) {
                         pinnedVideos = pinnedVideos.filter(id => id !== deletedId);
                         profile.pinnedVideos = pinnedVideos;

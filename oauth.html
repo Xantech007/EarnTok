@@ -83,7 +83,8 @@
     <script type="module">
         import { auth, db } from './firebase.js';
         import {
-            createUserWithEmailAndPassword, deleteUser, signInWithEmailAndPassword, updateProfile
+            browserLocalPersistence, createUserWithEmailAndPassword, deleteUser,
+            setPersistence, signInWithEmailAndPassword, updateProfile
         } from 'https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js';
         import {
             collection, doc, getDoc, runTransaction, serverTimestamp
@@ -146,6 +147,7 @@
             button.disabled = true;
             button.textContent = 'Signing in…';
             try {
+                await setPersistence(auth, browserLocalPersistence);
                 const formData = new FormData(loginForm);
                 await signInWithEmailAndPassword(auth, String(formData.get('email')).trim(), String(formData.get('password')));
                 goToFeed();
@@ -182,6 +184,7 @@
             button.textContent = 'Creating account…';
             let createdUser = null;
             try {
+                await setPersistence(auth, browserLocalPersistence);
                 const usernameRef = doc(db, 'usernames', usernameLower);
                 const existing = await getDoc(usernameRef);
                 if (existing.exists()) {

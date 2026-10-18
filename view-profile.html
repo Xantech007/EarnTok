@@ -28,10 +28,15 @@
                     <p class="text-sm text-zinc-500">EarnTok profile</p>
                     <h1 id="profile-name" class="mt-1 truncate text-3xl font-bold">Loading profile…</h1>
                     <p id="profile-username" class="mt-1 text-zinc-400"></p>
-                    <div class="mt-4 flex justify-center gap-7 text-sm sm:justify-start">
+                    <div class="mt-4 flex flex-wrap justify-center gap-x-7 gap-y-2 text-sm sm:justify-start">
                         <span><strong id="post-count" class="text-white">0</strong> posts</span>
                         <span><strong id="pinned-count" class="text-white">0</strong> pinned</span>
+                        <span><strong id="follower-count" class="text-white">0</strong> followers</span>
+                        <span><strong id="following-count" class="text-white">0</strong> following</span>
+                        <span><strong id="like-count" class="text-white">0</strong> likes</span>
                     </div>
+                    <button id="follow-button" class="mt-4 hidden rounded-xl bg-rose-500 px-6 py-2 text-sm font-bold hover:bg-rose-600 disabled:cursor-wait disabled:opacity-60" type="button">Follow</button>
+                    <p id="follow-message" class="mt-2 hidden text-sm text-rose-300" role="status"></p>
                     <p id="profile-bio" class="mx-auto mt-4 max-w-xl whitespace-pre-wrap text-sm text-zinc-300 sm:mx-0"></p>
                 </div>
             </div>
@@ -49,12 +54,15 @@
     </main>
     <script type="module">
         import { auth, db } from './firebase.js';
+        import { getUserFollowStats, toggleUserFollow, isUserFollowing } from './follows.js';
+        import { createProfileVideoViewer } from './profile-video-viewer.js';
         import { onAuthStateChanged } from 'https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js';
         import { collection, doc, getDoc, getDocs, query, serverTimestamp, where, addDoc } from 'https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js';
 
         const params = new URLSearchParams(location.search);
         const targetUid = params.get('uid');
         const targetUsername = params.get('username')?.replace(/^@/, '').toLowerCase();
+        const videoViewer = createProfileVideoViewer();
 
         function getCurrentUser() {
             return new Promise(resolve => {
@@ -74,6 +82,10 @@
             })[character]);
         }
 
+        function formatCount(value) {
+            return new Intl.NumberFormat('en', { notation: 'compact', maximumFractionDigits: 1 }).format(value);
+        }
+
         function mediaType(video) {
             if (video.mediaType) return video.mediaType;
             return /\.(avif|gif|jpe?g|png|webp|bmp|heic)(?:\?|$)/i.test(video.link || '') ? 'image' : 'video';
@@ -83,7 +95,7 @@
             const image = mediaType(video) === 'image'
                 ? `<img class="aspect-[3/4] w-full object-cover" src="${escapeHtml(video.link)}" alt="${escapeHtml(video.description || '')}" loading="lazy">`
                 : `<video class="aspect-[3/4] w-full object-cover" src="${escapeHtml(video.link)}" muted playsinline preload="metadata"></video>`;
-            return `<article class="relative overflow-hidden rounded-xl bg-zinc-900">${image}<div class="absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/90 to-transparent p-3 pt-10"><p class="line-clamp-2 text-xs">${escapeHtml(video.description || '')}</p>${pinned ? '<span class="mt-2 inline-block rounded-full bg-rose-500 px-2 py-1 text-[10px] font-semibold">Pinned</span>' : ''}</div></article>`;
+            return `<article class="relative cursor-pointer overflow-hidden rounded-xl bg-zinc-900" data-video-id="${escapeHtml(video.id)}" tabindex="0" role="button" aria-label="Watch ${escapeHtml(video.description || 'post')}">${image}<div class="absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/90 to-transparent p-3 pt-10"><p class="line-clamp-2 text-xs">${escapeHtml(video.description || '')}</p>${pinned ? '<span class="mt-2 inline-block rounded-full bg-rose-500 px-2 py-1 text-[10px] font-semibold">Pinned</span>' : ''}</div></article>`;
         }
 
         async function load() {
@@ -103,11 +115,16 @@
             }
             const userId = profileDoc.id;
             const profile = profileDoc.data();
-            const [authUser, postsSnapshot] = await Promise.all([
+            const [authUser, postsSnapshot, followStats] = await Promise.all([
                 getCurrentUser(),
-                getDocs(query(collection(db, 'videos'), where('userId', '==', userId)))
+                getDocs(query(collection(db, 'videos'), where('userId', '==', userId))),
+                getUserFollowStats(userId)
             ]);
             const posts = postsSnapshot.docs.map(item => ({ id: item.id, ...item.data() })).filter(post => post.admin === 'yes');
+            const totalLikes = posts.reduce((total, post) => {
+                const likes = Number(post.likesCount);
+                return total + (Number.isFinite(likes) && likes > 0 ? Math.floor(likes) : 0);
+            }, 0);
             const pinnedIds = Array.isArray(profile.pinnedVideos) ? profile.pinnedVideos : [];
             const pinned = pinnedIds.map(id => posts.find(post => post.id === id)).filter(Boolean).slice(0, 3);
             document.getElementById('profile-name').textContent = profile.fullName || 'EarnTok user';
@@ -115,6 +132,38 @@
             document.getElementById('profile-bio').textContent = profile.bio || '';
             document.getElementById('post-count').textContent = posts.length;
             document.getElementById('pinned-count').textContent = pinned.length;
+            document.getElementById('follower-count').textContent = formatCount(followStats.followers);
+            document.getElementById('following-count').textContent = formatCount(followStats.following);
+            document.getElementById('like-count').textContent = formatCount(totalLikes);
+            const followButton = document.getElementById('follow-button');
+            const followMessage = document.getElementById('follow-message');
+            if (authUser?.uid !== userId) {
+                followButton.classList.remove('hidden');
+                if (authUser) {
+                    followButton.textContent = await isUserFollowing(authUser.uid, userId) ? 'Following' : 'Follow';
+                }
+                followButton.addEventListener('click', async () => {
+                    if (!authUser) {
+                        const returnTo = `${location.pathname}${location.search}`;
+                        location.href = `./oauth.html?returnTo=${encodeURIComponent(returnTo)}`;
+                        return;
+                    }
+                    followButton.disabled = true;
+                    followMessage.classList.add('hidden');
+                    try {
+                        const isFollowing = await toggleUserFollow(authUser.uid, userId, { source: 'profile' });
+                        followButton.textContent = isFollowing ? 'Following' : 'Follow';
+                        const updatedStats = await getUserFollowStats(userId);
+                        document.getElementById('follower-count').textContent = formatCount(updatedStats.followers);
+                    } catch (error) {
+                        console.error('Unable to update follow status:', error);
+                        followMessage.textContent = error.message || 'Could not update follow status. Please try again.';
+                        followMessage.classList.remove('hidden');
+                    } finally {
+                        followButton.disabled = false;
+                    }
+                });
+            }
             const avatar = document.getElementById('profile-pic');
             avatar.src = profile.profilePic || '';
             avatar.onerror = () => avatar.removeAttribute('src');
@@ -124,6 +173,19 @@
             document.getElementById('posts-grid').innerHTML = posts.length
                 ? posts.map(post => card(post)).join('')
                 : '<p class="col-span-full py-12 text-center text-sm text-zinc-500">No published posts yet.</p>';
+            const openVideo = event => {
+                const item = event.target.closest('[data-video-id]');
+                if (!item) return;
+                videoViewer.open(posts, item.dataset.videoId);
+            };
+            for (const grid of [document.getElementById('pinned-grid'), document.getElementById('posts-grid')]) {
+                grid.addEventListener('click', openVideo);
+                grid.addEventListener('keydown', event => {
+                    if (event.key !== 'Enter' && event.key !== ' ') return;
+                    event.preventDefault();
+                    openVideo(event);
+                });
+            }
             if (authUser?.uid !== userId) {
                 try {
                     let viewerId = authUser?.uid;

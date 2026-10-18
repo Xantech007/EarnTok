@@ -74,6 +74,12 @@
         </header>
 
         <div class="mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8">
+            <nav class="mb-8 flex gap-2 overflow-x-auto border-b border-zinc-800" aria-label="Admin sections">
+                <button class="admin-tab tab-active shrink-0 border-b-2 px-4 py-3 text-sm font-semibold" data-admin-tab="videos" type="button">Videos</button>
+                <button class="admin-tab shrink-0 border-b-2 border-transparent px-4 py-3 text-sm font-semibold text-zinc-500" data-admin-tab="users" type="button">Users</button>
+                <button class="admin-tab shrink-0 border-b-2 border-transparent px-4 py-3 text-sm font-semibold text-zinc-500" data-admin-tab="activity" type="button">Website activity</button>
+            </nav>
+            <section id="videos-panel" class="admin-panel">
             <section class="mb-8 flex flex-col justify-between gap-5 sm:flex-row sm:items-end">
                 <div>
                     <p class="text-xs font-bold uppercase tracking-[.22em] text-cyan-300">Content management</p>
@@ -111,6 +117,36 @@
                 </div>
             </section>
             <p id="app-message" class="mt-4 hidden rounded-xl border p-3 text-sm" role="status"></p>
+            </section>
+
+            <section id="users-panel" class="admin-panel hidden">
+                <div class="mb-5 flex flex-wrap items-end justify-between gap-4">
+                    <div><h1 class="text-3xl font-bold">Users</h1><p class="mt-2 text-sm text-zinc-400">Manage public profiles and see follower totals. Search within the current page.</p></div>
+                    <div class="flex gap-2">
+                        <input id="user-search" class="field max-w-xs py-2 text-sm" type="search" placeholder="Search users" aria-label="Search users">
+                        <button id="refresh-users" class="btn btn-muted" type="button">Refresh</button>
+                    </div>
+                </div>
+                <div id="user-list" class="divide-y divide-zinc-800 overflow-hidden rounded-2xl border border-zinc-800 bg-zinc-900/50">
+                    <p class="p-8 text-center text-sm text-zinc-400">Select Users to load accounts.</p>
+                </div>
+                <div class="mt-4 flex items-center justify-between">
+                    <button id="previous-users" class="btn btn-muted" type="button" disabled>Previous</button>
+                    <span id="users-page-label" class="text-xs text-zinc-500">Page 1</span>
+                    <button id="next-users" class="btn btn-muted" type="button" disabled>Next</button>
+                </div>
+                <p id="users-message" class="mt-4 hidden rounded-xl border p-3 text-sm" role="status"></p>
+            </section>
+
+            <section id="activity-panel" class="admin-panel hidden">
+                <div class="mb-5 flex flex-wrap items-end justify-between gap-4">
+                    <div><h1 class="text-3xl font-bold">Website activity</h1><p class="mt-2 text-sm text-zinc-400">Latest 100 recorded events.</p></div>
+                    <button id="refresh-activity" class="btn btn-muted" type="button">Refresh</button>
+                </div>
+                <div id="activity-list" class="divide-y divide-zinc-800 overflow-hidden rounded-2xl border border-zinc-800 bg-zinc-900/50">
+                    <p class="p-8 text-center text-sm text-zinc-400">Select Website activity to load events.</p>
+                </div>
+            </section>
         </div>
     </div>
 
@@ -179,10 +215,28 @@
         </form>
     </dialog>
 
+    <dialog id="user-dialog" class="w-[min(32rem,calc(100%-2rem))] rounded-2xl border border-zinc-700 bg-zinc-900 p-0 shadow-2xl">
+        <form id="user-form" class="space-y-4 p-6">
+            <div><p class="text-xs font-bold uppercase tracking-[.2em] text-cyan-300">User management</p><h2 id="user-dialog-title" class="mt-1 text-2xl font-bold">Edit public profile</h2></div>
+            <input id="managed-user-id" type="hidden">
+            <label class="block text-sm font-medium text-zinc-300">Display name<input id="managed-user-name" class="field mt-2" maxlength="120" required></label>
+            <label class="block text-sm font-medium text-zinc-300">Bio<textarea id="managed-user-bio" class="field mt-2 min-h-24 resize-y" maxlength="500"></textarea></label>
+            <label class="block text-sm font-medium text-zinc-300">Profile picture URL<input id="managed-user-picture" class="field mt-2" type="url"></label>
+            <label class="block text-sm font-medium text-zinc-300">Upload profile picture<input id="managed-user-file" class="field mt-2" type="file" accept="image/*"></label>
+            <p id="user-edit-message" class="hidden rounded-xl border p-3 text-sm" role="status"></p>
+            <div class="flex justify-end gap-2">
+                <button id="cancel-user-edit" class="btn btn-muted" type="button">Cancel</button>
+                <button id="save-user-edit" class="btn btn-primary" type="submit">Save profile</button>
+            </div>
+        </form>
+    </dialog>
+
     <script type="module">
         import { db } from './firebase.js';
+        import { getUserFollowStats } from './follows.js';
         import {
-            addDoc, collection, deleteDoc, doc, getDoc, getDocs, updateDoc
+            collection, deleteDoc, doc, getDoc, getDocs, limit, orderBy, query,
+            runTransaction, serverTimestamp, setDoc, startAfter, updateDoc, where, writeBatch
         } from 'https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js';
 
         const CLOUDINARY_CLOUD_NAME = 's35mxosr';
@@ -203,6 +257,12 @@
         const commentsList = document.getElementById('comments-list');
         const commentsEmpty = document.getElementById('comments-empty');
         let videos = [];
+        let users = [];
+        let userPage = 0;
+        let userPageCursors = [];
+        let userNextAvailable = false;
+        let userLastDocument = null;
+        let loadedAdminPanels = new Set();
 
         function escapeHtml(value) {
             return String(value ?? '').replace(/[&<>"']/g, character => ({
@@ -270,13 +330,25 @@
                     <textarea class="comment-text field mt-1.5 min-h-10 resize-y py-2 text-sm" maxlength="1000" rows="2" placeholder="Write a comment…" required></textarea>
                 </label>
                 <label class="block text-xs font-medium text-zinc-400">
-                    Profile image URL
+                    Profile picture URL
                     <input class="comment-profile-image field mt-1.5 py-2 text-sm" type="url" placeholder="https://…">
+                </label>
+                <label class="block text-xs font-medium text-zinc-400">
+                    Upload picture
+                    <input class="comment-profile-file field mt-1.5 py-2 text-xs" type="file" accept="image/*">
+                    <img class="comment-profile-preview mt-2 h-10 w-10 rounded-full bg-zinc-800 object-cover ${validHttpUrl(profileImageLink) ? '' : 'hidden'}" src="${escapeHtml(validHttpUrl(profileImageLink))}" alt="Commenter profile picture preview">
                 </label>
                 <button class="remove-comment btn btn-danger mt-5 text-sm sm:mt-6" type="button">Remove</button>`;
             row.querySelector('.comment-username').value = String(username ?? author ?? '').replace(/^@/, '');
             row.querySelector('.comment-text').value = String(text ?? '');
             row.querySelector('.comment-profile-image').value = String(profileImageLink ?? '');
+            row.querySelector('.comment-profile-file').addEventListener('change', event => {
+                const file = event.target.files[0];
+                if (!file) return;
+                const preview = row.querySelector('.comment-profile-preview');
+                preview.src = URL.createObjectURL(file);
+                preview.classList.remove('hidden');
+            });
             commentsList.append(row);
             commentsEmpty.classList.toggle('hidden', commentsList.children.length > 0);
         }
@@ -290,6 +362,7 @@
                 if (profileImageLink && !validHttpUrl(profileImageLink)) {
                     throw new Error('Each comment profile image URL must begin with http:// or https://.');
                 }
+
                 return [{
                     ...(row.originalComment ?? {}),
                     username,
@@ -298,6 +371,137 @@
                     text
                 }];
             });
+        }
+
+        async function prepareCommentUsers(comments) {
+            const identities = new Map();
+            for (const comment of comments) {
+                const username = String(comment.username || '').trim().replace(/^@/, '');
+                if (!username) continue;
+                if (!/^[A-Za-z0-9_]{3,30}$/.test(username)) {
+                    throw new Error(`Comment username "${username}" must contain 3–30 letters, numbers, or underscores.`);
+                }
+                const usernameLower = username.toLowerCase();
+                if (identities.has(usernameLower)) continue;
+
+                const [matchingUsersByLowercase, matchingUsersByName, usernameReservation] = await Promise.all([
+                    getDocs(query(collection(db, 'users'), where('usernameLower', '==', usernameLower), limit(1))),
+                    getDocs(query(collection(db, 'users'), where('username', '==', username), limit(1))),
+                    getDoc(doc(db, 'usernames', usernameLower))
+                ]);
+                const existingUser = matchingUsersByLowercase.docs[0] || matchingUsersByName.docs[0] || null;
+                const reservedUid = usernameReservation.exists() ? usernameReservation.data().uid : '';
+                if (existingUser && reservedUid && existingUser.id !== reservedUid) {
+                    throw new Error(`Username "${username}" is reserved by a different account.`);
+                }
+
+                const uid = existingUser?.id || reservedUid || doc(collection(db, 'users')).id;
+                let userData = existingUser?.data() || null;
+                let profileData = null;
+                if (!userData && reservedUid) {
+                    const userSnapshot = await getDoc(doc(db, 'users', reservedUid));
+                    if (userSnapshot.exists()) {
+                        userData = userSnapshot.data();
+                    }
+                }
+                const profileSnapshot = await getDoc(doc(db, 'profiles', uid));
+                if (profileSnapshot.exists()) profileData = profileSnapshot.data();
+                identities.set(usernameLower, {
+                    uid,
+                    username: String(userData?.username || profileData?.username || username).replace(/^@/, ''),
+                    usernameLower,
+                    fullName: userData?.fullName || profileData?.fullName || username,
+                    profilePic: userData?.profilePic || profileData?.profilePic || comment.profileImageLink || '',
+                    existingUser: Boolean(userData),
+                    userData,
+                    profileData
+                });
+            }
+
+            const newUsers = [...identities.values()].filter(identity => !identity.existingUser);
+            if (newUsers.length > 150) {
+                throw new Error('A single save cannot create more than 150 commenter accounts.');
+            }
+            const preparedComments = comments.map(comment => {
+                const usernameLower = String(comment.username || '').trim().replace(/^@/, '').toLowerCase();
+                const identity = identities.get(usernameLower);
+                if (!identity) return comment;
+                return {
+                    ...comment,
+                    username: identity.username,
+                    user: `@${identity.username}`,
+                    userId: identity.uid,
+                    profileImageLink: comment.profileImageLink || identity.profilePic
+                };
+            });
+            return { comments: preparedComments, identities: [...identities.values()] };
+        }
+
+        async function saveVideoWithCommentUsers(videoId, videoData, identities) {
+            const videoRef = videoId ? doc(db, 'videos', videoId) : doc(collection(db, 'videos'));
+            await runTransaction(db, async transaction => {
+                const videoSnapshot = await transaction.get(videoRef);
+                if (videoId && !videoSnapshot.exists()) {
+                    throw new Error('This video was deleted before it could be saved. Refresh the video list and try again.');
+                }
+
+                const reservationSnapshots = await Promise.all(identities.map(identity =>
+                    transaction.get(doc(db, 'usernames', identity.usernameLower))));
+                for (let index = 0; index < identities.length; index += 1) {
+                    const identity = identities[index];
+                    const reservation = reservationSnapshots[index];
+                    if (reservation.exists() && reservation.data().uid !== identity.uid) {
+                        throw new Error(`Username "${identity.username}" was claimed by another account. Refresh and save again.`);
+                    }
+                }
+
+                for (const identity of identities) {
+                    const userRef = doc(db, 'users', identity.uid);
+                    const profileRef = doc(db, 'profiles', identity.uid);
+                    const baseUser = identity.userData || {};
+                    const baseProfile = identity.profileData || {};
+                    const userData = {
+                        uid: identity.uid,
+                        username: identity.username,
+                        usernameLower: identity.usernameLower,
+                        fullName: identity.fullName,
+                        email: baseUser.email || '',
+                        phoneNumber: baseUser.phoneNumber || '',
+                        profilePic: identity.profilePic,
+                        bio: baseUser.bio || baseProfile.bio || '',
+                        ...(baseUser.createdAt ? {} : { createdAt: serverTimestamp() })
+                    };
+                    const profileData = {
+                        uid: identity.uid,
+                        username: identity.username,
+                        usernameLower: identity.usernameLower,
+                        fullName: identity.fullName,
+                        profilePic: identity.profilePic,
+                        bio: baseProfile.bio || baseUser.bio || '',
+                        pinnedVideos: Array.isArray(baseProfile.pinnedVideos) ? baseProfile.pinnedVideos : [],
+                        ...(baseProfile.createdAt ? {} : { createdAt: serverTimestamp() })
+                    };
+                    transaction.set(userRef, userData, { merge: true });
+                    transaction.set(profileRef, profileData, { merge: true });
+                    transaction.set(doc(db, 'usernames', identity.usernameLower), { uid: identity.uid });
+                }
+
+                if (videoId) transaction.update(videoRef, videoData);
+                else transaction.set(videoRef, videoData);
+            });
+        }
+
+        async function uploadCommentProfileImages() {
+            const rows = [...commentsList.querySelectorAll('.comment-row')];
+            await Promise.all(rows.map(async row => {
+                if (!row.querySelector('.comment-text').value.trim()) return;
+                const file = row.querySelector('.comment-profile-file').files[0];
+                if (!file) return;
+                const url = await uploadToCloudinary(file, 'image');
+                row.querySelector('.comment-profile-image').value = url;
+                row.querySelector('.comment-profile-preview').src = url;
+                row.querySelector('.comment-profile-preview').classList.remove('hidden');
+            }));
         }
 
         document.getElementById('add-comment-button').addEventListener('click', () => {
@@ -332,6 +536,7 @@
                 }
                 loginScreen.classList.add('hidden');
                 adminApp.classList.remove('hidden');
+                setAdminTab('videos', false);
                 await loadVideos();
             } catch (error) {
                 console.error('Admin sign-in failed:', error);
@@ -355,8 +560,260 @@
                 console.error('Unable to load videos:', error);
                 videoList.innerHTML = '<p class="p-8 text-center text-sm text-rose-200">Could not load videos. Check Firestore permissions and connection, then refresh.</p>';
                 showMessage(appMessage, 'The video list could not be loaded.', true);
+            } finally {
+                loadedAdminPanels.add('videos');
             }
         }
+
+        async function loadUsers() {
+            const userList = document.getElementById('user-list');
+            userList.innerHTML = '<p class="p-8 text-center text-sm text-zinc-400">Loading users…</p>';
+            clearMessage(document.getElementById('users-message'));
+            try {
+                const profilesQuery = userPage === 0
+                    ? query(collection(db, 'profiles'), limit(50))
+                    : query(collection(db, 'profiles'), startAfter(userPageCursors[userPage - 1]), limit(50));
+                const snapshot = await getDocs(profilesQuery);
+                userLastDocument = snapshot.docs.at(-1) || null;
+                userNextAvailable = snapshot.docs.length === 50;
+                users = await Promise.all(snapshot.docs.map(async profileDoc => {
+                    const profile = profileDoc.data();
+                    const followStats = await getUserFollowStats(profileDoc.id);
+                    return { id: profileDoc.id, ...profile, ...followStats };
+                }));
+                users.sort((left, right) => String(left.username || left.fullName || '').localeCompare(String(right.username || right.fullName || '')));
+                renderUsers();
+                document.getElementById('users-page-label').textContent = `Page ${userPage + 1}`;
+                document.getElementById('previous-users').disabled = userPage === 0;
+                document.getElementById('next-users').disabled = !userNextAvailable;
+                loadedAdminPanels.add('users');
+            } catch (error) {
+                console.error('Unable to load users:', error);
+                userList.innerHTML = '<p class="p-8 text-center text-sm text-rose-200">Could not load users. Check Firestore permissions and connection.</p>';
+                showMessage(document.getElementById('users-message'), error.message || 'The user list could not be loaded.', true);
+            }
+        }
+
+        function renderUsers() {
+            const userList = document.getElementById('user-list');
+            const search = document.getElementById('user-search').value.trim().toLowerCase();
+            const filtered = users.filter(user =>
+                `${user.username || ''} ${user.fullName || ''}`.toLowerCase().includes(search));
+            if (!filtered.length) {
+                userList.innerHTML = '<p class="p-8 text-center text-sm text-zinc-400">No users match your search.</p>';
+                return;
+            }
+            userList.innerHTML = filtered.map(user => {
+                const picture = validHttpUrl(user.profilePic);
+                return `<article class="flex flex-col gap-4 p-4 sm:flex-row sm:items-center sm:justify-between">
+                    <div class="flex min-w-0 items-center gap-3">
+                        ${picture ? `<img class="h-11 w-11 rounded-full bg-zinc-800 object-cover" src="${escapeHtml(picture)}" alt="">` : '<span class="flex h-11 w-11 items-center justify-center rounded-full bg-zinc-800 font-bold">?</span>'}
+                        <div class="min-w-0"><p class="truncate font-semibold">${escapeHtml(user.fullName || 'EarnTok user')}</p>
+                            <p class="truncate text-xs text-zinc-500">${user.username ? `@${escapeHtml(user.username)}` : escapeHtml(user.id)}</p>
+                            <p class="mt-1 text-xs text-zinc-400">${formatCount(user.followers)} followers · ${formatCount(user.following)} following</p>
+                        </div>
+                    </div>
+                    <div class="flex shrink-0 gap-2">
+                        <a class="btn btn-muted text-sm" href="./view-profile.html?uid=${encodeURIComponent(user.id)}" target="_blank" rel="noopener">View profile</a>
+                        <button class="btn btn-muted text-sm" type="button" data-user-action="edit" data-user-id="${escapeHtml(user.id)}">Edit profile</button>
+                    </div>
+                </article>`;
+            }).join('');
+        }
+
+        function describeActivity(activity) {
+            const details = activity.details || {};
+            const video = details.videoDescription ? `“${details.videoDescription}”` : '';
+            const creator = details.creatorUsername || details.creator || '';
+            const target = details.followingUsername || details.targetUsername || '';
+            const tab = details.tab ? String(details.tab).replaceAll('_', ' ') : '';
+            const descriptions = {
+                play: `Watched ${video || 'a video'}`,
+                pause: `Paused ${video || 'a video'}`,
+                like: `Liked ${video || 'a video'}`,
+                unlike: `Removed a like from ${video || 'a video'}`,
+                save: `Saved ${video || 'a video'} to Favorites`,
+                unsave: `Removed ${video || 'a video'} from Favorites`,
+                share: `Shared ${video || 'a video'}${details.method ? ` via ${details.method}` : ''}`,
+                comment: `Commented${details.text ? `: “${details.text}”` : ` on ${video || 'a video'}`}`,
+                view_comments: `Opened comments on ${video || 'a video'}`,
+                follow_creator: `Followed ${target || creator || 'a creator'}`,
+                unfollow_creator: `Unfollowed ${target || creator || 'a creator'}`,
+                profile_view: `Viewed ${details.targetName || 'a profile'}`,
+                view_profile: `Viewed ${creator || 'a creator'}’s profile`,
+                view_audio: `Opened audio${details.audio ? `: ${details.audio}` : ''}`,
+                search_opened: 'Opened search',
+                feed_tab: `Switched to the ${tab || 'feed'} feed`,
+                navigation: `Opened the ${tab || 'navigation'} section`,
+                toggle_sound: `${details.muted ? 'Muted' : 'Unmuted'} ${video || 'a video'}`,
+                open_create: 'Opened the video creator',
+                submit_draft: 'Submitted a video for review'
+            };
+            if (descriptions[activity.action]) return descriptions[activity.action];
+            return String(activity.action || 'activity')
+                .replaceAll('_', ' ')
+                .replace(/\b\w/g, character => character.toUpperCase());
+        }
+
+        async function loadActivity() {
+            const activityList = document.getElementById('activity-list');
+            activityList.innerHTML = '<p class="p-8 text-center text-sm text-zinc-400">Loading activity…</p>';
+            try {
+                const snapshot = await getDocs(query(collection(db, 'activity'), orderBy('createdAt', 'desc'), limit(100)));
+                const activities = snapshot.docs.map(item => ({ id: item.id, ...item.data() }));
+                const profileIds = new Set();
+                const videoIds = new Set();
+                for (const activity of activities) {
+                    if (activity.userId && !activity.userId.startsWith('guest-')) profileIds.add(activity.userId);
+                    if (activity.profileId) profileIds.add(activity.profileId);
+                    if (activity.details?.followingId) profileIds.add(activity.details.followingId);
+                    if (activity.videoId) videoIds.add(activity.videoId);
+                }
+                const [profileEntries, videoEntries] = await Promise.all([
+                    Promise.all([...profileIds].map(async id => {
+                        const profileSnapshot = await getDoc(doc(db, 'profiles', id));
+                        return [id, profileSnapshot.exists() ? profileSnapshot.data() : null];
+                    })),
+                    Promise.all([...videoIds].map(async id => {
+                        const videoSnapshot = await getDoc(doc(db, 'videos', id));
+                        return [id, videoSnapshot.exists() ? videoSnapshot.data() : null];
+                    }))
+                ]);
+                const profilesById = new Map(profileEntries);
+                const videosById = new Map(videoEntries);
+                activityList.innerHTML = activities.length ? activities.map(activity => {
+                    const actor = profilesById.get(activity.userId);
+                    const actorName = activity.userId?.startsWith('guest-')
+                        ? 'Guest visitor'
+                        : actor?.username ? `@${actor.username}` : actor?.fullName || 'EarnTok user';
+                    const details = activity.details || {};
+                    const followingProfile = profilesById.get(details.followingId);
+                    const video = videosById.get(activity.videoId);
+                    const readableActivity = {
+                        ...activity,
+                        details: {
+                            ...details,
+                            creatorUsername: details.creatorUsername || details.creator,
+                            followingUsername: followingProfile?.username
+                                ? `@${followingProfile.username}`
+                                : followingProfile?.fullName || '',
+                            targetName: profilesById.get(activity.profileId)?.username
+                                ? `@${profilesById.get(activity.profileId).username}`
+                                : profilesById.get(activity.profileId)?.fullName || '',
+                            videoDescription: video?.description || ''
+                        }
+                    };
+                    const when = activity.createdAt?.toDate?.();
+                    const timestamp = when
+                        ? new Intl.DateTimeFormat(undefined, { dateStyle: 'medium', timeStyle: 'short' }).format(when)
+                        : 'Time unavailable';
+                    const avatar = validHttpUrl(actor?.profilePic);
+                    return `<article class="flex flex-col gap-3 p-4 sm:flex-row sm:items-center sm:justify-between">
+                        <div class="flex min-w-0 items-center gap-3">
+                            ${avatar
+                                ? `<img class="h-10 w-10 shrink-0 rounded-full bg-zinc-800 object-cover" src="${escapeHtml(avatar)}" alt="">`
+                                : '<span class="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-zinc-800 text-xs font-bold">ET</span>'}
+                            <div class="min-w-0">
+                                <p class="break-words font-semibold">${escapeHtml(describeActivity(readableActivity))}</p>
+                                <p class="mt-1 truncate text-xs text-zinc-400">${escapeHtml(actorName)}</p>
+                                ${activity.videoId && video?.description ? `<p class="mt-1 truncate text-xs text-zinc-500">Video: ${escapeHtml(video.description)}</p>` : ''}
+                            </div>
+                        </div><time class="shrink-0 text-xs text-zinc-500">${escapeHtml(timestamp)}</time>
+                    </article>`;
+                }).join('') : '<p class="p-8 text-center text-sm text-zinc-400">No website activity has been recorded.</p>';
+                loadedAdminPanels.add('activity');
+            } catch (error) {
+                console.error('Unable to load website activity:', error);
+                activityList.innerHTML = '<p class="p-8 text-center text-sm text-rose-200">Could not load website activity. Check Firestore permissions and connection.</p>';
+            }
+        }
+
+        function setAdminTab(tab, loadPanel = true) {
+            document.querySelectorAll('.admin-panel').forEach(panel => {
+                panel.classList.toggle('hidden', panel.id !== `${tab}-panel`);
+            });
+            document.querySelectorAll('.admin-tab').forEach(button => {
+                const selected = button.dataset.adminTab === tab;
+                button.classList.toggle('tab-active', selected);
+                button.classList.toggle('border-transparent', !selected);
+                button.classList.toggle('text-zinc-500', !selected);
+            });
+            if (loadPanel && !loadedAdminPanels.has(tab)) {
+                if (tab === 'users') loadUsers();
+                if (tab === 'activity') loadActivity();
+                if (tab === 'videos') loadVideos();
+            }
+        }
+
+        document.querySelectorAll('.admin-tab').forEach(button => {
+            button.addEventListener('click', () => setAdminTab(button.dataset.adminTab));
+        });
+        document.getElementById('user-search').addEventListener('input', renderUsers);
+        document.getElementById('refresh-users').addEventListener('click', () => {
+            userPage = 0;
+            userPageCursors = [];
+            loadUsers();
+        });
+        document.getElementById('previous-users').addEventListener('click', () => {
+            if (userPage === 0) return;
+            userPage -= 1;
+            loadUsers();
+        });
+        document.getElementById('next-users').addEventListener('click', () => {
+            if (!userNextAvailable || !userLastDocument) return;
+            userPageCursors[userPage] = userLastDocument;
+            userPage += 1;
+            loadUsers();
+        });
+        document.getElementById('refresh-activity').addEventListener('click', loadActivity);
+
+        document.getElementById('user-list').addEventListener('click', event => {
+            const button = event.target.closest('[data-user-action="edit"]');
+            if (!button) return;
+            const user = users.find(item => item.id === button.dataset.userId);
+            if (!user) return;
+            document.getElementById('managed-user-id').value = user.id;
+            document.getElementById('managed-user-name').value = user.fullName || '';
+            document.getElementById('managed-user-bio').value = user.bio || '';
+            document.getElementById('managed-user-picture').value = user.profilePic || '';
+            document.getElementById('managed-user-file').value = '';
+            clearMessage(document.getElementById('user-edit-message'));
+            document.getElementById('user-dialog').showModal();
+        });
+        document.getElementById('cancel-user-edit').addEventListener('click', () => document.getElementById('user-dialog').close());
+
+        document.getElementById('user-form').addEventListener('submit', async event => {
+            event.preventDefault();
+            const saveButton = document.getElementById('save-user-edit');
+            const message = document.getElementById('user-edit-message');
+            const uid = document.getElementById('managed-user-id').value;
+            saveButton.disabled = true;
+            clearMessage(message);
+            try {
+                const file = document.getElementById('managed-user-file').files[0];
+                const profilePicInput = document.getElementById('managed-user-picture').value.trim();
+                if (profilePicInput && !validHttpUrl(profilePicInput)) {
+                    throw new Error('Profile picture URL must begin with http:// or https://.');
+                }
+                const profilePic = file ? await uploadToCloudinary(file, 'image') : validHttpUrl(profilePicInput);
+                const updates = {
+                    fullName: document.getElementById('managed-user-name').value.trim(),
+                    bio: document.getElementById('managed-user-bio').value.trim(),
+                    profilePic
+                };
+                const batch = writeBatch(db);
+                batch.set(doc(db, 'profiles', uid), updates, { merge: true });
+                batch.set(doc(db, 'users', uid), updates, { merge: true });
+                await batch.commit();
+                document.getElementById('user-dialog').close();
+                await loadUsers();
+            } catch (error) {
+                console.error('Unable to update user profile:', error);
+                showMessage(message, error.message || 'Could not update this profile.', true);
+            } finally {
+                saveButton.disabled = false;
+            }
+        });
 
         function renderVideos() {
             const published = videos.filter(video => video.admin === 'yes').length;
@@ -508,6 +965,9 @@
             clearMessage(loginMessage);
             videoList.innerHTML = '<p class="p-8 text-center text-sm text-zinc-400">Sign in to load videos.</p>';
             videos = [];
+            users = [];
+            loadedAdminPanels.clear();
+            setAdminTab('videos', false);
         });
 
         videoList.addEventListener('click', async event => {
@@ -570,6 +1030,7 @@
 
             let comments;
             try {
+                await uploadCommentProfileImages();
                 comments = getCommentsFromEditor();
             } catch (error) {
                 showMessage(uploadStatus, error.message, true);
@@ -579,8 +1040,10 @@
             saveButton.disabled = true;
             saveButton.textContent = 'Saving…';
             uploadStatus.classList.remove('hidden');
-            uploadStatus.textContent = 'Saving video details…';
+            uploadStatus.textContent = 'Checking commenter usernames and saving video details…';
             try {
+                const prepared = await prepareCommentUsers(comments);
+                comments = prepared.comments;
                 let link = current?.link ?? '';
                 let mediaType = current ? mediaTypeFor(current) : 'video';
                 let profileImageLink = document.getElementById('profile-image-url').value.trim();
@@ -614,11 +1077,7 @@
                     comments,
                     admin: adminStatus
                 };
-                if (current) {
-                    await updateDoc(doc(db, 'videos', id), videoData);
-                } else {
-                    await addDoc(videosCollection, videoData);
-                }
+                await saveVideoWithCommentUsers(id, videoData, prepared.identities);
                 videoDialog.close();
                 await loadVideos();
                 showMessage(appMessage, current ? 'Video updated.' : 'Video uploaded and added to the library.');

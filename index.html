@@ -716,20 +716,45 @@
         async function toggleFollow(btn) {
             const user = await window.requireUser();
             if (!user) return;
-            const videoId = btn.closest('.video-card')?.dataset.id;
+            if (btn.disabled) return;
+            const card = btn.closest('.video-card');
+            const videoId = card?.dataset.id;
+            const creatorUsername = card?.dataset.creatorUsername || card?.dataset.username || '';
+            btn.disabled = true;
             try {
-                if (videoId) await window.recordVideoActivity(videoId, 'follow_creator', { creator: btn.closest('.video-card').dataset.username });
+                const following = await window.toggleFollowCreator(
+                    card?.dataset.userId || '',
+                    creatorUsername,
+                    { videoId: videoId || '', source: 'feed' }
+                );
+                const targetUserId = card?.dataset.userId;
+                if (targetUserId) {
+                    document.querySelectorAll('.video-card').forEach(otherCard => {
+                        if (otherCard.dataset.userId !== targetUserId) return;
+                        const followButton = otherCard.querySelector('.follow-btn');
+                        if (followButton) setFollowButtonState(followButton, following);
+                    });
+                } else {
+                    setFollowButtonState(btn, following);
+                }
+                showToast(following ? 'Following creator!' : 'Unfollowed creator.');
             } catch (error) {
-                console.error('Unable to record follow activity:', error);
-                showToast('Could not follow this creator. Please try again.');
-                return;
+                console.error('Unable to update creator follow:', error);
+                showToast(error.message || 'Could not update follow status. Please try again.');
+            } finally {
+                btn.disabled = false;
             }
-            btn.classList.add('scale-0');
-            setTimeout(() => {
-                btn.parentElement.classList.add('ring-2', 'ring-tiktok-cyan');
-                showToast('Following creator!');
-            }, 200);
         }
+
+        function setFollowButtonState(button, following) {
+            button.innerHTML = following ? '✓' : '+';
+            button.classList.toggle('bg-tiktok-red', !following);
+            button.classList.toggle('hover:bg-red-600', !following);
+            button.classList.toggle('bg-gray-700', following);
+            button.classList.toggle('hover:bg-gray-600', following);
+            button.setAttribute('aria-label', following ? 'Unfollow creator' : 'Follow creator');
+        }
+        window.setFollowButtonState = setFollowButtonState;
 
         async function toggleMute() {
             const user = await window.requireUser();
@@ -1060,6 +1085,7 @@
     </script>
     <script type="module">
         import { auth, db } from './firebase.js';
+        import { getFollowingUserIds, toggleUserFollow } from './follows.js';
         import { onAuthStateChanged } from 'https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js';
         import {
             addDoc, collection, doc, getDoc, getDocs, query, runTransaction,
@@ -1099,6 +1125,9 @@
                 restoreLikedState();
                 updateCommentFormAvatar(user);
             }
+            restoreFollowButtons(user).catch(error => {
+                console.error('Unable to load followed creators:', error);
+            });
         }, error => {
             console.error('Unable to observe Firebase authentication state:', error);
             authReadyResolve(null);
@@ -1554,6 +1583,39 @@
             }
         });
 
+        window.toggleFollowCreator = async (targetUserId, username, details = {}) => {
+            let followedUserId = targetUserId;
+            const normalizedUsername = String(username || '').trim().replace(/^@/, '').toLowerCase();
+            if (!followedUserId && normalizedUsername) {
+                const matchingProfiles = await getDocs(query(
+                    collection(db, 'profiles'),
+                    where('usernameLower', '==', normalizedUsername)
+                ));
+                followedUserId = matchingProfiles.docs[0]?.id || '';
+            }
+            if (!followedUserId) {
+                throw new Error(`No account was found for @${normalizedUsername || 'this creator'}.`);
+            }
+            if (!currentUser) throw new Error('Sign in to follow creators.');
+            if (details.videoId) {
+                const card = [...document.querySelectorAll('.video-card')]
+                    .find(item => item.dataset.id === details.videoId);
+                if (card) card.dataset.userId = followedUserId;
+            }
+            return toggleUserFollow(currentUser.uid, followedUserId, {
+                creatorUsername: normalizedUsername,
+                ...details
+            });
+        };
+
+        async function restoreFollowButtons(user) {
+            const followingIds = new Set(user ? await getFollowingUserIds(user.uid) : []);
+            document.querySelectorAll('.video-card .follow-btn').forEach(button => {
+                const targetUserId = button.closest('.video-card')?.dataset.userId;
+                if (targetUserId) window.setFollowButtonState(button, followingIds.has(targetUserId));
+            });
+        }
+
         const escapeHtml = value => String(value ?? '').replace(/[&<>"']/g, character => ({
             '&': '&amp;',
             '<': '&lt;',
@@ -1618,6 +1680,8 @@
             card.dataset.shares = String(shares);
             card.dataset.comments = String(comments.length);
             card.dataset.username = uploadedBy;
+            card.dataset.userId = String(video.userId || '');
+            card.dataset.creatorUsername = String(video.username || uploadedBy).trim().replace(/^@/, '').toLowerCase();
             card.dataset.desc = description;
 
             const avatar = profileImage
@@ -1635,7 +1699,10 @@
                     </div>
                 </div>
                 <div class="absolute right-3 bottom-6 z-20 flex flex-col items-center space-y-5">
-                    <div class="relative">${avatar}</div>
+                    <div class="relative">
+                        ${avatar}
+                        <button type="button" class="follow-btn absolute -bottom-1.5 left-1/2 -translate-x-1/2 rounded-full bg-tiktok-red p-0.5 text-sm font-bold leading-none text-white shadow-md transition active:scale-90" aria-label="Follow creator">+</button>
+                    </div>
                     <div class="flex flex-col items-center">
                         <button type="button" class="like-btn p-2 rounded-full hover:bg-white/10 transition active:scale-75 text-white" aria-label="Like video">
                             <i data-lucide="heart" class="w-8 h-8 transition-colors"></i>
@@ -1678,6 +1745,10 @@
             }
 
             card.querySelector('.like-btn').addEventListener('click', event => window.toggleLike(event.currentTarget));
+            card.querySelector('.follow-btn').addEventListener('click', event => {
+                event.stopPropagation();
+                toggleFollow(event.currentTarget);
+            });
             card.querySelector('.comments-btn').addEventListener('click', () => window.openComments(id));
             card.querySelector('.bookmark-btn').addEventListener('click', event => window.toggleBookmark(event.currentTarget));
             card.querySelector('.share-btn').addEventListener('click', () => window.openShareModal());
@@ -1711,6 +1782,11 @@
                 }
                 cards.forEach(card => videoFeed.append(card));
                 restoreLikedState();
+                try {
+                    await restoreFollowButtons(currentUser);
+                } catch (error) {
+                    console.error('Unable to load followed creators:', error);
+                }
                 lucide.createIcons();
                 window.setupIntersectionObserver();
                 window.setupDoubleTapHearts();
