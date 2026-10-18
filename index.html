@@ -769,8 +769,7 @@
                 .map(comment => comment.userId))];
             await Promise.all(missingProfiles.map(async uid => {
                 try {
-                    const publicProfileSnapshot = await getDoc(doc(db, 'profiles', uid));
-                    const profile = publicProfileSnapshot.exists() ? publicProfileSnapshot.data() : {};
+                    const profile = await window.loadCommenterProfile(uid);
                     comments.forEach(comment => {
                         if (comment.userId !== uid) return;
                         comment.avatar = safeImageUrl(profile.profilePic || comment.avatar || '');
@@ -822,7 +821,10 @@
 
             let authorProfile;
             try {
-                authorProfile = await loadOwnCommentProfile(user);
+                authorProfile = window.commentAuthorProfileCache?.uid === user.uid
+                    ? window.commentAuthorProfileCache.profile
+                    : await window.loadOwnCommentProfile(user);
+                window.commentAuthorProfileCache = { uid: user.uid, profile: authorProfile };
             } catch (error) {
                 console.error('Unable to load commenter account:', error);
                 showToast(error.message || 'Could not load your account username. Please try again.');
@@ -890,23 +892,6 @@
                 console.error('Unable to record comment like:', error);
                 showToast('Could not like this comment. Please try again.');
             }
-        }
-
-        async function loadOwnCommentProfile(user) {
-            if (!user?.uid) throw new Error('You must be signed in to load your account username.');
-            let accountSnapshot;
-            try {
-                accountSnapshot = await getDoc(doc(db, 'users', user.uid));
-            } catch (error) {
-                console.error('Firestore users document read failed:', error);
-                const errorCode = error && typeof error === 'object' && 'code' in error ? error.code : 'unknown error';
-                const errorMessage = error instanceof Error ? error.message : String(error);
-                throw new Error(`Firestore could not read users/${user.uid} (${errorCode}): ${errorMessage}`);
-            }
-            if (!accountSnapshot.exists()) {
-                throw new Error(`No users/${user.uid} account document exists.`);
-            }
-            return accountSnapshot.data();
         }
 
         async function switchTab(tab) {
@@ -1106,6 +1091,9 @@
 
         onAuthStateChanged(auth, user => {
             currentUser = user;
+            if (window.commentAuthorProfileCache?.uid !== user?.uid) {
+                window.commentAuthorProfileCache = null;
+            }
             authReadyResolve(user);
             if (user) {
                 restoreLikedState();
@@ -1116,11 +1104,35 @@
             authReadyResolve(null);
         });
 
+        async function loadOwnCommentProfile(user) {
+            if (!user?.uid) throw new Error('You must be signed in to load your account username.');
+            let accountSnapshot;
+            try {
+                accountSnapshot = await getDoc(doc(db, 'users', user.uid));
+            } catch (error) {
+                console.error('Firestore users document read failed:', error);
+                const errorCode = error && typeof error === 'object' && 'code' in error ? error.code : 'unknown error';
+                const errorMessage = error instanceof Error ? error.message : String(error);
+                throw new Error(`Firestore could not read users/${user.uid} (${errorCode}): ${errorMessage}`);
+            }
+            if (!accountSnapshot.exists()) {
+                throw new Error(`No users/${user.uid} account document exists.`);
+            }
+            return accountSnapshot.data();
+        }
+        window.loadOwnCommentProfile = loadOwnCommentProfile;
+
+        window.loadCommenterProfile = async uid => {
+            const publicProfileSnapshot = await getDoc(doc(db, 'profiles', uid));
+            return publicProfileSnapshot.exists() ? publicProfileSnapshot.data() : {};
+        };
+
         async function updateCommentFormAvatar(user) {
             const avatar = document.getElementById('comment-form-avatar');
             avatar.src = user.photoURL || 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?auto=format&fit=crop&w=100&q=80';
             try {
                 const profile = await loadOwnCommentProfile(user);
+                window.commentAuthorProfileCache = { uid: user.uid, profile };
                 if (profile.profilePic) avatar.src = profile.profilePic;
             } catch (error) {
                 console.error('Unable to load comment form profile picture:', error);
