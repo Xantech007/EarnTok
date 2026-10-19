@@ -5,6 +5,7 @@ import { createWelcomeEmail } from './welcome-email-template.js';
 const FIREBASE_API_KEY = 'AIzaSyD-gMS-7WsLUNT8avQjQ4TTw0JN8uUtZVk';
 const FIREBASE_PROJECT_ID = 'earntok-c08e3';
 const MAX_NEW_ACCOUNT_AGE_MS = 15 * 60 * 1000;
+const SITE_URL = 'https://earntok.online';
 
 function response(statusCode, body) {
     return {
@@ -61,13 +62,7 @@ async function getRegistrationDetails(idToken, uid) {
 }
 
 function getSiteUrl() {
-    const value = process.env.URL || process.env.DEPLOY_PRIME_URL || process.env.SITE_URL;
-    if (!value) throw new Error('Set the Netlify URL or SITE_URL environment variable for the welcome email link.');
-    const url = new URL(value);
-    if (url.protocol !== 'https:' && url.hostname !== 'localhost') {
-        throw new Error('The configured website URL must use HTTPS.');
-    }
-    return url.origin;
+    return SITE_URL;
 }
 
 function createTransport() {
