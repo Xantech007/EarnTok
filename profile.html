@@ -36,8 +36,19 @@
 <body class="bg-zinc-950 text-zinc-100 antialiased">
     <header class="sticky top-0 z-20 border-b border-zinc-800 bg-zinc-950/90 backdrop-blur">
         <div class="mx-auto flex max-w-5xl items-center justify-between px-4 py-3">
-            <a href="./index.html" class="flex items-center" aria-label="EarnTok home"><img src="./earntok-logo.png" class="h-9 w-9 object-contain" alt="EarnTok logo"></a>
-            <a href="./index.html" class="rounded-xl bg-zinc-800 px-4 py-2 text-sm font-semibold hover:bg-zinc-700"><i data-lucide="arrow-left" class="mr-2 h-4 w-4" aria-hidden="true"></i>Back to feed</a>
+            <a href="./index.html" class="text-zinc-100 hover:opacity-80" aria-label="Back to feed">
+                <i data-lucide="arrow-left" class="h-6 w-6 stroke-[2.5]" aria-hidden="true"></i>
+            </a>
+            <div class="flex items-center gap-3">
+                <button id="edit-profile-button" class="text-zinc-900 hover:opacity-80" type="button" aria-label="Edit profile">
+                <i data-lucide="pencil" class="h-6 w-6 stroke-[2.5]" aria-hidden="true"></i>
+                </button>
+                <button id="viewers-icon-button" class="relative text-zinc-100 hover:opacity-80 p-1" aria-label="Profile viewers" title="Profile viewers">
+                    <i data-lucide="eye" class="h-6 w-6 stroke-[2.2]" aria-hidden="true"></i>
+                    <span id="viewer-badge" class="absolute -top-1 -right-1 hidden bg-rose-500 text-white text-[10px] font-bold px-1.5 py-0.2 rounded-full">0</span>
+                </button>
+
+            </div>
         </div>
     </header>
     <!-- BOTTOM MOBILE NAVIGATION BAR -->
@@ -45,10 +56,10 @@
         <a href="./index.html" class="flex flex-col items-center space-y-0.5 text-gray-400 hover:text-black" aria-label="Home">
             <i data-lucide="home" class="h-6 w-6" aria-hidden="true"></i><span>Home</span>
         </a>
-        <button onclick="switchNavTab('friends')" id="nav-friends" class="flex flex-col items-center text-gray-400 hover:text-black space-y-0.5">
+        <a href="friends.html" id="nav-friends" class="flex flex-col items-center text-gray-400 hover:text-black space-y-0.5">
             <i data-lucide="users" class="w-6 h-6" aria-hidden="true"></i>
             <span>Friends</span>
-        </button>
+        </a>
         <!-- Create Button (+) with TikTok Dual-Glow Effect -->
         <a href="./index.html?openCreate=1" class="group relative flex h-8 w-[54px] items-center justify-center active:scale-95 transition" aria-label="Create a video or photo">
             <span class="absolute left-0 z-0 h-7 w-[45px] rounded-lg bg-cyan-400" style="background-color:#25f4ee"></span>
@@ -57,11 +68,11 @@
                 <i data-lucide="plus" class="w-5 h-5 stroke-[3]" aria-hidden="true"></i>
             </span>
         </a>
-        <button onclick="switchNavTab('inbox')" id="nav-inbox" class="flex flex-col items-center text-gray-400 hover:text-black space-y-0.5 relative">
+        <a href="inbox.html" id="nav-inbox" class="flex flex-col items-center text-gray-400 hover:text-black space-y-0.5 relative">
             <i data-lucide="message-square" class="w-6 h-6" aria-hidden="true"></i>
             <span class="absolute top-0 right-3 w-2 h-2 bg-tiktok-red rounded-full"></span>
             <span>Inbox</span>
-        </button>
+        </a>
         <a href="./profile.html" id="nav-profile" class="flex flex-col items-center text-rose-500 hover:text-black space-y-0.5">
             <i data-lucide="user" class="w-6 h-6" aria-hidden="true"></i>
             <span>Profile</span>
@@ -79,20 +90,12 @@
                     <h1 id="profile-name" class="mt-1 truncate text-3xl font-bold">Loading profile…</h1>
                     <p class="mt-1 text-zinc-400"><span class="inline-flex items-center gap-1"><span id="profile-username"></span><i id="profile-verified" data-lucide="badge-check" class="inline-block h-4 w-4 align-middle text-sky-400" title="Verified creator" aria-label="Verified creator"></i></span></p>
                     <div class="mt-4 flex flex-wrap justify-center gap-x-7 gap-y-2 text-sm sm:justify-start">
-                        <span><strong id="post-count" class="text-zinc-950">0</strong> posts</span>
-                        <span><strong id="pinned-count" class="text-zinc-950">0</strong> pinned</span>
-                        <span><strong id="follower-count" class="text-zinc-950">0</strong> followers</span>
-                        <span><strong id="following-count" class="text-zinc-950">0</strong> following</span>
+                        <button id="follower-btn" class="hover:underline cursor-pointer"><strong id="follower-count" class="text-zinc-950">0</strong> followers</button>
+                        <button id="following-btn" class="hover:underline cursor-pointer"><strong id="following-count" class="text-zinc-950">0</strong> following</button>
                         <span><strong id="like-count" class="text-zinc-950">0</strong> likes</span>
-                        <button id="viewers-tab-button" class="hover:text-cyan-300"><strong id="viewer-count" class="text-zinc-950">0</strong> viewers</button>
                     </div>
                     <p id="profile-bio" class="mx-auto mt-4 max-w-xl whitespace-pre-wrap text-sm text-zinc-300 sm:mx-0"></p>
-                    <button id="edit-profile-button" class="mt-4 rounded-xl border border-zinc-300 bg-zinc-100 px-4 py-2 text-sm font-semibold text-zinc-900 hover:bg-zinc-200" type="button">Edit profile</button>
                 </div>
-            </div>
-            <div class="mt-7">
-                <h2 class="mb-3 text-xs font-bold uppercase tracking-[.18em] text-zinc-500">Pinned posts</h2>
-                <div id="pinned-grid" class="grid grid-cols-3 gap-2 sm:gap-4"></div>
             </div>
         </section>
 
@@ -101,19 +104,30 @@
                 <button class="content-tab tab-active shrink-0 border-b-2 px-4 py-3 text-sm font-semibold" data-tab="uploads" type="button">Uploads</button>
                 <button class="content-tab shrink-0 border-b-2 border-transparent px-4 py-3 text-sm font-semibold text-zinc-500" data-tab="liked" type="button">Liked</button>
                 <button class="content-tab shrink-0 border-b-2 border-transparent px-4 py-3 text-sm font-semibold text-zinc-500" data-tab="saved" type="button">Saved</button>
-                <button class="content-tab shrink-0 border-b-2 border-transparent px-4 py-3 text-sm font-semibold text-zinc-500" data-tab="viewers" type="button">Profile viewers</button>
             </div>
             <div id="upload-filters" class="flex gap-2 py-4">
                 <button class="upload-filter rounded-full bg-zinc-800 px-4 py-2 text-xs font-semibold" data-filter="all" type="button">All</button>
                 <button class="upload-filter rounded-full px-4 py-2 text-xs font-semibold text-zinc-500" data-filter="published" type="button">Published</button>
                 <button class="upload-filter rounded-full px-4 py-2 text-xs font-semibold text-zinc-500" data-filter="draft" type="button">Drafts</button>
             </div>
-            <p id="viewer-load-message" class="hidden py-4 text-sm text-rose-300"></p>
-            <div id="content-grid" class="grid grid-cols-2 gap-3 sm:grid-cols-3 sm:gap-4">
-                <p class="col-span-full py-12 text-center text-sm text-zinc-500">Loading your profile…</p>
+            <div id="content-grid" class="grid grid-cols-3 gap-[1px] bg-white py-4">
+                <p class="col-span-full py-12 text-center text-sm text-zinc-500 bg-white">Loading your profile…</p>
             </div>
         </section>
     </main>
+
+    <!-- Users Modal -->
+    <div id="users-modal" class="fixed inset-0 z-50 hidden items-center justify-center bg-black/50 p-4">
+        <div class="relative w-full max-w-md rounded-2xl bg-white p-6 shadow-xl max-h-[80vh] flex flex-col">
+            <div class="flex items-center justify-between border-b pb-3">
+                <h3 id="users-modal-title" class="text-lg font-bold">Users</h3>
+                <button id="users-modal-close" class="rounded-lg p-1 text-zinc-500 hover:bg-zinc-100"><i data-lucide="x" class="h-5 w-5"></i></button>
+            </div>
+            <div id="users-modal-list" class="mt-4 divide-y divide-zinc-100 overflow-y-auto flex-1">
+                <p class="py-8 text-center text-sm text-zinc-500">Loading…</p>
+            </div>
+        </div>
+    </div>
 
     <dialog id="edit-dialog" class="w-[min(30rem,calc(100%-2rem))] rounded-2xl border border-zinc-700 bg-zinc-900 p-0 shadow-2xl">
         <form id="edit-form" class="space-y-4 p-6">
@@ -165,12 +179,12 @@
         function typeOf(video) {
             if (video.mediaType === 'image') return 'image';
             if (video.mediaType === 'video') return 'video';
-            return /\.(avif|gif|jpe?g|png|webp|bmp|heic)(?:\?|$)/i.test(video.link || '') ? 'image' : 'video';
+            return /\.(avif|gif|jpe?g|png|webp|bmp|heic)(?:\?|\$)/i.test(video.link || '') ? 'image' : 'video';
         }
 
         function showError(error) {
             console.error(error);
-            contentGrid.innerHTML = '<p class="col-span-full py-12 text-center text-sm text-rose-300">Could not load this profile data. Check Firestore permissions and try again.</p>';
+            contentGrid.innerHTML = '<p class="col-span-full py-12 text-center text-sm text-rose-300 bg-white">Could not load this profile data. Check Firestore permissions and try again.</p>';
         }
 
         function formatCount(value) {
@@ -206,28 +220,104 @@
             const verifiedBadge = profile.verify === 'yes'
                 ? '<span class="ml-1 inline-flex align-middle items-center"><i data-lucide="badge-check" class="h-3.5 w-3.5 text-sky-400" title="Verified creator" aria-label="Verified creator"></i></span>'
                 : '';
-            return `<article class="group relative overflow-hidden rounded-xl bg-zinc-900" data-profile-video-id="${escapeHtml(video.id)}">
+            return `<article class="group relative overflow-hidden bg-zinc-900" data-profile-video-id="${escapeHtml(video.id)}">
                 ${media}
                 ${video.admin === 'yes' ? `<button class="open-profile-video absolute inset-0 z-10 flex items-center justify-center bg-black/10 text-3xl text-white opacity-0 transition hover:bg-black/30 hover:opacity-100" data-id="${escapeHtml(video.id)}" type="button" aria-label="Watch ${escapeHtml(video.description || 'post')}">▶</button>` : ''}
                 <div class="absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/90 via-black/50 to-transparent p-3 pt-10">
-                    <p class="mb-1 text-xs font-semibold">${escapeHtml(profile.username ? `@${profile.username}` : 'You')}${verifiedBadge}</p>
+                    <p class="mb-1 text-xs font-semibold">${escapeHtml(profile.username ? `@\${profile.username}` : 'You')}${verifiedBadge}</p>
                     <p class="line-clamp-2 text-xs text-white">${escapeHtml(video.description || 'Untitled')}</p>
                     <div class="relative z-20 mt-2 flex items-center justify-between gap-1">
                         <span class="rounded-full bg-black/50 px-2 py-1 text-[10px] ${video.admin === 'yes' ? 'text-emerald-300' : 'text-amber-300'}">${status}</span>
                         ${canManage && video.admin === 'yes' ? `<button class="pin-video rounded-full bg-black/60 px-2 py-1 text-[10px] text-white hover:bg-rose-500" data-id="${escapeHtml(video.id)}" type="button">${pinned ? 'Unpin' : 'Pin'}</button>` : ''}
-                        ${canManage ? `<button class="delete-upload rounded-full bg-black/60 px-2 py-1 text-[10px] text-rose-300 hover:bg-rose-500 hover:text-white" data-id="${escapeHtml(video.id)}" type="button">Delete</button>` : ''}
+                        ${canManage ? `<button class="delete-upload rounded-full bg-black/60 px-2 py-1 text-[10px] text-rose-300 hover:bg-rose-500 hover:text-white" data-id="\${escapeHtml(video.id)}" type="button">Delete</button>` : ''}
                     </div>
                 </div>
             </article>`;
         }
 
-        function renderPinned() {
-            const pinnedItems = pinnedVideos.map(id => uploads.find(video => video.id === id)).filter(video => video?.admin === 'yes');
-            document.getElementById('pinned-count').textContent = pinnedItems.length;
-            const grid = document.getElementById('pinned-grid');
-            grid.innerHTML = pinnedItems.length ? pinnedItems.map(video => mediaMarkup(video, true, true)).join('')
-                : '<p class="col-span-full rounded-xl border border-dashed border-zinc-800 py-6 text-center text-xs text-zinc-600">Pin up to three published posts to feature them here.</p>';
-            lucide.createIcons();
+        async function loadUsersModal(type, userId) {
+            const modal = document.getElementById('users-modal');
+            const title = document.getElementById('users-modal-title');
+            const list = document.getElementById('users-modal-list');
+            
+            if (type === 'viewers') {
+                title.textContent = 'Profile Viewers';
+                if (viewerLoadFailed) {
+                    list.innerHTML = '<p class="py-8 text-center text-sm text-rose-500">Could not load profile viewers.</p>';
+                } else if (viewerActivities.length === 0) {
+                    list.innerHTML = '<p class="py-8 text-center text-sm text-zinc-500">No profile views yet.</p>';
+                } else {
+                    list.innerHTML = viewerActivities.map(activity => {
+                        if (activity.userId.startsWith('guest-')) {
+                            return `<div class="flex items-center gap-3 py-3 px-2 rounded-lg">
+                                <span class="flex h-10 w-10 items-center justify-center rounded-full bg-zinc-200 text-sm font-bold">?</span>
+                                <div class="min-w-0 flex-1">
+                                    <p class="truncate font-semibold text-sm">Anonymous viewer</p>
+                                    <p class="truncate text-xs text-zinc-500">${escapeHtml(activity.createdAt?.toDate?.().toLocaleString?.() || 'Viewed your profile')}</p>
+                                </div>
+                            </div>`;
+                        }
+                        return `<a href="./view-profile.html?uid=${encodeURIComponent(activity.userId)}" class="flex items-center gap-3 py-3 hover:bg-zinc-50 px-2 rounded-lg">
+                            <img src="${escapeHtml(activity.visitorPic || '')}" class="h-10 w-10 rounded-full bg-zinc-200 object-cover" alt="">
+                            <div class="min-w-0 flex-1">
+                                <p class="truncate font-semibold text-sm">${escapeHtml(activity.visitorFullName || 'EarnTok user')}</p>
+                                <p class="truncate text-xs text-zinc-500">${escapeHtml(activity.visitorUsername ? `@\${activity.visitorUsername}` : '')}</p>
+                            </div>
+                        </a>`;
+                    }).join('');
+                }
+                modal.classList.remove('hidden');
+                modal.classList.add('flex');
+                lucide.createIcons();
+                return;
+            }
+
+            title.textContent = type === 'followers' ? 'Followers' : 'Following';
+            list.innerHTML = '<p class="py-8 text-center text-sm text-zinc-500">Loading…</p>';
+            modal.classList.remove('hidden');
+            modal.classList.add('flex');
+
+            try {
+                const followsSnap = await getDocs(query(
+                    collection(db, 'follows'),
+                    where(type === 'followers' ? 'followingId' : 'followerId', '==', userId)
+                ));
+
+                const targetField = type === 'followers' ? 'followerId' : 'followingId';
+                const userIds = followsSnap.docs.map(docSnap => docSnap.data()[targetField]);
+
+                if (userIds.length === 0) {
+                    list.innerHTML = `<p class="py-8 text-center text-sm text-zinc-500">No ${type} yet.</p>`;
+                    return;
+                }
+
+                const profiles = [];
+                for (let i = 0; i < userIds.length; i += 10) {
+                    const chunk = userIds.slice(i, i + 10);
+                    const profilesSnap = await getDocs(query(collection(db, 'profiles'), where('__name__', 'in', chunk)));
+                    profilesSnap.forEach(docSnap => {
+                        profiles.push({ id: docSnap.id, ...docSnap.data() });
+                    });
+                }
+
+                if (profiles.length === 0) {
+                    list.innerHTML = `<p class="py-8 text-center text-sm text-zinc-500">No ${type} yet.</p>`;
+                    return;
+                }
+
+                list.innerHTML = profiles.map(p => `
+                    <a href="./view-profile.html?uid=${p.id}" class="flex items-center gap-3 py-3 hover:bg-zinc-50 px-2 rounded-lg">
+                        <img src="${escapeHtml(p.profilePic || '')}" class="h-10 w-10 rounded-full bg-zinc-200 object-cover" alt="">
+                        <div class="min-w-0 flex-1">
+                            <p class="truncate font-semibold text-sm">${escapeHtml(p.fullName || 'User')}</p>
+                            <p class="truncate text-xs text-zinc-500">${escapeHtml(p.username ? `@\${p.username}` : '')}</p>
+                        </div>
+                    </a>
+                `).join('');
+            } catch (err) {
+                console.error(`Error loading ${type}:`, err);
+                list.innerHTML = `<p class="py-8 text-center text-sm text-rose-500">Failed to load ${type}.</p>`;
+            }
         }
 
         function renderContent() {
@@ -238,26 +328,21 @@
                 button.classList.toggle('text-zinc-500', !selected);
             });
             document.getElementById('upload-filters').classList.toggle('hidden', activeTab !== 'uploads');
-            document.getElementById('viewers-tab-button').onclick = () => {
-                activeTab = 'viewers';
-                renderContent();
-            };
-            if (activeTab === 'viewers') {
-                contentGrid.innerHTML = viewerLoadFailed
-                    ? '<p class="col-span-full py-12 text-center text-sm text-rose-300">Could not load profile viewers. Check your activity read permissions.</p>'
-                    : viewerActivities.length ? viewerActivities.map(activity => `
-                        ${activity.userId.startsWith('guest-')
-                            ? `<div class="col-span-full flex items-center gap-3 border-b border-zinc-800 py-3"><span class="flex h-10 w-10 items-center justify-center rounded-full bg-zinc-800 text-sm font-bold">?</span><span><strong class="block text-sm">Anonymous viewer</strong><span class="text-xs text-zinc-500">${activity.createdAt?.toDate?.().toLocaleString?.() || 'Viewed your profile'}</span></span></div>`
-                            : `<a class="col-span-full flex items-center gap-3 border-b border-zinc-800 py-3" href="./view-profile.html?uid=${encodeURIComponent(activity.userId)}"><img class="h-10 w-10 rounded-full bg-zinc-800 object-cover" src="${escapeHtml(activity.visitorPic || '')}" alt=""><span><strong class="block text-sm">${escapeHtml(activity.visitorName || 'EarnTok user')}</strong><span class="text-xs text-zinc-500">${activity.createdAt?.toDate?.().toLocaleString?.() || 'Viewed your profile'}</span></span></a>`}`).join('') : '<p class="col-span-full py-12 text-center text-sm text-zinc-500">No profile views yet.</p>';
-                lucide.createIcons();
-                return;
-            }
+            
             let items = activeTab === 'liked' ? likedVideos : activeTab === 'saved' ? savedVideos : uploads;
             if (activeTab === 'uploads' && activeFilter !== 'all') {
                 items = items.filter(video => activeFilter === 'published' ? video.admin === 'yes' : video.admin !== 'yes');
             }
+
+            if (activeTab === 'uploads') {
+                const pinnedItems = pinnedVideos.map(id => uploads.find(video => video.id === id)).filter(video => video?.admin === 'yes');
+                const pinnedSet = new Set(pinnedItems.map(p => p.id));
+                const unpinnedItems = items.filter(video => !pinnedSet.has(video.id));
+                items = [...pinnedItems, ...unpinnedItems];
+            }
+
             contentGrid.innerHTML = items.length ? items.map(video => mediaMarkup(video, pinnedVideos.includes(video.id), activeTab === 'uploads')).join('')
-                : `<p class="col-span-full py-12 text-center text-sm text-zinc-500">${activeTab === 'uploads' ? activeFilter === 'draft' ? 'No drafts yet.' : 'No uploads yet.' : activeTab === 'liked' ? 'Videos you like will appear here.' : 'Videos you save will appear here.'}</p>`;
+                : `<p class="col-span-full py-12 text-center text-sm text-zinc-500 bg-white">${activeTab === 'uploads' ? activeFilter === 'draft' ? 'No drafts yet.' : 'No uploads yet.' : activeTab === 'liked' ? 'Videos you like will appear here.' : 'Videos you save will appear here.'}</p>`;
             lucide.createIcons();
         }
 
@@ -271,22 +356,43 @@
         }
 
         async function loadViewerActivities() {
-            const snapshot = await getDocs(query(collection(db, 'activity'), where('profileId', '==', user.uid)));
-            const latest = new Map();
-            const activities = snapshot.docs.map(entry => ({ id: entry.id, ...entry.data() }))
-                .sort((left, right) => (right.createdAt?.toMillis?.() || 0) - (left.createdAt?.toMillis?.() || 0));
-            for (const item of activities) {
-                if (item.action !== 'profile_view' || !item.userId || item.userId === user.uid || latest.has(item.userId)) continue;
-                    const visitorSnapshot = item.userId.startsWith('guest-') ? null : await getDoc(doc(db, 'profiles', item.userId));
-                const visitor = visitorSnapshot?.exists() ? visitorSnapshot.data() : {};
-                latest.set(item.userId, {
-                    ...item,
-                    visitorName: item.userId.startsWith('guest-') ? 'Anonymous viewer' : visitor.username ? `@${visitor.username}` : visitor.fullName || 'EarnTok user',
-                    visitorPic: visitor.profilePic || ''
-                });
+            try {
+                const snapshot = await getDocs(query(collection(db, 'activity'), where('profileId', '==', user.uid)));
+                const latest = new Map();
+                const activities = snapshot.docs.map(entry => ({ id: entry.id, ...entry.data() }))
+                    .sort((left, right) => (right.createdAt?.toMillis?.() || 0) - (left.createdAt?.toMillis?.() || 0));
+                for (const item of activities) {
+                    if (item.action !== 'profile_view' || !item.userId || item.userId === user.uid || latest.has(item.userId)) continue;
+                    let visitor = {};
+                    if (!item.userId.startsWith('guest-')) {
+                        try {
+                            const visitorSnapshot = await getDoc(doc(db, 'profiles', item.userId));
+                            if (visitorSnapshot.exists()) {
+                                visitor = visitorSnapshot.data();
+                            }
+                        } catch (e) {
+                            console.error('Error fetching visitor profile:', e);
+                        }
+                    }
+                    latest.set(item.userId, {
+                        ...item,
+                        visitorFullName: visitor.fullName || 'EarnTok user',
+                        visitorUsername: visitor.username || '',
+                        visitorPic: visitor.profilePic || ''
+                    });
+                }
+                viewerActivities = [...latest.values()];
+                const badge = document.getElementById('viewer-badge');
+                if (viewerActivities.length > 0) {
+                    badge.textContent = viewerActivities.length;
+                    badge.classList.remove('hidden');
+                } else {
+                    badge.classList.add('hidden');
+                }
+            } catch (error) {
+                console.error('Unable to load profile viewers:', error);
+                viewerLoadFailed = true;
             }
-            viewerActivities = [...latest.values()];
-            document.getElementById('viewer-count').textContent = viewerActivities.length;
         }
 
         async function loadProfile() {
@@ -333,20 +439,22 @@
                 loadVideosByIds(Array.isArray(accountData.likedVideoIds) ? accountData.likedVideoIds : []),
                 loadVideosByIds(Array.isArray(accountData.savedVideoIds) ? accountData.savedVideoIds : [])
             ]);
-            try {
-                await loadViewerActivities();
-            } catch (error) {
-                console.error('Unable to load profile viewers:', error);
-                viewerLoadFailed = true;
-                document.getElementById('viewer-count').textContent = '—';
-            }
+            
+            await loadViewerActivities();
+
             loadProfileHeader();
-            document.getElementById('post-count').textContent = uploads.length;
             document.getElementById('follower-count').textContent = formatCount(followStats.followers);
             document.getElementById('following-count').textContent = formatCount(followStats.following);
             updateLikeCount();
-            renderPinned();
             renderContent();
+
+            document.getElementById('follower-btn').addEventListener('click', () => loadUsersModal('followers', user.uid));
+            document.getElementById('following-btn').addEventListener('click', () => loadUsersModal('following', user.uid));
+            document.getElementById('viewers-icon-button').addEventListener('click', () => loadUsersModal('viewers', user.uid));
+            document.getElementById('users-modal-close').addEventListener('click', () => {
+                document.getElementById('users-modal').classList.add('hidden');
+                document.getElementById('users-modal').classList.remove('flex');
+            });
         }
 
         function openProfileVideo(event) {
@@ -361,7 +469,6 @@
             })), videoId);
         }
         document.getElementById('content-grid').addEventListener('click', openProfileVideo);
-        document.getElementById('pinned-grid').addEventListener('click', openProfileVideo);
 
         document.querySelectorAll('.content-tab').forEach(button => button.addEventListener('click', () => {
             activeTab = button.dataset.tab;
@@ -446,7 +553,6 @@
                     await updateDoc(doc(db, 'users', user.uid), { pinnedVideos });
                     await setDoc(doc(db, 'profiles', user.uid), { pinnedVideos }, { merge: true });
                     profile.pinnedVideos = pinnedVideos;
-                    renderPinned();
                     renderContent();
                 } else if (deleteButton && window.confirm('Delete this upload? This cannot be undone.')) {
                     const deletedId = deleteButton.dataset.id;
@@ -458,9 +564,7 @@
                         profile.pinnedVideos = pinnedVideos;
                         await updateDoc(doc(db, 'users', user.uid), { pinnedVideos });
                         await setDoc(doc(db, 'profiles', user.uid), { pinnedVideos }, { merge: true });
-                        renderPinned();
                     }
-                    document.getElementById('post-count').textContent = uploads.length;
                     renderContent();
                 }
             } catch (error) {

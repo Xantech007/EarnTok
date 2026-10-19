@@ -133,7 +133,7 @@
             </div>
 
             <!-- Search Icon -->
-            <button onclick="requireUser().then(user => user && (trackPageActivity('search_opened'), showToast('Search feature opened')))" class="text-white/90 hover:text-white transition group">
+            <button onclick="requireUser().then(user => user && (trackPageActivity('search_opened'), showToast('Search feature opened'), window.location.href='search.html'))" class="text-white/90 hover:text-white transition group">
                 <i data-lucide="search" class="w-6 h-6 group-hover:scale-105 transition" aria-hidden="true"></i>
             </button>
         </header>
@@ -384,10 +384,10 @@
             <a href="./index.html" class="flex flex-col items-center space-y-0.5 text-rose-500 hover:text-white" aria-label="Home">
                 <i data-lucide="home" class="h-6 w-6" aria-hidden="true"></i><span>Home</span>
             </a>
-            <button onclick="switchNavTab('friends')" id="nav-friends" class="flex flex-col items-center text-gray-400 hover:text-white space-y-0.5">
+            <a href="friends.html" id="nav-friends" class="flex flex-col items-center text-gray-400 hover:text-white space-y-0.5">
                 <i data-lucide="users" class="w-6 h-6" aria-hidden="true"></i>
                 <span>Friends</span>
-            </button>
+            </a>
             <!-- Create Button (+) with TikTok Dual-Glow Effect -->
             <button id="create-media-button" class="relative flex items-center justify-center group active:scale-95 transition" aria-label="Create a video or photo">
                 <div class="w-11 h-7 rounded-lg bg-tiktok-cyan absolute -left-1"></div>
@@ -396,11 +396,11 @@
                     <i data-lucide="plus" class="w-5 h-5 stroke-[3]" aria-hidden="true"></i>
                 </div>
             </button>
-            <button onclick="switchNavTab('inbox')" id="nav-inbox" class="flex flex-col items-center text-gray-400 hover:text-white space-y-0.5 relative">
+            <a href="inbox.html" id="nav-inbox" class="flex flex-col items-center text-gray-400 hover:text-white space-y-0.5 relative">
                 <i data-lucide="message-square" class="w-6 h-6" aria-hidden="true"></i>
                 <span class="absolute top-0 right-3 w-2 h-2 bg-tiktok-red rounded-full"></span>
                 <span>Inbox</span>
-            </button>
+            </a>
             <a href="./profile.html" id="nav-profile" class="flex flex-col items-center text-gray-400 hover:text-white space-y-0.5">
                 <i data-lucide="user" class="w-6 h-6" aria-hidden="true"></i>
                 <span>Profile</span>
