@@ -42,9 +42,9 @@
 <body class="bg-zinc-950 text-zinc-100 antialiased">
     <header class="sticky top-0 z-20 border-b border-zinc-800 bg-zinc-950/90 backdrop-blur">
         <div class="mx-auto flex max-w-5xl items-center justify-between px-4 py-3">
-            <a href="./index.html" class="text-zinc-100 hover:opacity-80" aria-label="Back to feed">
+            <button type="button" data-history-back class="text-zinc-100 hover:opacity-80" aria-label="Go back">
                 <i data-lucide="arrow-left" class="h-6 w-6 stroke-[2.5]" aria-hidden="true"></i>
-            </a>
+            </button>
             <div class="flex items-center gap-3">
                 <a href="./inbox.html" class="relative p-1 text-zinc-100 hover:opacity-80" aria-label="Inbox" title="Inbox">
                     <i data-lucide="message-square" class="h-6 w-6 stroke-[2.2]" aria-hidden="true"></i>
@@ -105,6 +105,7 @@
 
     <script type="module">
         import { auth, db } from './firebase.js';
+        import { enableHistoryBack } from './navigation.js';
         import { getUserFollowStats, toggleUserFollow, isUserFollowing } from './follows.js';
         import { createProfileVideoViewer } from './profile-video-viewer.js';
         import { subscribeToUnreadMessages } from './unread-messages.js';
@@ -112,6 +113,7 @@
         import { collection, doc, getDoc, getDocs, query, serverTimestamp, where, addDoc } from 'https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js';
 
         lucide.createIcons();
+        enableHistoryBack();
         const params = new URLSearchParams(location.search);
         const targetUid = params.get('uid');
         const targetUsername = params.get('username')?.replace(/^@/, '').toLowerCase();

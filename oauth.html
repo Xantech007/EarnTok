@@ -53,7 +53,7 @@
                     Password
                     <input class="field mt-2" name="password" type="password" autocomplete="current-password" required>
                 </label>
-                <button class="w-full rounded-xl bg-rose-500 px-4 py-3 font-bold text-white transition hover:bg-rose-600 disabled:cursor-wait disabled:opacity-60" type="submit"><i data-lucide="log-in" class="mr-2 h-4 w-4" aria-hidden="true"></i>Log in</button>
+                <button class="flex w-full items-center justify-center gap-2 rounded-xl bg-rose-500 px-4 py-3 font-bold text-white transition hover:bg-rose-600 disabled:cursor-wait disabled:opacity-60" type="submit"><i data-lucide="log-in" class="h-4 w-4 shrink-0" aria-hidden="true"></i><span>Log in</span></button>
             </form>
 
             <form id="register-panel" class="mt-6 hidden space-y-4" role="tabpanel" aria-labelledby="register-tab">
@@ -83,7 +83,7 @@
                         <input class="field mt-2" name="confirmPassword" type="password" autocomplete="new-password" minlength="8" required>
                     </label>
                 </div>
-                <button class="w-full rounded-xl bg-rose-500 px-4 py-3 font-bold text-white transition hover:bg-rose-600 disabled:cursor-wait disabled:opacity-60" type="submit"><i data-lucide="user-plus" class="mr-2 h-4 w-4" aria-hidden="true"></i>Create account</button>
+                <button class="flex w-full items-center justify-center gap-2 rounded-xl bg-rose-500 px-4 py-3 font-bold text-white transition hover:bg-rose-600 disabled:cursor-wait disabled:opacity-60" type="submit"><i data-lucide="user-plus" class="h-4 w-4 shrink-0" aria-hidden="true"></i><span>Create account</span></button>
             </form>
             <p id="form-message" class="mt-5 hidden rounded-xl border p-3 text-sm" role="status"></p>
             <p class="mt-6 text-center text-xs leading-5 text-zinc-500">By continuing, you agree to use EarnTok respectfully. Your account information is stored in Firebase.</p>
@@ -156,7 +156,7 @@
             event.preventDefault();
             const button = loginForm.querySelector('button[type="submit"]');
             button.disabled = true;
-            button.innerHTML = '<i data-lucide="loader" class="mr-2 h-4 w-4 animate-spin inline-block"></i> Signing in…';
+            button.innerHTML = '<i data-lucide="loader" class="h-4 w-4 shrink-0 animate-spin" aria-hidden="true"></i><span>Signing in…</span>';
             lucide.createIcons();
             try {
                 await setPersistence(auth, browserLocalPersistence);
@@ -168,7 +168,7 @@
                 showMessage(authError(error));
             } finally {
                 button.disabled = false;
-                button.innerHTML = '<i data-lucide="log-in" class="mr-2 h-4 w-4" aria-hidden="true"></i>Log in';
+                button.innerHTML = '<i data-lucide="log-in" class="h-4 w-4 shrink-0" aria-hidden="true"></i><span>Log in</span>';
                 lucide.createIcons();
             }
         });
@@ -208,11 +208,24 @@
                 const credential = await createUserWithEmailAndPassword(auth, email, password);
                 createdUser = credential.user;
                 await updateProfile(credential.user, { displayName: fullName });
+                const userRef = doc(db, 'users', credential.user.uid);
+                const profileRef = doc(db, 'profiles', credential.user.uid);
+                const activityRef = doc(collection(db, 'activities'));
                 await runTransaction(db, async transaction => {
-                    const usernameSnapshot = await transaction.get(usernameRef);
+                    const [usernameSnapshot, welcomeBonusSnapshot] = await Promise.all([
+                        transaction.get(usernameRef),
+                        transaction.get(doc(db, 'admin', 'newUsers'))
+                    ]);
                     if (usernameSnapshot.exists()) throw new Error('That username is already taken.');
+                    const configuredBonus = welcomeBonusSnapshot.exists()
+                        ? welcomeBonusSnapshot.data().bonus ?? 0
+                        : 0;
+                    const welcomeBonus = Number(configuredBonus);
+                    if (!Number.isSafeInteger(welcomeBonus) || welcomeBonus < 0) {
+                        throw new Error('The configured welcome bonus must be a non-negative whole number of coins.');
+                    }
                     transaction.set(usernameRef, { uid: credential.user.uid });
-                    transaction.set(doc(db, 'users', credential.user.uid), {
+                    transaction.set(userRef, {
                         uid: credential.user.uid,
                         fullName,
                         username,
@@ -220,9 +233,11 @@
                         email,
                         phoneNumber,
                         profilePic: '',
+                        earningsBalance: 0,
+                        availableBalance: welcomeBonus,
                         createdAt: serverTimestamp()
                     });
-                    transaction.set(doc(db, 'profiles', credential.user.uid), {
+                    transaction.set(profileRef, {
                         uid: credential.user.uid,
                         fullName,
                         username,
@@ -232,6 +247,15 @@
                         pinnedVideos: [],
                         createdAt: serverTimestamp()
                     });
+                    if (welcomeBonus > 0) {
+                        transaction.set(activityRef, {
+                            userId: 'system',
+                            profileId: credential.user.uid,
+                            action: 'welcome_bonus',
+                            details: { amount: welcomeBonus, currency: 'coins' },
+                            createdAt: serverTimestamp()
+                        });
+                    }
                 });
                 goToFeed();
             } catch (error) {
@@ -246,7 +270,7 @@
                 showMessage(authError(error));
             } finally {
                 button.disabled = false;
-                button.innerHTML = '<i data-lucide="user-plus" class="mr-2 h-4 w-4" aria-hidden="true"></i>Create account';
+                button.innerHTML = '<i data-lucide="user-plus" class="h-4 w-4 shrink-0" aria-hidden="true"></i><span>Create account</span>';
                 lucide.createIcons();
             }
         });

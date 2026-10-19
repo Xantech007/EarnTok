@@ -30,6 +30,8 @@
         #message-actions-modal::backdrop { background: rgba(0, 0, 0, .38); }
         .message-bubble { width: fit-content; max-width: min(78vw, 34rem); overflow-wrap: anywhere; }
         .message-reactions { width: fit-content; }
+        .message-media { max-height: min(55dvh, 30rem); max-width: min(78vw, 34rem); }
+        .message-audio { width: min(72vw, 20rem); }
     </style>
 </head>
 <body class="bg-zinc-950 text-zinc-100 antialiased flex flex-col h-full select-text">
@@ -37,10 +39,10 @@
     <header class="sticky top-0 z-30 shrink-0 border-b border-zinc-200 bg-white/95 backdrop-blur px-4 py-2.5">
         <div class="mx-auto flex max-w-3xl items-center justify-between">
             <div class="flex items-center gap-3 min-w-0">
-                <a href="./inbox.html" id="message-inbox-link" class="relative text-zinc-900 hover:opacity-80 p-1 shrink-0" aria-label="Back to inbox">
+                <button type="button" data-history-back id="message-inbox-link" class="relative text-zinc-900 hover:opacity-80 p-1 shrink-0" aria-label="Go back">
                     <i data-lucide="arrow-left" class="h-6 w-6 stroke-[2.5]" aria-hidden="true"></i>
                     <span data-unread-message-badge class="absolute -right-1 -top-1 hidden min-w-4 h-4 items-center justify-center rounded-full bg-rose-500 px-1 text-[10px] font-bold leading-none text-white" aria-hidden="true"></span>
-                </a>
+                </button>
                 <a id="header-profile-link" href="#" class="flex items-center gap-2.5 min-w-0 hover:opacity-85 transition">
                     <img id="header-avatar" class="h-9 w-9 min-w-[2.25rem] min-h-[2.25rem] max-w-[2.25rem] max-h-[2.25rem] rounded-full bg-zinc-200 object-cover shrink-0 border border-zinc-200" src="https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?auto=format&fit=crop&w=200&q=80" alt="Avatar">
                     <div class="min-w-0">
@@ -62,7 +64,7 @@
     <div id="chat-error" class="hidden mx-auto max-w-3xl w-full px-4 pt-3">
         <div class="rounded-xl border border-rose-200 bg-rose-50 p-3 text-sm text-rose-600 flex items-center justify-between">
             <span id="chat-error-text">Unable to load messages.</span>
-            <a href="./inbox.html" class="underline font-semibold ml-2">Back to inbox</a>
+            <button type="button" data-history-back class="underline font-semibold ml-2">Go back</button>
         </div>
     </div>
 
@@ -94,7 +96,12 @@
 
     <!-- Message Input Bar -->
     <footer class="sticky bottom-0 z-30 shrink-0 border-t border-zinc-200 bg-white/95 backdrop-blur px-4 py-2.5 pb-[max(.65rem,env(safe-area-inset-bottom))]">
+        <p id="composer-status" class="mx-auto mb-2 hidden max-w-3xl text-xs text-zinc-500" role="status"></p>
         <form id="message-form" class="mx-auto flex max-w-3xl items-center gap-2" autocomplete="off">
+            <input id="attachment-input" type="file" accept="image/*,video/*" class="hidden" aria-label="Choose an image or video">
+            <button id="attachment-button" type="button" class="flex h-10 w-10 shrink-0 items-center justify-center rounded-full text-zinc-600 hover:bg-zinc-100 disabled:opacity-40" aria-label="Attach image or video" title="Attach image or video" disabled>
+                <i data-lucide="paperclip" class="h-5 w-5" aria-hidden="true"></i>
+            </button>
             <input
                 id="message-input"
                 type="text"
@@ -103,6 +110,9 @@
                 class="flex-1 rounded-full bg-zinc-100 border border-zinc-200 px-4 py-2.5 text-sm text-zinc-900 placeholder:text-zinc-400 outline-none focus:border-rose-500 focus:bg-white transition"
                 disabled
             >
+            <button id="voice-note-button" type="button" class="flex h-10 w-10 shrink-0 items-center justify-center rounded-full text-zinc-600 hover:bg-zinc-100 disabled:opacity-40" aria-label="Record voice note" title="Record voice note" disabled>
+                <i data-lucide="mic" class="h-5 w-5" aria-hidden="true"></i>
+            </button>
             <button
                 id="send-button"
                 type="submit"
@@ -121,6 +131,7 @@
 
     <script type="module">
         import { auth, db } from './firebase.js';
+        import { enableHistoryBack } from './navigation.js';
         import { subscribeToUnreadMessages } from './unread-messages.js';
         import { onAuthStateChanged } from 'https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js';
         import {
@@ -129,6 +140,7 @@
         } from 'https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js';
 
         lucide.createIcons();
+        enableHistoryBack();
 
         const params = new URLSearchParams(location.search);
         const targetUid = params.get('uid');
@@ -153,6 +165,10 @@
         const messageForm = document.getElementById('message-form');
         const messageInput = document.getElementById('message-input');
         const sendButton = document.getElementById('send-button');
+        const attachmentInput = document.getElementById('attachment-input');
+        const attachmentButton = document.getElementById('attachment-button');
+        const voiceNoteButton = document.getElementById('voice-note-button');
+        const composerStatus = document.getElementById('composer-status');
         const chatError = document.getElementById('chat-error');
         const chatErrorText = document.getElementById('chat-error-text');
         const messageActionsModal = document.getElementById('message-actions-modal');
@@ -172,6 +188,10 @@
         let pressTimer = null;
         let pressStart = null;
         let suppressNextMessageClick = false;
+        let selectedMedia = null;
+        let mediaRecorder = null;
+        let recordingStream = null;
+        let recordingChunks = [];
 
         function escapeHtml(value) {
             return String(value ?? '').replace(/[&<>"']/g, character => ({
@@ -290,6 +310,8 @@
 
                 // Enable input
                 messageInput.disabled = false;
+                attachmentButton.disabled = false;
+                voiceNoteButton.disabled = false;
                 messageInput.focus();
 
                 return true;
@@ -317,6 +339,30 @@
             }
         }
 
+        function renderMessageContent(message) {
+            const mediaUrl = typeof message.mediaUrl === 'string' ? message.mediaUrl : '';
+            let content = '';
+            if (mediaUrl && message.type === 'image') {
+                content = `<img src="${escapeHtml(mediaUrl)}" alt="${escapeHtml(message.fileName || 'Shared image')}" class="message-media rounded-xl object-contain" loading="lazy">`;
+            } else if (mediaUrl && message.type === 'video') {
+                content = `<video src="${escapeHtml(mediaUrl)}" class="message-media rounded-xl" controls playsinline preload="metadata"></video>`;
+            } else if (mediaUrl && message.type === 'audio') {
+                content = `<audio src="${escapeHtml(mediaUrl)}" class="message-audio" controls preload="metadata"></audio>`;
+            }
+            const text = message.text
+                ? `<p class="${content ? 'mt-2' : ''} whitespace-pre-wrap break-words">${escapeHtml(message.text)}</p>`
+                : '';
+            return `${content}${text}`;
+        }
+
+        function messagePreview(message) {
+            if (!message) return '';
+            if (message.type === 'audio') return '🎤 Voice note';
+            if (message.type === 'image') return '📷 Photo';
+            if (message.type === 'video') return '🎥 Video';
+            return message.text || '';
+        }
+
         function renderMessages(messages) {
             currentMessages = messages;
             if (messages.length === 0) {
@@ -335,11 +381,16 @@
                 const timeStr = formatMessageTime(msg.createdAt);
                 const bubbleClasses = `message-bubble rounded-2xl px-3.5 py-2 text-sm leading-5 whitespace-pre-wrap break-words select-text ${isMine ? 'rounded-br-sm bg-rose-500 text-white' : 'rounded-bl-sm border border-zinc-200 bg-zinc-100 text-zinc-900'}`;
                 const reactionSummary = renderReactionSummary(msg.reactions, currentUser.uid);
+                const messageContent = renderMessageContent(msg);
+                const messageLabel = msg.type === 'audio' ? 'Voice note'
+                    : msg.type === 'video' ? 'Video'
+                        : msg.type === 'image' ? 'Image'
+                            : msg.text;
 
                 if (isMine) {
                     return `
                         <div class="message-row mb-2.5 flex flex-col items-end" data-message-id="${escapeHtml(msg.id)}">
-                            <button type="button" class="${bubbleClasses} message-bubble-button text-left shadow-sm" data-message-id="${escapeHtml(msg.id)}" aria-label="Message: ${escapeHtml(msg.text)}. Hold for message options.">${escapeHtml(msg.text)}</button>
+                            <div class="${bubbleClasses} message-bubble-button shadow-sm" data-message-id="${escapeHtml(msg.id)}" aria-label="${escapeHtml(messageLabel)}. Hold for message options.">${messageContent}</div>
                             ${reactionSummary}
                             <span class="mr-1 mt-1 text-[10px] text-zinc-400">${escapeHtml(timeStr)}${msg.edited ? ' · edited' : ''}</span>
                         </div>
@@ -350,7 +401,7 @@
                     <div class="message-row mb-2.5 flex items-end gap-2" data-message-id="${escapeHtml(msg.id)}">
                         <img src="${escapeHtml(targetPic)}" class="mb-4 h-7 w-7 min-w-[1.75rem] min-h-[1.75rem] max-w-[1.75rem] max-h-[1.75rem] shrink-0 rounded-full bg-zinc-200 object-cover" onerror="this.src='${defaultAvatar}'" alt="">
                         <div class="flex max-w-[78%] flex-col items-start">
-                            <button type="button" class="${bubbleClasses} message-bubble-button text-left shadow-sm" data-message-id="${escapeHtml(msg.id)}" aria-label="Message: ${escapeHtml(msg.text)}. Hold for message options.">${escapeHtml(msg.text)}</button>
+                            <div class="${bubbleClasses} message-bubble-button shadow-sm" data-message-id="${escapeHtml(msg.id)}" aria-label="${escapeHtml(messageLabel)}. Hold for message options.">${messageContent}</div>
                             ${reactionSummary}
                             <span class="ml-1 mt-1 text-[10px] text-zinc-400">${escapeHtml(timeStr)}${msg.edited ? ' · edited' : ''}</span>
                         </div>
@@ -390,12 +441,22 @@
         async function handleSendMessage(event) {
             event.preventDefault();
             const text = messageInput.value.trim();
-            if (!text || !currentUser || !targetUid) return;
+            if ((!text && !selectedMedia) || !currentUser || !targetUid) return;
 
             messageInput.disabled = true;
             sendButton.disabled = true;
+            attachmentButton.disabled = true;
+            voiceNoteButton.disabled = true;
 
             try {
+                let uploadedMedia = null;
+                if (selectedMedia) {
+                    composerStatus.textContent = `Uploading ${selectedMedia.type.startsWith('audio/') ? 'voice note' : selectedMedia.type.startsWith('image/') ? 'image' : 'video'}…`;
+                    composerStatus.classList.remove('hidden');
+                    uploadedMedia = await uploadMessageMedia(selectedMedia);
+                }
+                const type = uploadedMedia?.type || 'text';
+                const messageSummary = messagePreview({ type, text });
                 // 1. Add message document to chats/{chatId}/messages
                 const messagesRef = collection(db, 'chats', chatId, 'messages');
                 const newMessageRef = await addDoc(messagesRef, {
@@ -403,6 +464,12 @@
                     senderId: currentUser.uid,
                     receiverId: targetUid,
                     text,
+                    ...(uploadedMedia ? {
+                        type,
+                        mediaUrl: uploadedMedia.url,
+                        fileName: uploadedMedia.fileName,
+                        contentType: uploadedMedia.contentType
+                    } : {}),
                     createdAt: serverTimestamp(),
                     read: false
                 });
@@ -412,7 +479,7 @@
                 await setDoc(chatDocRef, {
                     id: chatId,
                     participants: [currentUser.uid, targetUid],
-                    lastMessage: text,
+                    lastMessage: messageSummary,
                     lastMessageId: newMessageRef.id,
                     lastSenderId: currentUser.uid,
                     updatedAt: serverTimestamp(),
@@ -436,20 +503,148 @@
                 }, { merge: true });
 
                 messageInput.value = '';
+                selectedMedia = null;
+                attachmentInput.value = '';
+                composerStatus.textContent = '';
+                composerStatus.classList.add('hidden');
                 scrollToBottom(true);
             } catch (err) {
                 console.error('Failed to send message:', err);
-                alert('Could not send message. Please check your connection and try again.');
+                composerStatus.textContent = err.message || 'Could not send the message. Please check your connection and try again.';
+                composerStatus.classList.remove('hidden');
             } finally {
                 messageInput.disabled = false;
-                sendButton.disabled = false;
+                attachmentButton.disabled = false;
+                voiceNoteButton.disabled = false;
+                updateSendButton();
                 messageInput.focus();
             }
         }
 
-        messageInput.addEventListener('input', () => {
-            sendButton.disabled = !messageInput.value.trim();
+        function updateSendButton() {
+            sendButton.disabled = !messageInput.value.trim() && !selectedMedia;
+        }
+
+        function uploadMessageMedia(file) {
+            const type = file.type.startsWith('audio/') ? 'audio'
+                : file.type.startsWith('image/') ? 'image'
+                    : file.type.startsWith('video/') ? 'video' : null;
+            if (!type) return Promise.reject(new Error('Choose an image, video, or voice note.'));
+            const resourceType = type === 'image' ? 'image' : 'video';
+            const formData = new FormData();
+            formData.append('file', file);
+            formData.append('upload_preset', 'pending_review');
+            const cloudName = 'hjkjnzpz';
+            const endpoint = `https://api.cloudinary.com/v1_1/${cloudName}/${resourceType}/upload`;
+            return new Promise((resolve, reject) => {
+                const request = new XMLHttpRequest();
+                request.open('POST', endpoint);
+                request.upload.addEventListener('progress', event => {
+                    if (event.lengthComputable) {
+                        composerStatus.textContent = `Uploading… ${Math.round(event.loaded / event.total * 100)}%`;
+                    }
+                });
+                request.addEventListener('load', () => {
+                    let response;
+                    try {
+                        response = JSON.parse(request.responseText);
+                    } catch {
+                        reject(new Error('Cloudinary returned an unreadable upload response.'));
+                        return;
+                    }
+                    if (request.status < 200 || request.status >= 300 || !response.secure_url) {
+                        reject(new Error(response.error?.message || `Media upload failed (${request.status}).`));
+                        return;
+                    }
+                    resolve({
+                        url: response.secure_url,
+                        type,
+                        fileName: file.name || (type === 'audio' ? 'Voice note' : type === 'image' ? 'Photo' : 'Video'),
+                        contentType: file.type
+                    });
+                });
+                request.addEventListener('error', () => reject(new Error('Network error while uploading media.')));
+                request.addEventListener('abort', () => reject(new Error('Media upload was cancelled.')));
+                request.send(formData);
+            });
+        }
+
+        function setSelectedMedia(file) {
+            selectedMedia = file;
+            composerStatus.textContent = `${file.type.startsWith('audio/') ? 'Voice note' : file.type.startsWith('image/') ? 'Photo' : 'Video'} ready to send${file.name ? ` · ${file.name}` : ''}`;
+            composerStatus.classList.remove('hidden');
+            updateSendButton();
+        }
+
+        function stopRecordingStream() {
+            recordingStream?.getTracks().forEach(track => track.stop());
+            recordingStream = null;
+        }
+
+        async function toggleVoiceNoteRecording() {
+            if (mediaRecorder?.state === 'recording') {
+                mediaRecorder.stop();
+                voiceNoteButton.innerHTML = '<i data-lucide="mic" class="h-5 w-5" aria-hidden="true"></i>';
+                voiceNoteButton.setAttribute('aria-label', 'Record voice note');
+                voiceNoteButton.classList.remove('text-rose-600', 'bg-rose-50');
+                lucide.createIcons();
+                return;
+            }
+            if (!navigator.mediaDevices?.getUserMedia || typeof MediaRecorder === 'undefined') {
+                composerStatus.textContent = 'Voice recording is not supported in this browser.';
+                composerStatus.classList.remove('hidden');
+                return;
+            }
+            try {
+                recordingStream = await navigator.mediaDevices.getUserMedia({ audio: true });
+                const mimeType = ['audio/webm;codecs=opus', 'audio/webm', 'audio/mp4']
+                    .find(type => MediaRecorder.isTypeSupported(type));
+                mediaRecorder = mimeType
+                    ? new MediaRecorder(recordingStream, { mimeType })
+                    : new MediaRecorder(recordingStream);
+                recordingChunks = [];
+                mediaRecorder.addEventListener('dataavailable', event => {
+                    if (event.data.size) recordingChunks.push(event.data);
+                });
+                mediaRecorder.addEventListener('stop', () => {
+                    stopRecordingStream();
+                    if (recordingChunks.length) {
+                        const blob = new Blob(recordingChunks, { type: mediaRecorder.mimeType || 'audio/webm' });
+                        const extension = blob.type.includes('mp4') ? 'm4a' : 'webm';
+                        setSelectedMedia(new File([blob], `voice-note-${Date.now()}.${extension}`, { type: blob.type }));
+                    }
+                }, { once: true });
+                mediaRecorder.start();
+                composerStatus.textContent = 'Recording voice note… Tap the microphone again to finish.';
+                composerStatus.classList.remove('hidden');
+                voiceNoteButton.innerHTML = '<i data-lucide="square" class="h-4 w-4 fill-current" aria-hidden="true"></i>';
+                voiceNoteButton.setAttribute('aria-label', 'Stop recording');
+                voiceNoteButton.classList.add('text-rose-600', 'bg-rose-50');
+                lucide.createIcons();
+            } catch (error) {
+                stopRecordingStream();
+                console.error('Could not record a voice note:', error);
+                composerStatus.textContent = error.name === 'NotAllowedError'
+                    ? 'Microphone access was denied. Allow microphone access to record a voice note.'
+                    : error.message || 'Could not start voice recording.';
+                composerStatus.classList.remove('hidden');
+            }
+        }
+
+        messageInput.addEventListener('input', updateSendButton);
+        attachmentButton.addEventListener('click', () => attachmentInput.click());
+        attachmentInput.addEventListener('change', () => {
+            const [file] = attachmentInput.files || [];
+            if (!file) return;
+            if (!file.type.startsWith('image/') && !file.type.startsWith('video/')) {
+                composerStatus.textContent = 'Choose an image or video file.';
+                composerStatus.classList.remove('hidden');
+                attachmentInput.value = '';
+                return;
+            }
+            setSelectedMedia(file);
         });
+        voiceNoteButton.addEventListener('click', toggleVoiceNoteRecording);
 
         messageForm.addEventListener('submit', handleSendMessage);
 
@@ -486,9 +681,9 @@
         function renderMessageActions() {
             const ownerActions = selectedMessage?.senderId === currentUser.uid
                 ? `<div class="mt-3 border-t border-zinc-100 pt-2">
-                    <button type="button" data-message-action="edit" class="flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-left text-sm font-medium hover:bg-zinc-50">
+                    ${!selectedMessage.type || selectedMessage.type === 'text' ? `<button type="button" data-message-action="edit" class="flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-left text-sm font-medium hover:bg-zinc-50">
                         <i data-lucide="pencil" class="h-4 w-4 text-zinc-500" aria-hidden="true"></i>Edit message
-                    </button>
+                    </button>` : ''}
                     <button type="button" data-message-action="delete" class="flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-left text-sm font-medium text-rose-600 hover:bg-rose-50">
                         <i data-lucide="trash-2" class="h-4 w-4" aria-hidden="true"></i>Delete message
                     </button>
@@ -659,7 +854,7 @@
                     if (chatSnapshot.exists() && isLastMessage) {
                         const previousMessage = [...currentMessages].reverse().find(item => item.id !== message.id);
                         transaction.update(chatRef, {
-                            lastMessage: previousMessage?.text || '',
+                            lastMessage: messagePreview(previousMessage),
                             lastSenderId: previousMessage?.senderId || '',
                             lastMessageId: previousMessage?.id || null,
                             updatedAt: serverTimestamp()

@@ -18,9 +18,9 @@
 <body class="flex min-h-screen flex-col bg-white text-zinc-900 antialiased">
     <header class="sticky top-0 z-20 border-b border-zinc-100 bg-white/95 backdrop-blur">
         <div class="mx-auto flex max-w-3xl items-center justify-between px-4 py-3">
-            <a href="./index.html" class="p-1 text-zinc-900 hover:opacity-80" aria-label="Back to feed">
+            <button type="button" data-history-back class="p-1 text-zinc-900 hover:opacity-80" aria-label="Go back">
                 <i data-lucide="arrow-left" class="h-6 w-6 stroke-[2.5]" aria-hidden="true"></i>
-            </a>
+            </button>
             <h1 class="text-lg font-bold tracking-tight">Search</h1>
             <a href="./inbox.html" class="relative p-1 text-zinc-900 hover:text-rose-500" aria-label="Inbox">
                 <i data-lucide="message-square" class="h-6 w-6" aria-hidden="true"></i>
@@ -86,12 +86,14 @@
 
     <script type="module">
         import { auth, db } from './firebase.js';
+        import { enableHistoryBack } from './navigation.js';
         import { createProfileVideoViewer } from './profile-video-viewer.js';
         import { subscribeToUnreadMessages } from './unread-messages.js';
         import { onAuthStateChanged } from 'https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js';
-        import { collection, getDocs, query, where } from 'https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js';
+        import { addDoc, collection, getDocs, query, serverTimestamp, where } from 'https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js';
 
         lucide.createIcons();
+        enableHistoryBack();
 
         const searchForm = document.getElementById('search-form');
         const searchInput = document.getElementById('search-input');
@@ -112,6 +114,7 @@
         let searchDataLoaded = false;
         let loadingSearchData = null;
         let activeFilter = 'all';
+        let activeUser = auth.currentUser;
         let currentMatches = { accounts: [], videos: [], photos: [] };
         let unsubscribeUnreadMessages = null;
         let searchTimer = null;
@@ -303,7 +306,17 @@
                 currentMatches = { accounts: [], videos: [], photos: [] };
                 return;
             }
-            if (remember) saveHistory(term.trim());
+            if (remember) {
+                saveHistory(term.trim());
+                if (activeUser) {
+                    addDoc(collection(db, 'activity'), {
+                        userId: activeUser.uid,
+                        action: 'search',
+                        details: { term: term.trim() },
+                        createdAt: serverTimestamp()
+                    }).catch(error => console.error('Could not save search history:', error));
+                }
+            }
             recentSearches.classList.add('hidden');
             searchResults.classList.remove('hidden');
             resultsHeading.textContent = 'Searching…';
@@ -385,6 +398,7 @@
         const initialQuery = new URLSearchParams(location.search).get('q') || '';
         if (initialQuery) search(initialQuery, true);
         onAuthStateChanged(auth, user => {
+            activeUser = user;
             unsubscribeUnreadMessages?.();
             unsubscribeUnreadMessages = subscribeToUnreadMessages(db, user?.uid);
         }, error => {

@@ -1,0 +1,177 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="theme-color" content="#ffffff">
+    <title>EarnTok · Settings and privacy</title>
+    <link rel="icon" type="image/png" href="./earntok-logo.png">
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <style>
+        :root { color-scheme: light; }
+        body { min-height: 100vh; }
+        body.bg-zinc-950 { background: #fff !important; color: #161823 !important; }
+        .bg-zinc-950, .bg-zinc-950\/90 { background-color: #fff !important; }
+        .bg-zinc-900, .bg-zinc-900\/90, .bg-zinc-900\/70 { background-color: #f8f8fa !important; }
+        .text-zinc-100 { color: #161823 !important; }
+        .text-zinc-300 { color: #454550 !important; }
+        .text-zinc-400, .text-zinc-500 { color: #777782 !important; }
+        .border-zinc-800, .border-zinc-700 { border-color: #e4e4e8 !important; }
+        .field { width: 100%; border: 1px solid #d8d8de; border-radius: .75rem; background: #fff; padding: .75rem .875rem; color: #161823; outline: none; }
+        .field:focus { border-color: #fe2c55; box-shadow: 0 0 0 3px rgb(254 44 85 / 10%); }
+    </style>
+</head>
+<body class="bg-zinc-950 text-zinc-100 antialiased">
+    <header class="sticky top-0 z-20 border-b border-zinc-800 bg-zinc-950/90 backdrop-blur">
+        <div class="mx-auto flex max-w-3xl items-center justify-between px-4 py-3">
+            <button type="button" data-history-back class="text-zinc-100 hover:opacity-80" aria-label="Go back">
+                <i data-lucide="arrow-left" class="h-6 w-6 stroke-[2.5]" aria-hidden="true"></i>
+            </button>
+            <h1 class="text-lg font-bold">Settings and privacy</h1>
+            <span class="w-8" aria-hidden="true"></span>
+        </div>
+    </header>
+    <main class="mx-auto max-w-3xl px-4 py-8">
+        <section class="rounded-3xl bg-zinc-900/70 p-6 shadow-sm sm:p-8">
+            <div class="mb-6">
+                <p class="text-sm font-semibold text-zinc-500">Account</p>
+                <h2 class="mt-1 text-2xl font-bold">Contact and personal details</h2>
+                <p class="mt-2 text-sm text-zinc-500">Only you can see these details.</p>
+            </div>
+            <p id="settings-message" class="mb-4 hidden rounded-xl border p-3 text-sm" role="status"></p>
+            <form id="settings-form" class="space-y-5">
+                <label class="block text-sm font-semibold text-zinc-700">
+                    Email address
+                    <input id="settings-email" class="field mt-2" type="email" autocomplete="email" maxlength="254" required>
+                </label>
+                <label class="block text-sm font-semibold text-zinc-700">
+                    Phone number
+                    <input id="settings-phone" class="field mt-2" type="tel" autocomplete="tel" maxlength="40">
+                </label>
+                <label class="block text-sm font-semibold text-zinc-700">
+                    Date of birth
+                    <input id="settings-dob" class="field mt-2" type="date" autocomplete="bday">
+                </label>
+                <label class="block text-sm font-semibold text-zinc-700">
+                    Country
+                    <select id="settings-country" class="field mt-2" autocomplete="country" required>
+                        <option value="">Choose your country</option>
+                    </select>
+                </label>
+                <button id="settings-save" class="inline-flex w-full items-center justify-center rounded-xl bg-rose-500 px-5 py-3 font-bold text-white transition hover:bg-rose-600 disabled:cursor-wait disabled:opacity-60 sm:w-auto" type="submit">Save changes</button>
+            </form>
+        </section>
+    </main>
+    <script type="module">
+        import { auth, db } from './firebase.js';
+        import { enableHistoryBack } from './navigation.js';
+        import { onAuthStateChanged, updateEmail } from 'https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js';
+        import { doc, getDoc, updateDoc } from 'https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js';
+
+        lucide.createIcons();
+        enableHistoryBack();
+        const form = document.getElementById('settings-form');
+        const saveButton = document.getElementById('settings-save');
+        const message = document.getElementById('settings-message');
+        const countrySelect = document.getElementById('settings-country');
+        let accountUser = null;
+
+        function showMessage(text, isError = false) {
+            message.textContent = text;
+            message.classList.remove('hidden', 'border-rose-200', 'bg-rose-50', 'text-rose-600', 'border-emerald-200', 'bg-emerald-50', 'text-emerald-700');
+            message.classList.add(...(isError
+                ? ['border-rose-200', 'bg-rose-50', 'text-rose-600']
+                : ['border-emerald-200', 'bg-emerald-50', 'text-emerald-700']));
+        }
+
+        function populateCountries() {
+            const names = new Intl.DisplayNames(['en'], { type: 'region' });
+            const countries = [];
+            for (let first = 65; first <= 90; first += 1) {
+                for (let second = 65; second <= 90; second += 1) {
+                    const code = String.fromCharCode(first, second);
+                    const name = names.of(code);
+                    if (name && name !== code) countries.push({ code, name });
+                }
+            }
+            countries.sort((left, right) => left.name.localeCompare(right.name));
+            countries.forEach(country => {
+                const option = document.createElement('option');
+                option.value = country.code;
+                option.textContent = country.name;
+                countrySelect.append(option);
+            });
+        }
+
+        populateCountries();
+        document.getElementById('settings-dob').max = new Date().toISOString().slice(0, 10);
+
+        onAuthStateChanged(auth, async user => {
+            if (!user) {
+                const returnTo = `${location.pathname}${location.search}`;
+                location.replace(`./oauth.html?returnTo=${encodeURIComponent(returnTo)}`);
+                return;
+            }
+            accountUser = user;
+            saveButton.disabled = true;
+            try {
+                const snapshot = await getDoc(doc(db, 'users', user.uid));
+                if (!snapshot.exists()) throw new Error('Your account details could not be found.');
+                const account = snapshot.data();
+                document.getElementById('settings-email').value = account.email || user.email || '';
+                document.getElementById('settings-phone').value = account.phoneNumber || '';
+                document.getElementById('settings-dob').value = account.dateOfBirth || '';
+                countrySelect.value = account.country || '';
+            } catch (error) {
+                console.error('Unable to load account settings:', error);
+                showMessage(error.message || 'Could not load your account settings. Check your connection and try again.', true);
+            } finally {
+                saveButton.disabled = false;
+            }
+        }, error => {
+            console.error('Unable to read sign-in state:', error);
+            showMessage('Could not verify your sign-in. Please reload the page.', true);
+        });
+
+        form.addEventListener('submit', async event => {
+            event.preventDefault();
+            if (!accountUser) return;
+            const email = document.getElementById('settings-email').value.trim();
+            const phoneNumber = document.getElementById('settings-phone').value.trim();
+            const dateOfBirth = document.getElementById('settings-dob').value;
+            const country = countrySelect.value;
+            if (dateOfBirth && dateOfBirth > new Date().toISOString().slice(0, 10)) {
+                showMessage('Date of birth cannot be in the future.', true);
+                return;
+            }
+            saveButton.disabled = true;
+            saveButton.textContent = 'Saving…';
+            message.classList.add('hidden');
+            try {
+                if (email !== (accountUser.email || '')) {
+                    await updateEmail(accountUser, email);
+                }
+                await updateDoc(doc(db, 'users', accountUser.uid), {
+                    email,
+                    phoneNumber,
+                    dateOfBirth,
+                    country
+                });
+                showMessage('Your account details have been saved.');
+            } catch (error) {
+                console.error('Unable to save account settings:', error);
+                const text = error.code === 'auth/requires-recent-login'
+                    ? 'For your security, sign out and sign in again before changing your email address.'
+                    : error.code === 'auth/invalid-email'
+                        ? 'Enter a valid email address.'
+                        : error.message || 'Could not save your account details. Check your connection and permissions.';
+                showMessage(text, true);
+            } finally {
+                saveButton.disabled = false;
+                saveButton.textContent = 'Save changes';
+            }
+        });
+    </script>
+</body>
+</html>

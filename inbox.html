@@ -32,12 +32,12 @@
     <!-- Header -->
     <header class="sticky top-0 z-20 border-b border-zinc-200 bg-white/90 backdrop-blur">
         <div class="mx-auto flex max-w-3xl items-center justify-between px-4 py-3">
-            <a href="./index.html" class="text-zinc-900 hover:opacity-80 p-1" aria-label="Back to feed">
+            <button type="button" data-history-back class="text-zinc-900 hover:opacity-80 p-1" aria-label="Go back">
                 <i data-lucide="arrow-left" class="h-6 w-6 stroke-[2.5]" aria-hidden="true"></i>
-            </a>
+            </button>
             <h1 class="text-lg font-bold text-zinc-900 tracking-tight">Inbox</h1>
             <div class="flex items-center gap-2">
-                <button id="new-chat-button" class="p-1 text-zinc-900 hover:text-rose-500 transition" aria-label="New chat" title="New chat">
+                <button id="new-chat-button" class="p-1 text-zinc-900 hover:opacity-80 p-1" aria-label="New chat" title="New chat">
                     <i data-lucide="square-pen" class="h-6 w-6 stroke-[2.2]" aria-hidden="true"></i>
                 </button>
             </div>
@@ -163,6 +163,7 @@
 
     <script type="module">
         import { auth, db } from './firebase.js';
+        import { enableHistoryBack } from './navigation.js';
         import { renderUnreadMessageCount } from './unread-messages.js';
         import { onAuthStateChanged } from 'https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js';
         import {
@@ -171,6 +172,7 @@
         import { toggleUserFollow } from './follows.js';
 
         lucide.createIcons();
+        enableHistoryBack();
 
         let currentUser = null;
         let allChats = [];
@@ -285,8 +287,21 @@
             return null;
         }
 
+        function formatCount(value) {
+            const count = Number(value);
+            return Number.isFinite(count) && count >= 0 ? Math.floor(count).toLocaleString() : '0';
+        }
+
         function activityMessage(activity) {
             switch (activity.action) {
+                case 'welcome_bonus': return `credited you with a welcome bonus of ${formatCount(activity.details?.amount)} coins`;
+                case 'coin_deposit_submitted': return `received your ${formatCount(activity.details?.coins)}-coin payment proof for review`;
+                case 'coin_purchase': return `credited ${formatCount(activity.details?.amount)} coins to your available balance`;
+                case 'coin_deposit_rejected': return `could not approve your ${formatCount(activity.details?.coins)}-coin payment${activity.details?.note ? `: ${activity.details.note}` : ''}`;
+                case 'coin_transfer': return `transferred ${formatCount(activity.details?.amount)} coins from earnings to available balance`;
+                case 'withdrawal_submitted': return `reserved ${formatCount(activity.details?.coins)} coins for a ${activity.details?.currency || ''} withdrawal`;
+                case 'withdrawal_approved': return `approved your ${formatCount(activity.details?.coins)}-coin withdrawal`;
+                case 'withdrawal_rejected': return `rejected your ${formatCount(activity.details?.coins)}-coin withdrawal and refunded the coins${activity.details?.note ? `: ${activity.details.note}` : ''}`;
                 case 'follow_creator': return 'started following you';
                 case 'profile_view': return 'viewed your profile';
                 case 'like': return 'liked your video';
@@ -353,19 +368,19 @@
                 const { records, hasReadErrors } = await queryUserActivities();
                 const activities = records
                     .filter(item => item.userId !== currentUser.uid)
-                    .filter(item => ['follow_creator', 'profile_view', 'like', 'comment', 'share', 'save', 'comment_like'].includes(item.action))
+                    .filter(item => ['welcome_bonus', 'coin_deposit_submitted', 'coin_purchase', 'coin_deposit_rejected', 'coin_transfer', 'withdrawal_submitted', 'withdrawal_approved', 'withdrawal_rejected', 'follow_creator', 'profile_view', 'like', 'comment', 'share', 'save', 'comment_like'].includes(item.action))
                     .sort((left, right) => (activityDate(right.createdAt)?.getTime() || 0) - (activityDate(left.createdAt)?.getTime() || 0));
                 if (!activities.length) {
                     renderEmptyActivity(activityList, 'No activity yet.');
                 } else {
                     const profiles = await Promise.all(activities.map(item => {
-                        if (!item.userId || item.userId.startsWith('guest-')) return Promise.resolve(null);
+                        if (['welcome_bonus', 'coin_deposit_submitted', 'coin_purchase', 'coin_deposit_rejected', 'coin_transfer', 'withdrawal_submitted', 'withdrawal_approved', 'withdrawal_rejected'].includes(item.action) || !item.userId || item.userId.startsWith('guest-')) return Promise.resolve(null);
                         return getContactProfile(item.userId, { id: item.userId });
                     }));
                     activityList.innerHTML = activities.map((item, index) => {
                         const profile = profiles[index] || {};
                         const guest = item.userId?.startsWith('guest-');
-                        const name = guest ? 'Anonymous visitor' : (profile.fullName || 'EarnTok user');
+                        const name = ['welcome_bonus', 'coin_deposit_submitted', 'coin_purchase', 'coin_deposit_rejected', 'coin_transfer', 'withdrawal_submitted', 'withdrawal_approved', 'withdrawal_rejected'].includes(item.action) ? 'EarnTok' : guest ? 'Anonymous visitor' : (profile.fullName || 'EarnTok user');
                         const username = profile.username ? `@${profile.username}` : '';
                         const date = activityDate(item.createdAt);
                         const time = date ? formatTime(date) : '';
@@ -381,7 +396,7 @@
                             </div>
                             <span class="shrink-0 text-xs text-zinc-400">${escapeHtml(time)}</span>
                         </div>`;
-                        return !guest && item.userId
+                        return !['welcome_bonus', 'coin_deposit_submitted', 'coin_purchase', 'coin_deposit_rejected', 'coin_transfer', 'withdrawal_submitted', 'withdrawal_approved', 'withdrawal_rejected'].includes(item.action) && !guest && item.userId
                             ? `<a href="./view-profile.html?uid=${encodeURIComponent(item.userId)}" class="block hover:bg-zinc-50">${row}</a>`
                             : row;
                     }).join('');
@@ -402,7 +417,7 @@
                 const { records, hasReadErrors } = await queryUserActivities();
                 const latest = records
                     .filter(item => item.userId !== currentUser.uid)
-                    .filter(item => ['follow_creator', 'profile_view', 'like', 'comment', 'share', 'save', 'comment_like'].includes(item.action))
+                    .filter(item => ['welcome_bonus', 'coin_deposit_submitted', 'coin_purchase', 'coin_deposit_rejected', 'coin_transfer', 'withdrawal_submitted', 'withdrawal_approved', 'withdrawal_rejected', 'follow_creator', 'profile_view', 'like', 'comment', 'share', 'save', 'comment_like'].includes(item.action))
                     .sort((left, right) => (activityDate(right.createdAt)?.getTime() || 0) - (activityDate(left.createdAt)?.getTime() || 0))[0];
                 if (!latest) {
                     if (hasReadErrors) {
@@ -411,10 +426,11 @@
                     return;
                 }
                 const guest = latest.userId?.startsWith('guest-');
-                const profile = !guest && latest.userId
+                const systemActions = ['welcome_bonus', 'coin_deposit_submitted', 'coin_purchase', 'coin_deposit_rejected', 'coin_transfer', 'withdrawal_submitted', 'withdrawal_approved', 'withdrawal_rejected'];
+                const profile = !systemActions.includes(latest.action) && !guest && latest.userId
                     ? await getContactProfile(latest.userId, { id: latest.userId })
                     : {};
-                const actor = guest ? 'Someone' : (profile.fullName || 'Someone');
+                const actor = systemActions.includes(latest.action) ? 'EarnTok' : guest ? 'Someone' : (profile.fullName || 'Someone');
                 activityPreviewMessage.textContent = `${actor} ${activityMessage(latest)}`;
                 const date = activityDate(latest.createdAt);
                 activityPreviewTime.textContent = date ? formatTime(date) : '';

@@ -58,7 +58,7 @@
                 <img src="./earntok-logo.png" class="mb-5 h-12 w-12 object-contain" alt="EarnTok logo">
                 <p class="text-xs font-bold uppercase tracking-[.22em] text-cyan-300">Control room</p>
                 <h1 class="mt-2 text-3xl font-bold tracking-tight">Superadmin</h1>
-                <p class="mt-2 text-sm text-zinc-400">Sign in to manage the video library.</p>
+                <p class="mt-2 text-sm text-zinc-400">Sign in to manage videos, users, wallet settings, and activity.</p>
             </div>
             <form id="login-form" class="space-y-4">
                 <label class="block text-sm font-medium text-zinc-300">
@@ -81,7 +81,7 @@
             <div class="mx-auto flex max-w-7xl items-center justify-between gap-4 px-4 py-4 sm:px-6 lg:px-8">
                 <a href="./index.html" class="flex items-center gap-3" aria-label="EarnTok home">
                     <img src="./earntok-logo.png" class="h-10 w-10 object-contain" alt="">
-                    <span class="text-xs text-zinc-500">Video administration</span>
+                    <span class="text-xs text-zinc-500">Platform administration</span>
                 </a>
                 <div class="flex items-center gap-2">
                     <a class="btn btn-muted hidden sm:inline-flex" href="./index.html">View feed</a>
@@ -94,6 +94,7 @@
             <nav class="mb-8 flex gap-2 overflow-x-auto border-b border-zinc-800" aria-label="Admin sections">
                 <button class="admin-tab tab-active shrink-0 border-b-2 px-4 py-3 text-sm font-semibold" data-admin-tab="videos" type="button">Videos</button>
                 <button class="admin-tab shrink-0 border-b-2 border-transparent px-4 py-3 text-sm font-semibold text-zinc-500" data-admin-tab="users" type="button">Users</button>
+                <button class="admin-tab shrink-0 border-b-2 border-transparent px-4 py-3 text-sm font-semibold text-zinc-500" data-admin-tab="wallet" type="button">Coins &amp; wallet</button>
                 <button class="admin-tab shrink-0 border-b-2 border-transparent px-4 py-3 text-sm font-semibold text-zinc-500" data-admin-tab="activity" type="button">Website activity</button>
             </nav>
             <section id="videos-panel" class="admin-panel">
@@ -138,7 +139,7 @@
 
             <section id="users-panel" class="admin-panel hidden">
                 <div class="mb-5 flex flex-wrap items-end justify-between gap-4">
-                    <div><h1 class="text-3xl font-bold">Users</h1><p class="mt-2 text-sm text-zinc-400">Manage public profiles and see follower totals. Search within the current page.</p></div>
+                    <div><h1 class="text-3xl font-bold">Users</h1><p class="mt-2 text-sm text-zinc-400">Manage public profiles and coin balances, and see follower totals. Search within the current page.</p></div>
                     <div class="flex gap-2">
                         <input id="user-search" class="field max-w-xs py-2 text-sm" type="search" placeholder="Search users" aria-label="Search users">
                         <button id="refresh-users" class="btn btn-muted" type="button">Refresh</button>
@@ -153,6 +154,77 @@
                     <button id="next-users" class="btn btn-muted" type="button" disabled>Next</button>
                 </div>
                 <p id="users-message" class="mt-4 hidden rounded-xl border p-3 text-sm" role="status"></p>
+            </section>
+
+            <section id="wallet-panel" class="admin-panel hidden">
+                <div class="mb-5">
+                    <h1 class="text-3xl font-bold">Coins &amp; wallet</h1>
+                    <p class="mt-2 text-sm text-zinc-400">Manage bonuses, payment methods, purchase requests, withdrawal rates, and withdrawals.</p>
+                </div>
+                <nav id="wallet-subtabs" class="mb-6 flex gap-2 overflow-x-auto border-b border-zinc-800" aria-label="Coins and wallet sections">
+                    <button class="wallet-subtab shrink-0 border-b-2 px-4 py-3 text-sm font-semibold" data-wallet-section-button="bonus" type="button" aria-selected="false">Welcome bonus</button>
+                    <button class="wallet-subtab shrink-0 border-b-2 px-4 py-3 text-sm font-semibold" data-wallet-section-button="crypto" type="button" aria-selected="false">Crypto options</button>
+                    <button class="wallet-subtab shrink-0 border-b-2 px-4 py-3 text-sm font-semibold" data-wallet-section-button="merchants" type="button" aria-selected="false">P2P merchants</button>
+                    <button class="wallet-subtab shrink-0 border-b-2 px-4 py-3 text-sm font-semibold" data-wallet-section-button="deposits" type="button" aria-selected="false">Coin purchases</button>
+                    <button class="wallet-subtab shrink-0 border-b-2 px-4 py-3 text-sm font-semibold" data-wallet-section-button="withdrawal-rates" type="button" aria-selected="false">Withdrawal rates</button>
+                    <button class="wallet-subtab shrink-0 border-b-2 px-4 py-3 text-sm font-semibold" data-wallet-section-button="withdrawals" type="button" aria-selected="false">Withdrawals</button>
+                </nav>
+                <form id="wallet-settings-form" data-wallet-section="bonus" class="max-w-xl rounded-2xl border border-zinc-800 bg-zinc-900/50 p-5">
+                    <label class="block text-sm font-medium text-zinc-300">
+                        New-user welcome bonus (coins)
+                        <input id="welcome-bonus-amount" class="field mt-2" type="number" min="0" step="1" inputmode="numeric" value="0" required>
+                    </label>
+                    <p class="mt-2 text-xs text-zinc-500">Stored in <code>admin/newUsers</code> as <code>bonus</code>. The configured amount is added to each new user’s available balance at registration.</p>
+                    <p id="wallet-settings-message" class="mt-4 hidden rounded-xl border p-3 text-sm" role="status"></p>
+                    <button id="save-wallet-settings" class="btn btn-primary mt-4" type="submit">Save wallet settings</button>
+                </form>
+                <section data-wallet-section="crypto" class="rounded-2xl border border-zinc-800 bg-zinc-900/50 p-5">
+                    <div class="flex flex-wrap items-start justify-between gap-3">
+                        <div><h2 class="text-xl font-bold">Crypto payment options</h2><p class="mt-1 text-sm text-zinc-500">Set the currency, chain, rate per coin, receiving address, QR code URL, and transfer instructions.</p></div>
+                        <button id="add-crypto-option" class="btn btn-muted" type="button">＋ Add crypto</button>
+                    </div>
+                    <div id="admin-crypto-options" class="mt-4 space-y-4"></div>
+                    <p id="crypto-config-message" class="mt-4 hidden rounded-xl border p-3 text-sm" role="status"></p>
+                    <button id="save-crypto-options" class="btn btn-primary mt-4" type="button">Save crypto options</button>
+                </section>
+                <section data-wallet-section="merchants" class="rounded-2xl border border-zinc-800 bg-zinc-900/50 p-5">
+                    <div class="flex flex-wrap items-start justify-between gap-3">
+                        <div><h2 class="text-xl font-bold">P2P merchants</h2><p class="mt-1 text-sm text-zinc-500">Add merchants and their available coin inventory, order limits, transfer method, and payment instructions.</p></div>
+                        <button id="add-merchant" class="btn btn-muted" type="button">＋ Add merchant</button>
+                    </div>
+                    <div id="admin-merchants" class="mt-4 space-y-4"></div>
+                    <p id="merchant-config-message" class="mt-4 hidden rounded-xl border p-3 text-sm" role="status"></p>
+                    <button id="save-merchants" class="btn btn-primary mt-4" type="button">Save merchants</button>
+                </section>
+                <section data-wallet-section="deposits" class="overflow-hidden rounded-2xl border border-zinc-800 bg-zinc-900/50">
+                    <div class="flex flex-wrap items-center justify-between gap-3 border-b border-zinc-800 p-5">
+                        <div><h2 class="text-xl font-bold">Coin purchase requests</h2><p class="mt-1 text-sm text-zinc-500">Review proof before approving a payment. Approval updates the user balance and writes an activity record in one transaction.</p></div>
+                        <button id="refresh-coin-deposits" class="btn btn-muted" type="button">Refresh</button>
+                    </div>
+                    <p id="coin-deposit-message" class="mx-5 mt-4 hidden rounded-xl border p-3 text-sm" role="status"></p>
+                    <div id="coin-deposit-list" class="divide-y divide-zinc-800">
+                        <p class="p-8 text-center text-sm text-zinc-400">Select Coins &amp; wallet to load requests.</p>
+                    </div>
+                </section>
+                <section data-wallet-section="withdrawal-rates" class="rounded-2xl border border-zinc-800 bg-zinc-900/50 p-5">
+                    <div class="flex flex-wrap items-start justify-between gap-3">
+                        <div><h2 class="text-xl font-bold">Withdrawal currency rates</h2><p class="mt-1 text-sm text-zinc-500">Set the payout amount received per coin for each currency and method.</p></div>
+                        <button id="add-withdrawal-rate" class="btn btn-muted" type="button">＋ Add rate</button>
+                    </div>
+                    <div id="admin-withdrawal-rates" class="mt-4 space-y-3"></div>
+                    <p id="withdrawal-rate-message" class="mt-4 hidden rounded-xl border p-3 text-sm" role="status"></p>
+                    <button id="save-withdrawal-rates" class="btn btn-primary mt-4" type="button">Save withdrawal rates</button>
+                </section>
+                <section data-wallet-section="withdrawals" class="overflow-hidden rounded-2xl border border-zinc-800 bg-zinc-900/50">
+                    <div class="flex flex-wrap items-center justify-between gap-3 border-b border-zinc-800 p-5">
+                        <div><h2 class="text-xl font-bold">Withdrawal requests</h2><p class="mt-1 text-sm text-zinc-500">Submitted withdrawals have reserved coins. Rejecting a request refunds the coins; approval marks it paid.</p></div>
+                        <button id="refresh-withdrawals" class="btn btn-muted" type="button">Refresh</button>
+                    </div>
+                    <p id="withdrawal-review-message" class="mx-5 mt-4 hidden rounded-xl border p-3 text-sm" role="status"></p>
+                    <div id="withdrawal-list" class="divide-y divide-zinc-800">
+                        <p class="p-8 text-center text-sm text-zinc-400">Select Withdrawals to load requests.</p>
+                    </div>
+                </section>
             </section>
 
             <section id="activity-panel" class="admin-panel hidden">
@@ -245,6 +317,10 @@
             <label class="block text-sm font-medium text-zinc-300">Bio<textarea id="managed-user-bio" class="field mt-2 min-h-24 resize-y" maxlength="500"></textarea></label>
             <label class="block text-sm font-medium text-zinc-300">Profile picture URL<input id="managed-user-picture" class="field mt-2" type="url"></label>
             <label class="block text-sm font-medium text-zinc-300">Upload profile picture<input id="managed-user-file" class="field mt-2" type="file" accept="image/*"></label>
+            <div class="grid gap-3 sm:grid-cols-2">
+                <label class="block text-sm font-medium text-zinc-300">Earnings balance (coins)<input id="managed-user-earnings" class="field mt-2" type="number" min="0" step="1" required></label>
+                <label class="block text-sm font-medium text-zinc-300">Available balance (coins)<input id="managed-user-available" class="field mt-2" type="number" min="0" step="1" required></label>
+            </div>
             <label class="flex items-center gap-3 rounded-xl border border-zinc-700 p-3 text-sm font-medium text-zinc-300">
                 <input id="managed-user-verified" class="h-4 w-4 accent-sky-500" type="checkbox">
                 Verified creator <i data-lucide="badge-check" class="h-4 w-4 text-sky-400" aria-hidden="true"></i>
@@ -295,6 +371,9 @@
         let userNextAvailable = false;
         let userLastDocument = null;
         let loadedAdminPanels = new Set();
+        let cryptoMethods = [];
+        let merchants = [];
+        let withdrawalRates = [];
 
         function escapeHtml(value) {
             return String(value ?? '').replace(/[&<>"']/g, character => ({
@@ -695,6 +774,7 @@
                         <div class="min-w-0"><p class="truncate font-semibold">${escapeHtml(user.fullName || 'EarnTok user')}</p>
                             <p class="truncate text-xs text-zinc-500">${user.username ? `@${escapeHtml(user.username)}` : escapeHtml(user.id)}</p>
                             <p class="mt-1 text-xs text-zinc-400">${formatCount(user.followers)} followers · ${formatCount(user.following)} following</p>
+                            <p class="mt-1 text-xs text-zinc-500">Earnings: ${formatCount(user.userData.earningsBalance)} · Available: ${formatCount(user.userData.availableBalance)} coins</p>
                             ${user.verify === 'yes' ? '<p class="mt-1 flex items-center gap-1 text-xs font-semibold text-sky-400"><i data-lucide="badge-check" class="h-4 w-4 shrink-0" aria-hidden="true"></i>Verified</p>' : ''}
                         </div>
                     </div>
@@ -715,6 +795,13 @@
             const target = details.followingUsername || details.targetUsername || '';
             const tab = details.tab ? String(details.tab).replaceAll('_', ' ') : '';
             const descriptions = {
+                coin_transfer: `Transferred ${formatCount(details.amount)} coins from earnings to available balance`,
+                withdrawal_submitted: `Requested a ${formatCount(details.coins)}-coin withdrawal in ${details.currency || 'currency'}`,
+                withdrawal_approved: `Withdrawal approved for ${formatCount(details.coins)} coins`,
+                withdrawal_rejected: `Withdrawal rejected and refunded${details.note ? `: ${details.note}` : ''}`,
+                coin_deposit_submitted: `Submitted proof for ${formatCount(details.coins)} coins`,
+                coin_purchase: `Purchased ${formatCount(details.amount)} coins via ${details.method || 'payment'}`,
+                coin_deposit_rejected: `Coin purchase request rejected${details.note ? `: ${details.note}` : ''}`,
                 play: `Watched ${video || 'a video'}`,
                 pause: `Paused ${video || 'a video'}`,
                 like: `Liked ${video || 'a video'}`,
@@ -736,6 +823,9 @@
                 open_create: 'Opened the video creator',
                 submit_draft: 'Submitted a video for review'
             };
+            if (activity.action === 'welcome_bonus') {
+                return `Credited a welcome bonus of ${formatCount(details.amount)} coins to ${details.targetName || 'a new user'}`;
+            }
             if (descriptions[activity.action]) return descriptions[activity.action];
             return String(activity.action || 'activity')
                 .replaceAll('_', ' ')
@@ -747,8 +837,24 @@
             activityList.innerHTML = '<div class="p-8 text-center text-zinc-400"><i data-lucide="loader" class="h-8 w-8 animate-spin mx-auto text-rose-500 mb-2"></i><p class="text-sm">Loading activity…</p></div>';
             lucide.createIcons();
             try {
-                const snapshot = await getDocs(query(collection(db, 'activity'), orderBy('createdAt', 'desc'), limit(100)));
-                const activities = snapshot.docs.map(item => ({ id: item.id, ...item.data() }));
+                const results = await Promise.allSettled(['activity', 'activities'].map(source =>
+                    getDocs(query(collection(db, source), orderBy('createdAt', 'desc'), limit(100)))
+                ));
+                const snapshots = results
+                    .filter(result => result.status === 'fulfilled')
+                    .map(result => result.value);
+                const failures = results.filter(result => result.status === 'rejected');
+                failures.forEach(result => console.error('Unable to read an activity collection:', result.reason));
+                if (snapshots.length === 0 && failures.length) throw failures[0].reason;
+                const activities = snapshots.flatMap(snapshot => snapshot.docs.map(item => ({
+                    id: item.id,
+                    source: item.ref.parent.id,
+                    ...item.data()
+                }))).sort((left, right) => {
+                    const leftDate = left.createdAt?.toDate?.()?.getTime() || 0;
+                    const rightDate = right.createdAt?.toDate?.()?.getTime() || 0;
+                    return rightDate - leftDate;
+                }).slice(0, 100);
                 const profileIds = new Set();
                 const videoIds = new Set();
                 for (const activity of activities) {
@@ -771,7 +877,9 @@
                 const videosById = new Map(videoEntries);
                 activityList.innerHTML = activities.length ? activities.map(activity => {
                     const actor = profilesById.get(activity.userId);
-                    const actorName = activity.userId?.startsWith('guest-')
+                    const actorName = activity.action === 'welcome_bonus'
+                        ? 'EarnTok'
+                        : activity.userId?.startsWith('guest-')
                         ? 'Guest visitor'
                         : actor?.username ? `@${actor.username}` : actor?.fullName || 'EarnTok user';
                     const details = activity.details || {};
@@ -809,6 +917,9 @@
                         </div><time class="shrink-0 text-xs text-zinc-500">${escapeHtml(timestamp)}</time>
                     </article>`;
                 }).join('') : '<p class="p-8 text-center text-sm text-zinc-400">No website activity has been recorded.</p>';
+                if (failures.length) {
+                    activityList.insertAdjacentHTML('afterbegin', '<p class="border-b border-amber-200 bg-amber-50 p-3 text-sm text-amber-800">Some activity collections could not be read. Showing the activity that was available.</p>');
+                }
                 loadedAdminPanels.add('activity');
             } catch (error) {
                 console.error('Unable to load website activity:', error);
@@ -828,13 +939,505 @@
             });
             if (loadPanel && !loadedAdminPanels.has(tab)) {
                 if (tab === 'users') loadUsers();
+                if (tab === 'wallet') {
+                    setWalletSubtab('bonus');
+                    loadWalletSettings();
+                }
                 if (tab === 'activity') loadActivity();
                 if (tab === 'videos') loadVideos();
             }
         }
 
+        async function loadWalletSettings() {
+            const amountInput = document.getElementById('welcome-bonus-amount');
+            const message = document.getElementById('wallet-settings-message');
+            clearMessage(message);
+            try {
+                const snapshot = await getDoc(doc(db, 'admin', 'newUsers'));
+                const configuredBonus = snapshot.exists() ? Number(snapshot.data().bonus ?? 0) : 0;
+                if (!Number.isSafeInteger(configuredBonus) || configuredBonus < 0) {
+                    throw new Error('The stored welcome bonus is not a non-negative whole number.');
+                }
+                amountInput.value = String(configuredBonus);
+            } catch (error) {
+                console.error('Unable to load wallet settings:', error);
+                showMessage(message, error.message || 'Could not load wallet settings. Check Firestore permissions.', true);
+            }
+            const [paymentSettings, deposits, rates, withdrawals] = await Promise.allSettled([
+                loadCoinPaymentSettings(),
+                loadCoinDeposits(),
+                loadWithdrawalRates(),
+                loadWithdrawals()
+            ]);
+            if (paymentSettings.status === 'rejected') {
+                console.error('Unable to load coin payment settings:', paymentSettings.reason);
+                showMessage(document.getElementById('crypto-config-message'), 'Could not load crypto and merchant settings. Check Firestore permissions.', true);
+            }
+            if (deposits.status === 'rejected') {
+                console.error('Unable to load coin purchase requests:', deposits.reason);
+                showMessage(document.getElementById('coin-deposit-message'), 'Could not load coin purchase requests. Check Firestore permissions.', true);
+            }
+            if (rates.status === 'rejected') {
+                console.error('Unable to load withdrawal rates:', rates.reason);
+                showMessage(document.getElementById('withdrawal-rate-message'), 'Could not load withdrawal rates. Check Firestore permissions.', true);
+            }
+            if (withdrawals.status === 'rejected') {
+                console.error('Unable to load withdrawal requests:', withdrawals.reason);
+                showMessage(document.getElementById('withdrawal-review-message'), 'Could not load withdrawal requests. Check Firestore permissions.', true);
+            }
+            loadedAdminPanels.add('wallet');
+        }
+
+        function setWalletSubtab(section) {
+            document.querySelectorAll('[data-wallet-section]').forEach(panel => {
+                panel.classList.toggle('hidden', panel.dataset.walletSection !== section);
+            });
+            document.querySelectorAll('[data-wallet-section-button]').forEach(button => {
+                const selected = button.dataset.walletSectionButton === section;
+                button.setAttribute('aria-selected', String(selected));
+                button.classList.toggle('border-rose-500', selected);
+                button.classList.toggle('text-zinc-900', selected);
+                button.classList.toggle('border-transparent', !selected);
+                button.classList.toggle('text-zinc-500', !selected);
+            });
+        }
+
+        function renderCryptoPaymentOptions() {
+            const container = document.getElementById('admin-crypto-options');
+            if (!cryptoMethods.length) {
+                container.innerHTML = '<p class="rounded-xl border border-dashed border-zinc-700 p-5 text-center text-sm text-zinc-500">No crypto payment methods configured.</p>';
+                return;
+            }
+            container.innerHTML = cryptoMethods.map((item, index) => `
+                <article class="rounded-xl border border-zinc-700 bg-white p-4 text-zinc-900">
+                    <div class="mb-3 flex items-center justify-between gap-2">
+                        <h3 class="font-semibold">${escapeHtml(item.cryptoName || `Crypto method ${index + 1}`)}</h3>
+                        <button class="btn btn-danger text-sm" type="button" data-remove-crypto="${index}">Remove</button>
+                    </div>
+                    <div class="grid gap-3 sm:grid-cols-2">
+                        <label class="text-sm font-medium">Crypto name<input class="field mt-1" data-crypto-index="${index}" data-crypto-field="cryptoName" value="${escapeHtml(item.cryptoName)}" maxlength="60" required></label>
+                        <label class="text-sm font-medium">Chain / network<input class="field mt-1" data-crypto-index="${index}" data-crypto-field="chain" value="${escapeHtml(item.chain)}" maxlength="80" required></label>
+                        <label class="text-sm font-medium">Crypto amount per coin<input class="field mt-1" data-crypto-index="${index}" data-crypto-field="ratePerCoin" type="number" min="0.00000001" step="any" value="${escapeHtml(item.ratePerCoin)}" required></label>
+                        <label class="text-sm font-medium">Receiving address<input class="field mt-1" data-crypto-index="${index}" data-crypto-field="address" value="${escapeHtml(item.address)}" maxlength="300" required></label>
+                        <label class="text-sm font-medium">QR code image URL<input class="field mt-1" data-crypto-index="${index}" data-crypto-field="qrCodeUrl" type="url" value="${escapeHtml(item.qrCodeUrl)}" placeholder="Upload a QR image to fill this link"></label>
+                        <label class="text-sm font-medium">Upload QR code image<input class="field mt-1" data-crypto-qr-upload="${index}" type="file" accept="image/*"></label>
+                        <label class="flex items-center gap-2 pt-6 text-sm font-medium"><input data-crypto-index="${index}" data-crypto-field="enabled" type="checkbox" class="h-4 w-4 accent-rose-500" ${item.enabled !== false ? 'checked' : ''}>Available to users</label>
+                        <label class="text-sm font-medium sm:col-span-2">Transfer instructions<textarea class="field mt-1 min-h-20" data-crypto-index="${index}" data-crypto-field="instructions" maxlength="1000">${escapeHtml(item.instructions)}</textarea></label>
+                    </div>
+                </article>`).join('');
+        }
+
+        function renderMerchants() {
+            const container = document.getElementById('admin-merchants');
+            if (!merchants.length) {
+                container.innerHTML = '<p class="rounded-xl border border-dashed border-zinc-700 p-5 text-center text-sm text-zinc-500">No P2P merchants configured.</p>';
+                return;
+            }
+            container.innerHTML = merchants.map((item, index) => `
+                <article class="rounded-xl border border-zinc-700 bg-white p-4 text-zinc-900">
+                    <div class="mb-3 flex items-center justify-between gap-2">
+                        <h3 class="font-semibold">${escapeHtml(item.name || `Merchant ${index + 1}`)}</h3>
+                        <button class="btn btn-danger text-sm" type="button" data-remove-merchant="${index}">Remove</button>
+                    </div>
+                    <div class="grid gap-3 sm:grid-cols-2">
+                        <label class="text-sm font-medium">Merchant name<input class="field mt-1" data-merchant-index="${index}" data-merchant-field="name" value="${escapeHtml(item.name)}" maxlength="100" required></label>
+                        <label class="text-sm font-medium">Payment method<select class="field mt-1" data-merchant-index="${index}" data-merchant-field="paymentMethod">
+                            <option value="Bank transfer" ${item.paymentMethod === 'Bank transfer' ? 'selected' : ''}>Bank transfer</option>
+                            <option value="MoMo transfer" ${item.paymentMethod === 'MoMo transfer' ? 'selected' : ''}>MoMo transfer</option>
+                        </select></label>
+                        <label class="text-sm font-medium">Total coins available<input class="field mt-1" data-merchant-index="${index}" data-merchant-field="totalCoins" type="number" min="0" step="1" value="${escapeHtml(item.totalCoins)}" required></label>
+                        <label class="text-sm font-medium">Minimum order (coins)<input class="field mt-1" data-merchant-index="${index}" data-merchant-field="minimumCoins" type="number" min="1" step="1" value="${escapeHtml(item.minimumCoins)}" required></label>
+                        <label class="text-sm font-medium">Maximum order (coins)<input class="field mt-1" data-merchant-index="${index}" data-merchant-field="maximumCoins" type="number" min="1" step="1" value="${escapeHtml(item.maximumCoins)}" required></label>
+                        <label class="flex items-center gap-2 pt-6 text-sm font-medium"><input data-merchant-index="${index}" data-merchant-field="enabled" type="checkbox" class="h-4 w-4 accent-rose-500" ${item.enabled !== false ? 'checked' : ''}>Available to users</label>
+                        <label class="text-sm font-medium sm:col-span-2">Payment recipient and instructions<textarea class="field mt-1 min-h-24" data-merchant-index="${index}" data-merchant-field="paymentInstructions" maxlength="1500" required>${escapeHtml(item.paymentInstructions)}</textarea></label>
+                    </div>
+                </article>`).join('');
+        }
+
+        async function loadCoinPaymentSettings() {
+            const snapshot = await getDoc(doc(db, 'admin', 'coinPayments'));
+            const settings = snapshot.exists() ? snapshot.data() : {};
+            cryptoMethods = (Array.isArray(settings.cryptoMethods) ? settings.cryptoMethods : []).map(item => ({
+                id: String(item.id || crypto.randomUUID()),
+                cryptoName: String(item.cryptoName || ''),
+                chain: String(item.chain || ''),
+                ratePerCoin: item.ratePerCoin ?? '',
+                address: String(item.address || ''),
+                qrCodeUrl: String(item.qrCodeUrl || ''),
+                instructions: String(item.instructions || ''),
+                enabled: item.enabled !== false
+            }));
+            merchants = (Array.isArray(settings.merchants) ? settings.merchants : []).map(item => ({
+                id: String(item.id || crypto.randomUUID()),
+                name: String(item.name || ''),
+                totalCoins: item.totalCoins ?? '',
+                minimumCoins: item.minimumCoins ?? '',
+                maximumCoins: item.maximumCoins ?? '',
+                paymentMethod: item.paymentMethod === 'MoMo transfer' ? 'MoMo transfer' : 'Bank transfer',
+                paymentInstructions: String(item.paymentInstructions || ''),
+                enabled: item.enabled !== false
+            }));
+            renderCryptoPaymentOptions();
+            renderMerchants();
+        }
+
+        function renderWithdrawalRates() {
+            const container = document.getElementById('admin-withdrawal-rates');
+            if (!withdrawalRates.length) {
+                container.innerHTML = '<p class="rounded-xl border border-dashed border-zinc-700 p-5 text-center text-sm text-zinc-500">No withdrawal rates configured.</p>';
+                return;
+            }
+            container.innerHTML = withdrawalRates.map((rate, index) => `
+                <article class="grid gap-3 rounded-xl border border-zinc-700 bg-white p-4 text-zinc-900 sm:grid-cols-[1fr_1fr_1fr_auto] sm:items-end">
+                    <label class="text-sm font-medium">Method<select class="field mt-1" data-withdrawal-rate-index="${index}" data-withdrawal-rate-field="method">
+                        <option value="crypto" ${rate.method === 'crypto' ? 'selected' : ''}>Crypto</option>
+                        <option value="momo" ${rate.method === 'momo' ? 'selected' : ''}>MoMo</option>
+                        <option value="bank" ${rate.method === 'bank' ? 'selected' : ''}>Bank</option>
+                    </select></label>
+                    <label class="text-sm font-medium">Currency<input class="field mt-1" data-withdrawal-rate-index="${index}" data-withdrawal-rate-field="currency" value="${escapeHtml(rate.currency)}" maxlength="20" placeholder="USD, BTC, NGN" required></label>
+                    <label class="text-sm font-medium">Currency per coin<input class="field mt-1" data-withdrawal-rate-index="${index}" data-withdrawal-rate-field="ratePerCoin" type="number" min="0.00000001" step="any" value="${escapeHtml(rate.ratePerCoin)}" required></label>
+                    <button class="btn btn-danger" type="button" data-remove-withdrawal-rate="${index}">Remove</button>
+                </article>`).join('');
+        }
+
+        async function loadWithdrawalRates() {
+            const snapshot = await getDoc(doc(db, 'admin', 'withdrawalSettings'));
+            const settings = snapshot.exists() ? snapshot.data() : {};
+            withdrawalRates = (Array.isArray(settings.rates) ? settings.rates : []).map(rate => ({
+                id: String(rate.id || crypto.randomUUID()),
+                method: ['crypto', 'momo', 'bank'].includes(rate.method) ? rate.method : 'crypto',
+                currency: String(rate.currency || ''),
+                ratePerCoin: rate.ratePerCoin ?? ''
+            }));
+            renderWithdrawalRates();
+        }
+
+        function collectWithdrawalRates() {
+            const next = withdrawalRates.map(rate => ({ ...rate }));
+            document.querySelectorAll('[data-withdrawal-rate-index]').forEach(input => {
+                const index = Number(input.dataset.withdrawalRateIndex);
+                const field = input.dataset.withdrawalRateField;
+                if (!next[index] || !field) return;
+                next[index][field] = field === 'ratePerCoin' ? Number(input.value) : input.value.trim();
+            });
+            const uniqueRates = new Set();
+            for (const rate of next) {
+                if (!['crypto', 'momo', 'bank'].includes(rate.method) || !rate.currency
+                    || !Number.isFinite(rate.ratePerCoin) || rate.ratePerCoin <= 0) {
+                    throw new Error('Each withdrawal rate needs a method, currency, and positive payout amount per coin.');
+                }
+                const key = `${rate.method}:${rate.currency.toLowerCase()}`;
+                if (uniqueRates.has(key)) throw new Error(`A ${rate.method} withdrawal rate for ${rate.currency} is already listed.`);
+                uniqueRates.add(key);
+            }
+            return next;
+        }
+
+        async function saveWithdrawalRates() {
+            const message = document.getElementById('withdrawal-rate-message');
+            clearMessage(message);
+            try {
+                const rates = collectWithdrawalRates();
+                await setDoc(doc(db, 'admin', 'withdrawalSettings'), {
+                    rates,
+                    updatedAt: serverTimestamp()
+                }, { merge: true });
+                withdrawalRates = rates;
+                showMessage(message, 'Withdrawal rates saved.');
+            } catch (error) {
+                console.error('Unable to save withdrawal rates:', error);
+                showMessage(message, error.message || 'Could not save withdrawal rates.', true);
+            }
+        }
+
+        function withdrawalDetailsText(request) {
+            const details = request.payoutDetails || {};
+            if (request.method === 'crypto') {
+                return `Address: ${details.walletAddress || ''} · Network: ${details.network || ''}`;
+            }
+            if (request.method === 'momo') {
+                return `${details.provider || ''} · ${details.accountName || ''} · ${details.phoneNumber || ''}`;
+            }
+            return `${details.bankName || ''} · ${details.accountName || ''} · Account: ${details.accountNumber || ''}${details.routingCode ? ` · Routing: ${details.routingCode}` : ''}`;
+        }
+
+        async function loadWithdrawals() {
+            const container = document.getElementById('withdrawal-list');
+            const snapshot = await getDocs(query(
+                collection(db, 'coinWithdrawals'),
+                orderBy('createdAt', 'desc'),
+                limit(100)
+            ));
+            const requests = snapshot.docs.map(entry => ({ id: entry.id, ...entry.data() }));
+            if (!requests.length) {
+                container.innerHTML = '<p class="p-8 text-center text-sm text-zinc-400">No withdrawal requests have been submitted.</p>';
+                return;
+            }
+            container.innerHTML = requests.map(request => {
+                const pending = request.status === 'pending';
+                const date = request.createdAt?.toDate?.();
+                const payout = withdrawalDetailsText(request);
+                return `<article class="p-5">
+                    <div class="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
+                        <div class="min-w-0">
+                            <div class="flex flex-wrap items-center gap-2"><h3 class="font-semibold">${escapeHtml(request.userName || request.userEmail || request.userId || 'User')}</h3>
+                                <span class="rounded-full px-2.5 py-1 text-[11px] font-semibold ${pending ? 'bg-amber-400/10 text-amber-300' : request.status === 'approved' ? 'bg-emerald-400/10 text-emerald-300' : 'bg-rose-400/10 text-rose-300'}">${escapeHtml(request.status || 'pending')}</span></div>
+                            <p class="mt-1 text-sm text-zinc-400">${escapeHtml(request.userEmail || request.userId || '')}</p>
+                            <p class="mt-2 text-sm font-semibold">${formatCount(request.coins)} coins → ${escapeHtml(request.payoutAmount)} ${escapeHtml(request.currency)} · ${escapeHtml(request.method || '')}</p>
+                            <p class="mt-2 break-all text-sm text-zinc-500">${escapeHtml(payout)}</p>
+                            <p class="mt-1 text-xs text-zinc-500">Rate: ${escapeHtml(request.ratePerCoin)} ${escapeHtml(request.currency)} per coin${date ? ` · ${escapeHtml(date.toLocaleString())}` : ''}</p>
+                            ${request.adminNote ? `<p class="mt-2 text-sm text-zinc-500">Admin note: ${escapeHtml(request.adminNote)}</p>` : ''}
+                        </div>
+                        ${pending ? `<div class="flex shrink-0 gap-2">
+                            <button class="btn btn-primary text-sm" type="button" data-withdrawal-action="approve" data-withdrawal-id="${escapeHtml(request.id)}">Mark paid</button>
+                            <button class="btn btn-danger text-sm" type="button" data-withdrawal-action="reject" data-withdrawal-id="${escapeHtml(request.id)}">Reject &amp; refund</button>
+                        </div>` : ''}
+                    </div>
+                </article>`;
+            }).join('');
+        }
+
+        async function reviewWithdrawal(withdrawalId, action, note = '') {
+            const withdrawalRef = doc(db, 'coinWithdrawals', withdrawalId);
+            const activityRef = doc(collection(db, 'activities'));
+            await runTransaction(db, async transaction => {
+                const requestSnapshot = await transaction.get(withdrawalRef);
+                if (!requestSnapshot.exists()) throw new Error('This withdrawal request no longer exists.');
+                const request = requestSnapshot.data();
+                if (request.status !== 'pending') throw new Error(`This withdrawal has already been ${request.status || 'reviewed'}.`);
+                if (!Number.isSafeInteger(request.coins) || request.coins < 1
+                    || !Number.isFinite(Number(request.payoutAmount)) || Number(request.payoutAmount) <= 0) {
+                    throw new Error('This withdrawal has an invalid amount.');
+                }
+                const userRef = doc(db, 'users', request.userId);
+                if (action === 'reject') {
+                    const userSnapshot = await transaction.get(userRef);
+                    if (!userSnapshot.exists()) throw new Error('The user account for this withdrawal no longer exists.');
+                    const availableBalance = Number(userSnapshot.data().availableBalance ?? 0);
+                    if (!Number.isSafeInteger(availableBalance) || availableBalance < 0
+                        || !Number.isSafeInteger(availableBalance + request.coins)) {
+                        throw new Error('The user account has an invalid available balance.');
+                    }
+                    transaction.update(userRef, { availableBalance: availableBalance + request.coins });
+                }
+                transaction.update(withdrawalRef, {
+                    status: action === 'approve' ? 'approved' : 'rejected',
+                    adminNote: note,
+                    reviewedAt: serverTimestamp(),
+                    reviewedBy: 'superadmin',
+                    updatedAt: serverTimestamp()
+                });
+                transaction.set(activityRef, {
+                    userId: 'system',
+                    profileId: request.userId,
+                    action: action === 'approve' ? 'withdrawal_approved' : 'withdrawal_rejected',
+                    details: {
+                        withdrawalId,
+                        method: request.method,
+                        currency: request.currency,
+                        coins: request.coins,
+                        payoutAmount: request.payoutAmount,
+                        note
+                    },
+                    createdAt: serverTimestamp()
+                });
+            });
+        }
+
+        function collectCryptoMethods() {
+            const next = cryptoMethods.map(item => ({ ...item }));
+            document.querySelectorAll('[data-crypto-index]').forEach(input => {
+                const index = Number(input.dataset.cryptoIndex);
+                const field = input.dataset.cryptoField;
+                if (!next[index] || !field) return;
+                next[index][field] = field === 'enabled' ? input.checked
+                    : field === 'ratePerCoin' ? Number(input.value)
+                        : input.value.trim();
+            });
+            for (const item of next) {
+                if (!item.cryptoName || !item.chain || !item.address
+                    || !Number.isFinite(item.ratePerCoin) || item.ratePerCoin <= 0) {
+                    throw new Error('Each crypto method needs a name, chain, positive rate, and receiving address.');
+                }
+                if (item.qrCodeUrl && !validHttpUrl(item.qrCodeUrl)) {
+                    throw new Error('QR code URLs must begin with http:// or https://.');
+                }
+            }
+            return next;
+        }
+
+        function collectMerchants() {
+            const next = merchants.map(item => ({ ...item }));
+            document.querySelectorAll('[data-merchant-index]').forEach(input => {
+                const index = Number(input.dataset.merchantIndex);
+                const field = input.dataset.merchantField;
+                if (!next[index] || !field) return;
+                next[index][field] = field === 'enabled' ? input.checked
+                    : ['totalCoins', 'minimumCoins', 'maximumCoins'].includes(field) ? Number(input.value)
+                        : input.value.trim();
+            });
+            for (const item of next) {
+                if (!item.name || !['Bank transfer', 'MoMo transfer'].includes(item.paymentMethod)
+                    || !Number.isSafeInteger(item.totalCoins) || item.totalCoins < 0
+                    || ![item.minimumCoins, item.maximumCoins].every(value => Number.isSafeInteger(value) && value > 0)
+                    || item.minimumCoins > item.maximumCoins
+                    || !item.paymentInstructions) {
+                    throw new Error('Each merchant needs payment details, a valid transfer method, non-negative whole-number inventory, and positive order limits (minimum ≤ maximum).');
+                }
+            }
+            return next;
+        }
+
+        async function saveCoinPaymentSettings({ cryptoChanged, merchantChanged }) {
+            const messageId = cryptoChanged ? 'crypto-config-message' : 'merchant-config-message';
+            const message = document.getElementById(messageId);
+            clearMessage(message);
+            try {
+                if (cryptoChanged) cryptoMethods = collectCryptoMethods();
+                if (merchantChanged) merchants = collectMerchants();
+                await setDoc(doc(db, 'admin', 'coinPayments'), {
+                    ...(cryptoChanged ? { cryptoMethods } : {}),
+                    ...(merchantChanged ? { merchants } : {}),
+                    updatedAt: serverTimestamp()
+                }, { merge: true });
+                showMessage(message, `${cryptoChanged ? 'Crypto options' : 'P2P merchants'} saved.`);
+            } catch (error) {
+                console.error('Unable to save coin payment settings:', error);
+                showMessage(message, error.message || 'Could not save payment settings. Check Firestore permissions.', true);
+            }
+        }
+
+        async function loadCoinDeposits() {
+            const container = document.getElementById('coin-deposit-list');
+            const snapshot = await getDocs(query(
+                collection(db, 'coinDeposits'),
+                orderBy('createdAt', 'desc'),
+                limit(100)
+            ));
+            const coinDeposits = snapshot.docs.map(entry => ({ id: entry.id, ...entry.data() }));
+            if (!coinDeposits.length) {
+                container.innerHTML = '<p class="p-8 text-center text-sm text-zinc-400">No coin purchase requests have been submitted.</p>';
+                return;
+            }
+            container.innerHTML = coinDeposits.map(request => {
+                const pending = request.status === 'pending';
+                const payment = request.payment || {};
+                const description = request.method === 'crypto'
+                    ? `${payment.cryptoName || 'Crypto'} · ${payment.chain || 'Network'} · ${payment.cryptoAmount ?? '?'} ${payment.cryptoName || ''}`
+                    : `${payment.merchantName || 'Merchant'} · ${payment.paymentMethod || 'P2P transfer'}`;
+                const proofUrl = validHttpUrl(request.proofUrl);
+                const date = request.createdAt?.toDate?.();
+                return `<article class="p-5">
+                    <div class="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
+                        <div class="min-w-0">
+                            <div class="flex flex-wrap items-center gap-2"><h3 class="font-semibold">${escapeHtml(request.userName || request.userEmail || request.userId || 'User')}</h3>
+                                <span class="rounded-full px-2.5 py-1 text-[11px] font-semibold ${pending ? 'bg-amber-400/10 text-amber-300' : request.status === 'approved' ? 'bg-emerald-400/10 text-emerald-300' : 'bg-rose-400/10 text-rose-300'}">${escapeHtml(request.status || 'pending')}</span></div>
+                            <p class="mt-1 text-sm text-zinc-400">${escapeHtml(request.userEmail || request.userId || '')}</p>
+                            <p class="mt-2 text-sm font-semibold">${formatCount(request.coins)} coins · ${escapeHtml(description)}</p>
+                            ${request.reference ? `<p class="mt-1 break-all text-xs text-zinc-500">Reference: ${escapeHtml(request.reference)}</p>` : ''}
+                            ${date ? `<p class="mt-1 text-xs text-zinc-500">${escapeHtml(date.toLocaleString())}</p>` : ''}
+                            ${request.adminNote ? `<p class="mt-2 text-sm text-zinc-500">Admin note: ${escapeHtml(request.adminNote)}</p>` : ''}
+                            ${proofUrl ? `<a class="mt-3 inline-flex items-center gap-1 text-sm font-semibold text-sky-400 underline" href="${escapeHtml(proofUrl)}" target="_blank" rel="noopener">View payment proof</a>` : '<p class="mt-2 text-sm text-rose-300">No valid payment proof URL was saved.</p>'}
+                        </div>
+                        ${pending ? `<div class="flex shrink-0 gap-2">
+                            <button class="btn btn-primary text-sm" type="button" data-deposit-action="approve" data-deposit-id="${escapeHtml(request.id)}">Approve &amp; credit</button>
+                            <button class="btn btn-danger text-sm" type="button" data-deposit-action="reject" data-deposit-id="${escapeHtml(request.id)}">Reject</button>
+                        </div>` : ''}
+                    </div>
+                </article>`;
+            }).join('');
+        }
+
+        async function reviewCoinDeposit(depositId, action, note = '') {
+            const requestRef = doc(db, 'coinDeposits', depositId);
+            const activityRef = doc(collection(db, 'activities'));
+            await runTransaction(db, async transaction => {
+                const requestSnapshot = await transaction.get(requestRef);
+                if (!requestSnapshot.exists()) throw new Error('This coin purchase request no longer exists.');
+                const request = requestSnapshot.data();
+                if (request.status !== 'pending') throw new Error(`This request has already been ${request.status || 'reviewed'}.`);
+                const userRef = doc(db, 'users', request.userId);
+                const userSnapshot = await transaction.get(userRef);
+                if (!userSnapshot.exists()) throw new Error('The user account for this request no longer exists.');
+
+                if (action === 'reject') {
+                    transaction.update(requestRef, {
+                        status: 'rejected',
+                        adminNote: note,
+                        reviewedAt: serverTimestamp(),
+                        reviewedBy: 'superadmin',
+                        updatedAt: serverTimestamp()
+                    });
+                    transaction.set(activityRef, {
+                        userId: 'system',
+                        profileId: request.userId,
+                        action: 'coin_deposit_rejected',
+                        details: { depositId, coins: request.coins, currency: 'coins', method: request.method, note },
+                        createdAt: serverTimestamp()
+                    });
+                    return;
+                }
+
+                if (!Number.isSafeInteger(request.coins) || request.coins < 1) {
+                    throw new Error('This request has an invalid coin amount.');
+                }
+                const currentBalance = Number(userSnapshot.data().availableBalance ?? 0);
+                if (!Number.isSafeInteger(currentBalance) || currentBalance < 0
+                    || !Number.isSafeInteger(currentBalance + request.coins)) {
+                    throw new Error('The user account has an invalid available balance.');
+                }
+
+                let configRef = null;
+                let configSnapshot = null;
+                let updatedMerchants = null;
+                if (request.method === 'p2p') {
+                    configRef = doc(db, 'admin', 'coinPayments');
+                    configSnapshot = await transaction.get(configRef);
+                    const config = configSnapshot.exists() ? configSnapshot.data() : {};
+                    updatedMerchants = Array.isArray(config.merchants) ? config.merchants.map(item => ({ ...item })) : [];
+                    const merchantIndex = updatedMerchants.findIndex(item => item.id === request.payment?.merchantId);
+                    if (merchantIndex < 0) throw new Error('The merchant on this request is no longer configured.');
+                    const available = Number(updatedMerchants[merchantIndex].totalCoins);
+                    if (!Number.isSafeInteger(available) || available < request.coins) {
+                        throw new Error('The merchant no longer has enough coin inventory to approve this request.');
+                    }
+                    updatedMerchants[merchantIndex].totalCoins = available - request.coins;
+                } else if (request.method !== 'crypto') {
+                    throw new Error('This request has an unsupported payment method.');
+                }
+
+                transaction.update(userRef, { availableBalance: currentBalance + request.coins });
+                transaction.update(requestRef, {
+                    status: 'approved',
+                    reviewedAt: serverTimestamp(),
+                    reviewedBy: 'superadmin',
+                    updatedAt: serverTimestamp()
+                });
+                if (configRef && updatedMerchants) {
+                    transaction.set(configRef, { merchants: updatedMerchants, updatedAt: serverTimestamp() }, { merge: true });
+                }
+                transaction.set(activityRef, {
+                    userId: 'system',
+                    profileId: request.userId,
+                    action: 'coin_purchase',
+                    details: {
+                        depositId,
+                        amount: request.coins,
+                        currency: 'coins',
+                        method: request.method,
+                        merchantName: request.payment?.merchantName || '',
+                        cryptoName: request.payment?.cryptoName || ''
+                    },
+                    createdAt: serverTimestamp()
+                });
+            });
+        }
+
         document.querySelectorAll('.admin-tab').forEach(button => {
             button.addEventListener('click', () => setAdminTab(button.dataset.adminTab));
+        });
+        document.querySelectorAll('[data-wallet-section-button]').forEach(button => {
+            button.addEventListener('click', () => setWalletSubtab(button.dataset.walletSectionButton));
         });
         document.getElementById('user-search').addEventListener('input', renderUsers);
         document.getElementById('refresh-users').addEventListener('click', () => {
@@ -854,6 +1457,187 @@
             loadUsers();
         });
         document.getElementById('refresh-activity').addEventListener('click', loadActivity);
+        document.getElementById('wallet-settings-form').addEventListener('submit', async event => {
+            event.preventDefault();
+            const button = document.getElementById('save-wallet-settings');
+            const message = document.getElementById('wallet-settings-message');
+            const amount = Number(document.getElementById('welcome-bonus-amount').value);
+            clearMessage(message);
+            if (!Number.isSafeInteger(amount) || amount < 0) {
+                showMessage(message, 'Welcome bonus must be a non-negative whole number of coins.', true);
+                return;
+            }
+            button.disabled = true;
+            try {
+                await setDoc(doc(db, 'admin', 'newUsers'), { bonus: amount, updatedAt: serverTimestamp() }, { merge: true });
+                showMessage(message, 'Wallet settings saved.');
+            } catch (error) {
+                console.error('Unable to save wallet settings:', error);
+                showMessage(message, error.message || 'Could not save wallet settings. Check Firestore permissions.', true);
+            } finally {
+                button.disabled = false;
+            }
+        });
+        document.getElementById('add-crypto-option').addEventListener('click', () => {
+            const index = cryptoMethods.length;
+            cryptoMethods.push({
+                id: crypto.randomUUID(),
+                cryptoName: '',
+                chain: '',
+                ratePerCoin: '',
+                address: '',
+                qrCodeUrl: '',
+                instructions: '',
+                enabled: true
+            });
+            renderCryptoPaymentOptions();
+            document.querySelector(`[data-crypto-index="${index}"][data-crypto-field="cryptoName"]`)?.focus();
+        });
+        document.getElementById('admin-crypto-options').addEventListener('click', event => {
+            const button = event.target.closest('[data-remove-crypto]');
+            if (!button) return;
+            cryptoMethods.splice(Number(button.dataset.removeCrypto), 1);
+            renderCryptoPaymentOptions();
+        });
+        document.getElementById('admin-crypto-options').addEventListener('change', async event => {
+            const input = event.target.closest('[data-crypto-qr-upload]');
+            if (!input) return;
+            const file = input.files[0];
+            if (!file) return;
+            const index = Number(input.dataset.cryptoQrUpload);
+            input.disabled = true;
+            clearMessage(document.getElementById('crypto-config-message'));
+            try {
+                if (!file.type.startsWith('image/')) throw new Error('Choose an image file for the QR code.');
+                const imageUrl = await uploadToCloudinary(file, 'image', { folder: 'coin_payment_qr' });
+                const urlInput = document.querySelector(`[data-crypto-index="${index}"][data-crypto-field="qrCodeUrl"]`);
+                if (!urlInput) throw new Error('The crypto QR code field could not be found after upload.');
+                urlInput.value = imageUrl;
+                showMessage(document.getElementById('crypto-config-message'), 'QR code uploaded. Its secure image URL has been filled in; save crypto options to publish it.');
+            } catch (error) {
+                console.error('Unable to upload crypto payment QR code:', error);
+                showMessage(document.getElementById('crypto-config-message'), error.message || 'Could not upload the QR code.', true);
+            } finally {
+                input.disabled = false;
+            }
+        });
+        document.getElementById('save-crypto-options').addEventListener('click', () =>
+            saveCoinPaymentSettings({ cryptoChanged: true, merchantChanged: false }));
+        document.getElementById('add-merchant').addEventListener('click', () => {
+            const index = merchants.length;
+            merchants.push({
+                id: crypto.randomUUID(),
+                name: '',
+                totalCoins: '',
+                minimumCoins: '',
+                maximumCoins: '',
+                paymentMethod: 'Bank transfer',
+                paymentInstructions: '',
+                enabled: true
+            });
+            renderMerchants();
+            document.querySelector(`[data-merchant-index="${index}"][data-merchant-field="name"]`)?.focus();
+        });
+        document.getElementById('admin-merchants').addEventListener('click', event => {
+            const button = event.target.closest('[data-remove-merchant]');
+            if (!button) return;
+            merchants.splice(Number(button.dataset.removeMerchant), 1);
+            renderMerchants();
+        });
+        document.getElementById('save-merchants').addEventListener('click', () =>
+            saveCoinPaymentSettings({ cryptoChanged: false, merchantChanged: true }));
+        document.getElementById('add-withdrawal-rate').addEventListener('click', () => {
+            withdrawalRates.push({ id: crypto.randomUUID(), method: 'crypto', currency: '', ratePerCoin: '' });
+            renderWithdrawalRates();
+            document.querySelector(`[data-withdrawal-rate-index="${withdrawalRates.length - 1}"][data-withdrawal-rate-field="currency"]`)?.focus();
+        });
+        document.getElementById('admin-withdrawal-rates').addEventListener('click', event => {
+            const button = event.target.closest('[data-remove-withdrawal-rate]');
+            if (!button) return;
+            withdrawalRates.splice(Number(button.dataset.removeWithdrawalRate), 1);
+            renderWithdrawalRates();
+        });
+        document.getElementById('save-withdrawal-rates').addEventListener('click', saveWithdrawalRates);
+        document.getElementById('refresh-withdrawals').addEventListener('click', async () => {
+            const message = document.getElementById('withdrawal-review-message');
+            clearMessage(message);
+            try {
+                await loadWithdrawals();
+            } catch (error) {
+                console.error('Unable to refresh withdrawals:', error);
+                showMessage(message, error.message || 'Could not load withdrawal requests.', true);
+            }
+        });
+        document.getElementById('withdrawal-list').addEventListener('click', async event => {
+            const button = event.target.closest('[data-withdrawal-action]');
+            if (!button) return;
+            const withdrawalId = button.dataset.withdrawalId;
+            const action = button.dataset.withdrawalAction;
+            if (!withdrawalId || !['approve', 'reject'].includes(action)) return;
+            const note = action === 'reject'
+                ? window.prompt('Optional reason to share with the user:', '') ?? null
+                : window.prompt('Confirm payout reference or note (optional):', '');
+            if (note === null) return;
+            if (action === 'approve' && !window.confirm('Confirm this withdrawal has been paid?')) return;
+            button.disabled = true;
+            const message = document.getElementById('withdrawal-review-message');
+            clearMessage(message);
+            try {
+                await reviewWithdrawal(withdrawalId, action, note);
+                showMessage(message, action === 'approve' ? 'Withdrawal marked paid.' : 'Withdrawal rejected and coins refunded.');
+            } catch (error) {
+                console.error(`Unable to ${action} withdrawal:`, error);
+                showMessage(message, error.message || `Could not ${action} withdrawal.`, true);
+                button.disabled = false;
+                return;
+            }
+            try {
+                await loadWithdrawals();
+            } catch (error) {
+                console.error('Withdrawal review succeeded, but the list could not be refreshed:', error);
+                showMessage(message, 'The withdrawal was reviewed, but the list could not be refreshed.', true);
+            }
+        });
+        document.getElementById('refresh-coin-deposits').addEventListener('click', async () => {
+            const message = document.getElementById('coin-deposit-message');
+            clearMessage(message);
+            try {
+                await loadCoinDeposits();
+            } catch (error) {
+                console.error('Unable to refresh coin purchase requests:', error);
+                showMessage(message, error.message || 'Could not load coin purchase requests.', true);
+            }
+        });
+        document.getElementById('coin-deposit-list').addEventListener('click', async event => {
+            const button = event.target.closest('[data-deposit-action]');
+            if (!button) return;
+            const depositId = button.dataset.depositId;
+            const action = button.dataset.depositAction;
+            if (!depositId || !['approve', 'reject'].includes(action)) return;
+            const note = action === 'reject'
+                ? window.prompt('Optional reason to share with the user:', '') ?? null
+                : '';
+            if (note === null) return;
+            if (action === 'approve' && !window.confirm('Approve this payment and credit the user’s available balance?')) return;
+            button.disabled = true;
+            const message = document.getElementById('coin-deposit-message');
+            clearMessage(message);
+            try {
+                await reviewCoinDeposit(depositId, action, note);
+                showMessage(message, action === 'approve' ? 'Payment approved and coins credited.' : 'Payment request rejected.');
+            } catch (error) {
+                console.error(`Unable to ${action} coin purchase request:`, error);
+                showMessage(message, error.message || `Could not ${action} this payment request.`, true);
+                button.disabled = false;
+                return;
+            }
+            try {
+                await Promise.all([loadCoinPaymentSettings(), loadCoinDeposits()]);
+            } catch (error) {
+                console.error('Coin purchase review succeeded, but the admin view could not be refreshed:', error);
+                showMessage(message, 'The review succeeded, but the latest payment options or requests could not be refreshed.', true);
+            }
+        });
 
         document.getElementById('user-list').addEventListener('click', event => {
             const button = event.target.closest('[data-user-action]');
@@ -878,6 +1662,8 @@
             document.getElementById('managed-user-bio').value = user.bio || '';
             document.getElementById('managed-user-picture').value = user.profilePic || '';
             document.getElementById('managed-user-file').value = '';
+            document.getElementById('managed-user-earnings').value = Number(user.userData.earningsBalance ?? 0);
+            document.getElementById('managed-user-available').value = Number(user.userData.availableBalance ?? 0);
             document.getElementById('managed-user-verified').checked = user.verify === 'yes';
             document.getElementById('managed-user-fields').value = JSON.stringify(serializeUserFields({
                 ...user.userData,
@@ -907,6 +1693,11 @@
                     throw new Error('User fields must be a JSON object.');
                 }
                 if (userFields.uid !== uid) throw new Error('The user document uid must remain unchanged.');
+                const earningsBalance = Number(document.getElementById('managed-user-earnings').value);
+                const availableBalance = Number(document.getElementById('managed-user-available').value);
+                if (![earningsBalance, availableBalance].every(value => Number.isSafeInteger(value) && value >= 0)) {
+                    throw new Error('Wallet balances must be non-negative whole numbers of coins.');
+                }
                 const fullName = document.getElementById('managed-user-name').value.trim();
                 const bio = document.getElementById('managed-user-bio').value.trim();
                 const verify = document.getElementById('managed-user-verified').checked ? 'yes' : 'no';
@@ -921,6 +1712,8 @@
                 userFields.bio = bio;
                 userFields.profilePic = profilePic;
                 userFields.verify = verify;
+                userFields.earningsBalance = earningsBalance;
+                userFields.availableBalance = availableBalance;
                 const profileUpdates = {
                     uid,
                     username,

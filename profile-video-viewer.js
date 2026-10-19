@@ -74,6 +74,24 @@ export function createProfileVideoViewer({ auth, db }) {
             if (!video) continue;
             if (entry.isIntersecting && entry.intersectionRatio >= 0.7) {
                 playingSlide = entry.target;
+                if (video.dataset.historyListener !== 'true') {
+                    video.dataset.historyListener = 'true';
+                    video.addEventListener('playing', () => {
+                        const user = auth.currentUser;
+                        if (!user || video.dataset.historyPlaying === 'true') return;
+                        video.dataset.historyPlaying = 'true';
+                        addDoc(collection(db, 'activity'), {
+                            videoId: entry.target.dataset.id,
+                            userId: user.uid,
+                            action: 'play',
+                            details: {},
+                            createdAt: serverTimestamp()
+                        }).catch(error => console.error('Could not save profile video watch history:', error));
+                    });
+                    video.addEventListener('pause', () => {
+                        video.dataset.historyPlaying = 'false';
+                    });
+                }
                 video.play().catch(error => console.error('Could not play profile video:', error));
             } else {
                 video.pause();

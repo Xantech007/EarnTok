@@ -104,6 +104,88 @@
         .music-disc-glow {
             box-shadow: 0 0 10px rgba(37, 244, 238, 0.5), 0 0 20px rgba(254, 44, 85, 0.5);
         }
+        .video-card .feed-action-column {
+            bottom: max(1.5rem, env(safe-area-inset-bottom)) !important;
+            gap: .6rem;
+            padding: 0;
+            border: 0;
+            border-radius: 0;
+            background: none;
+            box-shadow: none;
+            -webkit-backdrop-filter: none;
+            backdrop-filter: none;
+        }
+        .video-card .feed-action-column > :not([hidden]) ~ :not([hidden]) {
+            margin-top: 0;
+        }
+        @media (max-height: 700px) {
+            .video-card .feed-action-column {
+                gap: .35rem;
+            }
+        }
+        .video-card .feed-action-column button:not(.follow-btn) {
+            display: flex;
+            width: 3rem;
+            height: 3rem;
+            align-items: center;
+            justify-content: center;
+            padding: .5rem;
+            color: #fff;
+            background: transparent;
+            border-radius: 9999px;
+            filter: drop-shadow(0 1px 2px rgba(0, 0, 0, .95));
+            transition: transform .15s ease, background-color .15s ease;
+        }
+        .video-card .feed-action-column button:not(.follow-btn):hover {
+            background: rgba(0, 0, 0, .18);
+        }
+        .video-card .feed-action-column button:not(.follow-btn):active {
+            transform: scale(.88);
+        }
+        .video-card .feed-action-column button:not(.follow-btn) svg {
+            width: 2rem;
+            height: 2rem;
+            stroke-width: 2.5;
+        }
+        .video-card .feed-action-column > div:not(:first-child) {
+            gap: 0;
+        }
+        .video-card .feed-action-column .like-count,
+        .video-card .feed-action-column .comment-count,
+        .video-card .feed-action-column .bookmark-count,
+        .video-card .feed-action-column .share-count {
+            margin-top: -.35rem;
+            padding: 0 .15rem;
+            border-radius: 0;
+            background: transparent;
+            color: #fff;
+            font-size: .75rem;
+            font-weight: 600;
+            line-height: 1rem;
+            text-align: center;
+            text-shadow: 0 1px 3px rgba(0, 0, 0, .95), 0 0 7px rgba(0, 0, 0, .75);
+            filter: drop-shadow(0 1px 1px rgba(0, 0, 0, .8));
+        }
+        .video-card .feed-action-column .follow-btn {
+            display: flex;
+            width: 1.5rem;
+            height: 1.5rem;
+            align-items: center;
+            justify-content: center;
+            border: 2px solid #fff;
+            border-radius: 9999px;
+            padding: 0;
+            box-shadow: 0 1px 4px rgba(0, 0, 0, .55);
+        }
+        .video-card .feed-info-overlay {
+            right: 0;
+            bottom: 0;
+            padding: 7rem 6rem max(2rem, env(safe-area-inset-bottom)) 1rem;
+            background: linear-gradient(0deg, rgba(0, 0, 0, .88), rgba(0, 0, 0, .5) 48%, transparent);
+        }
+        .video-card .feed-info-overlay > .pointer-events-auto {
+            max-width: calc(100% - 5rem);
+        }
     </style>
 </head>
 <body class="bg-black text-white font-sans antialiased select-none overflow-hidden">
@@ -133,6 +215,7 @@
             </div>
 
             <!-- Search Icon -->
+            <!-- Search Icon -->
             <button onclick="window.location.href='./search.html'" class="text-white hover:text-white transition group" aria-label="Search">
                 <i data-lucide="search" class="w-6 h-6 group-hover:scale-105 transition" aria-hidden="true"></i>
             </button>
@@ -156,7 +239,7 @@
                 </div>
 
                 <!-- RIGHT SIDE ACTIONS COLUMN -->
-                <div class="absolute right-3 bottom-6 z-20 flex flex-col items-center space-y-5">
+                <div class="feed-action-column absolute right-3 bottom-6 z-20 flex flex-col items-center space-y-5">
                     <!-- Profile Avatar + Follow Badge -->
                     <div class="relative group">
                         <a href="./view-profile.html?username=alex_cyberpunk" aria-label="View @alex_cyberpunk's profile" class="block rounded-full focus-visible:outline focus-visible:outline-2 focus-visible:outline-white">
@@ -196,7 +279,7 @@
                         <button onclick="openShareModal()" class="p-2 rounded-full hover:bg-white/10 transition active:scale-75 text-white">
                             <i data-lucide="share-2" class="w-8 h-8 drop-shadow-md" aria-hidden="true"></i>
                         </button>
-                        <span class="text-xs font-semibold drop-shadow-md mt-0.5">4,120</span>
+                        <span class="share-count text-xs font-semibold drop-shadow-md mt-0.5">4,120</span>
                     </div>
 
                     <!-- Audio Vinyl Spinner -->
@@ -208,7 +291,7 @@
                 </div>
 
                 <!-- BOTTOM OVERLAY DETAILS -->
-                <div class="absolute bottom-2 left-0 right-16 z-20 p-4 bg-gradient-to-t from-black/80 via-black/30 to-transparent pointer-events-none">
+                <div class="feed-info-overlay absolute left-0 right-0 bottom-0 z-20 p-4 pointer-events-none">
                     <div class="pointer-events-auto">
                         <h3 class="font-bold text-base drop-shadow-md inline-block"><a href="./view-profile.html?username=alex_cyberpunk" class="hover:underline">@alex_cyberpunk</a></h3>
                         <p class="text-sm mt-1 text-gray-100 line-clamp-2 leading-snug drop-shadow-sm">Exploring the neon city at midnight! 🌃 High energy vibes always <span class="font-semibold text-tiktok-cyan cursor-pointer">#cyberpunk</span> <span class="font-semibold text-tiktok-cyan cursor-pointer">#neon</span></p>
@@ -239,7 +322,7 @@
                 </div>
 
                 <!-- RIGHT SIDE ACTIONS COLUMN -->
-                <div class="absolute right-3 bottom-6 z-20 flex flex-col items-center space-y-5">
+                <div class="feed-action-column absolute right-3 bottom-6 z-20 flex flex-col items-center space-y-5">
                     <div class="relative group">
                         <a href="./view-profile.html?username=chef_mario" aria-label="View @chef_mario's profile" class="block rounded-full focus-visible:outline focus-visible:outline-2 focus-visible:outline-white">
                         <img src="https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?auto=format&fit=crop&w=150&q=80" class="w-12 h-12 rounded-full border-2 border-white object-cover shadow-lg group-hover:scale-105 transition">
@@ -274,7 +357,7 @@
                         <button onclick="openShareModal()" class="p-2 rounded-full hover:bg-white/10 transition active:scale-75 text-white">
                             <i data-lucide="share-2" class="w-8 h-8 drop-shadow-md" aria-hidden="true"></i>
                         </button>
-                        <span class="text-xs font-semibold drop-shadow-md mt-0.5">12.8K</span>
+                        <span class="share-count text-xs font-semibold drop-shadow-md mt-0.5">12.8K</span>
                     </div>
 
                     <div class="mt-2 cursor-pointer" onclick="requireUser().then(user => user && (trackPageActivity('view_audio', { audio: 'Delicious Cooking Beats' }), showToast('Audio: Delicious Cooking Beats')))">
@@ -285,7 +368,7 @@
                 </div>
 
                 <!-- BOTTOM OVERLAY DETAILS -->
-                <div class="absolute bottom-2 left-0 right-16 z-20 p-4 bg-gradient-to-t from-black/80 via-black/30 to-transparent pointer-events-none">
+                <div class="feed-info-overlay absolute left-0 right-0 bottom-0 z-20 p-4 pointer-events-none">
                     <div class="pointer-events-auto">
                         <h3 class="font-bold text-base drop-shadow-md inline-block"><a href="./view-profile.html?username=chef_mario" class="hover:underline">@chef_mario</a></h3>
                         <p class="text-sm mt-1 text-gray-100 line-clamp-2 leading-snug drop-shadow-sm">Making the ULTIMATE crispy artisan garlic bread 🥖🧄 Would you eat this whole loaf? <span class="font-semibold text-tiktok-cyan cursor-pointer">#foodie</span> <span class="font-semibold text-tiktok-cyan cursor-pointer">#recipe</span></p>
@@ -315,7 +398,7 @@
                 </div>
 
                 <!-- RIGHT SIDE ACTIONS COLUMN -->
-                <div class="absolute right-3 bottom-6 z-20 flex flex-col items-center space-y-5">
+                <div class="feed-action-column absolute right-3 bottom-6 z-20 flex flex-col items-center space-y-5">
                     <div class="relative group">
                         <a href="./view-profile.html?username=nature_escapes" aria-label="View @nature_escapes's profile" class="block rounded-full focus-visible:outline focus-visible:outline-2 focus-visible:outline-white">
                             <img src="https://images.unsplash.com/photo-1544005313-94ddf0286df2?auto=format&fit=crop&w=150&q=80" class="w-12 h-12 rounded-full border-2 border-white object-cover shadow-lg transition group-hover:scale-105" alt="">
@@ -350,7 +433,7 @@
                         <button onclick="openShareModal()" class="p-2 rounded-full hover:bg-white/10 transition active:scale-75 text-white">
                             <i data-lucide="share-2" class="w-8 h-8 drop-shadow-md" aria-hidden="true"></i>
                         </button>
-                        <span class="text-xs font-semibold drop-shadow-md mt-0.5">8,900</span>
+                        <span class="share-count text-xs font-semibold drop-shadow-md mt-0.5">8,900</span>
                     </div>
 
                     <div class="mt-2 cursor-pointer" onclick="requireUser().then(user => user && (trackPageActivity('view_audio', { audio: 'Chill Lofi Ambient Rain' }), showToast('Audio: Chill Lofi Ambient Rain')))">
@@ -361,7 +444,7 @@
                 </div>
 
                 <!-- BOTTOM OVERLAY DETAILS -->
-                <div class="absolute bottom-2 left-0 right-16 z-20 p-4 bg-gradient-to-t from-black/80 via-black/30 to-transparent pointer-events-none">
+                <div class="feed-info-overlay absolute left-0 right-0 bottom-0 z-20 p-4 pointer-events-none">
                     <div class="pointer-events-auto">
                         <h3 class="font-bold text-base drop-shadow-md inline-block"><a href="./view-profile.html?username=nature_escapes" class="hover:underline">@nature_escapes</a></h3>
                         <p class="text-sm mt-1 text-gray-100 line-clamp-2 leading-snug drop-shadow-sm">Serene sunset above the clouds in the Swiss Alps 🏔️ Real peace exists right here. <span class="font-semibold text-tiktok-cyan cursor-pointer">#travel</span> <span class="font-semibold text-tiktok-cyan cursor-pointer">#mountains</span></p>
@@ -519,6 +602,7 @@
         <div id="toast" class="absolute top-16 left-1/2 -translate-x-1/2 z-50 bg-gray-800/90 text-white text-xs px-4 py-2 rounded-full opacity-0 pointer-events-none transition-opacity duration-300 shadow-xl border border-gray-700">
             Toast Message
         </div>
+
     </div>
 
     <script>
@@ -734,6 +818,7 @@
                 );
                 const targetUserId = card?.dataset.userId;
                 if (targetUserId) {
+                    window.setFollowedCreator?.(targetUserId, following);
                     document.querySelectorAll('.video-card').forEach(otherCard => {
                         if (otherCard.dataset.userId !== targetUserId) return;
                         const followButton = otherCard.querySelector('.follow-btn');
@@ -930,7 +1015,16 @@
         async function switchTab(tab) {
             const user = await window.requireUser();
             if (!user) return;
-            await window.trackPageActivity('feed_tab', { tab });
+            window.trackPageActivity('feed_tab', { tab }).catch(error => {
+                console.error('Unable to record feed tab activity:', error);
+            });
+            try {
+                await window.setFeedTab(tab);
+            } catch (error) {
+                console.error('Unable to switch feed tab:', error);
+                window.showToast('Could not load this feed. Please try again.');
+                return;
+            }
             const indFollowing = document.getElementById('indicator-following');
             const indForYou = document.getElementById('indicator-foryou');
             const btnFollowing = document.getElementById('tab-following');
@@ -1124,6 +1218,9 @@
         const authReady = new Promise(resolve => { authReadyResolve = resolve; });
         let currentUser = auth.currentUser;
         let unsubscribeUnreadMessages = null;
+        let publishedVideos = [];
+        let followedCreatorIds = new Set();
+        let activeFeedTab = 'foryou';
         let selectedMedia = null;
         let cameraStream = null;
         let mediaRecorder = null;
@@ -1135,6 +1232,13 @@
             currentUser = user;
             unsubscribeUnreadMessages?.();
             unsubscribeUnreadMessages = subscribeToUnreadMessages(db, user?.uid);
+            if (user && activeFeedTab === 'following') {
+                window.setFeedTab('following').catch(error => {
+                    console.error('Unable to refresh followed creators:', error);
+                    window.showToast('Could not load videos from creators you follow.');
+                });
+            }
+
             if (window.commentAuthorProfileCache?.uid !== user?.uid) {
                 window.commentAuthorProfileCache = null;
             }
@@ -1736,7 +1840,7 @@
                         <i data-lucide="play" class="w-8 h-8 text-white fill-white ml-1" aria-hidden="true"></i>
                     </div>
                 </div>
-                <div class="absolute right-3 bottom-6 z-20 flex flex-col items-center space-y-5">
+                <div class="feed-action-column absolute right-3 bottom-6 z-20 flex flex-col items-center space-y-5">
                     <div class="relative">
                         ${creatorProfileHref
                             ? `<a href="${escapeHtml(creatorProfileHref)}" aria-label="View ${escapeHtml(uploadedBy)}'s profile" class="block rounded-full focus-visible:outline focus-visible:outline-2 focus-visible:outline-white">${avatar}</a>`
@@ -1768,7 +1872,7 @@
                         <span class="share-count text-xs font-semibold drop-shadow-md mt-0.5">${escapeHtml(window.formatNumber(shares))}</span>
                     </div>
                 </div>
-                <div class="absolute bottom-2 left-0 right-16 z-20 p-4 bg-gradient-to-t from-black/80 via-black/30 to-transparent pointer-events-none">
+                <div class="feed-info-overlay absolute left-0 right-0 bottom-0 z-20 p-4 pointer-events-none">
                     <div class="pointer-events-auto">
                         <h3 class="font-bold text-base drop-shadow-md inline-block">${creatorProfileHref
                             ? `<a href="${escapeHtml(creatorProfileHref)}" class="hover:underline">${escapeHtml(uploadedBy)}</a>`
@@ -1801,6 +1905,67 @@
             return card;
         }
 
+        async function renderFeedTab() {
+            videoFeed.replaceChildren();
+            const videos = activeFeedTab === 'following'
+                ? publishedVideos.filter(video => video.userId && followedCreatorIds.has(video.userId))
+                : publishedVideos;
+            if (!videos.length) {
+                const empty = document.createElement('div');
+                empty.className = 'absolute inset-0 flex items-center justify-center px-8 text-center text-sm text-gray-300';
+                empty.textContent = activeFeedTab === 'following'
+                    ? followedCreatorIds.size
+                        ? 'Creators you follow have not published any videos yet.'
+                        : 'Follow creators to see their videos here.'
+                    : 'No published videos are available yet.';
+                videoFeed.append(empty);
+                return;
+            }
+            const cards = videos.map(video => makeCard(video.id, video)).filter(Boolean);
+            if (!cards.length) {
+                const empty = document.createElement('div');
+                empty.className = 'absolute inset-0 flex items-center justify-center px-8 text-center text-sm text-gray-300';
+                empty.textContent = 'No playable videos are available in this feed.';
+                videoFeed.append(empty);
+                return;
+            }
+            cards.forEach(card => videoFeed.append(card));
+            lucide.createIcons();
+            restoreLikedState();
+            try {
+                await restoreFollowButtons(currentUser);
+            } catch (error) {
+                console.error('Unable to load followed creators:', error);
+            }
+            window.setupIntersectionObserver();
+            window.setupDoubleTapHearts();
+        }
+
+        window.setFeedTab = async tab => {
+            const nextTab = tab === 'following' ? 'following' : 'foryou';
+            if (nextTab === 'following') {
+                if (!currentUser) throw new Error('Sign in to view videos from creators you follow.');
+                const followingIds = await getFollowingUserIds(currentUser.uid);
+                followedCreatorIds = new Set(followingIds);
+            }
+            activeFeedTab = nextTab;
+            await renderFeedTab();
+        };
+
+        window.setFollowedCreator = (creatorId, following) => {
+            if (following) {
+                followedCreatorIds.add(creatorId);
+            } else {
+                followedCreatorIds.delete(creatorId);
+            }
+            if (activeFeedTab === 'following') {
+                renderFeedTab().catch(error => {
+                    console.error('Unable to update followed-creator feed:', error);
+                    window.showToast('Could not refresh the Following feed.');
+                });
+            }
+        };
+
         async function loadVideos() {
             videoFeed.replaceChildren();
             const loading = document.createElement('div');
@@ -1825,30 +1990,17 @@
                         console.error(`Unable to load verification for creator ${creatorId}:`, error);
                     }
                 }));
-                const cards = videos
-                    .map(video => makeCard(video.id, {
+                publishedVideos = videos
+                    .map(video => ({
                         ...video,
                         creatorVerified: verifiedCreators.has(video.userId) || video.verify === 'yes'
                     }))
-                    .filter(Boolean);
-                videoFeed.replaceChildren();
-                if (!cards.length) {
-                    const empty = document.createElement('div');
-                    empty.className = 'absolute inset-0 flex items-center justify-center px-8 text-center text-sm text-gray-300';
-                    empty.textContent = 'No admin videos are available yet.';
-                    videoFeed.append(empty);
-                    return;
-                }
-                cards.forEach(card => videoFeed.append(card));
-                lucide.createIcons();
-                restoreLikedState();
-                try {
-                    await restoreFollowButtons(currentUser);
-                } catch (error) {
-                    console.error('Unable to load followed creators:', error);
-                }
-                window.setupIntersectionObserver();
-                window.setupDoubleTapHearts();
+                    .sort((left, right) => {
+                        const leftTime = left.createdAt?.toMillis?.() || 0;
+                        const rightTime = right.createdAt?.toMillis?.() || 0;
+                        return rightTime - leftTime;
+                    });
+                await renderFeedTab();
             } catch (error) {
                 console.error('Unable to load videos from Firestore:', error);
                 videoFeed.replaceChildren();

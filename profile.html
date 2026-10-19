@@ -8,6 +8,7 @@
     <link rel="icon" type="image/png" href="./earntok-logo.png">
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://unpkg.com/lucide@latest"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
     <style>
         :root { color-scheme: light; }
         body { min-height: 100vh; }
@@ -27,6 +28,11 @@
         .border-zinc-800, .border-zinc-700 { border-color: #e4e4e8 !important; }
         .field { background: #fff; border-color: #d8d8de; color: #161823; }
         .tab-active { color: #161823; }
+        #account-sidebar-backdrop { opacity: 0; pointer-events: none; transition: opacity .2s ease; }
+        #account-sidebar-backdrop.is-open { opacity: 1; pointer-events: auto; }
+        #account-sidebar { transform: translateX(100%); transition: transform .25s ease; }
+        #account-sidebar.is-open { transform: translateX(0); }
+        .activity-tab.is-active { color: #161823; border-color: #fe2c55; }
         .text-sky-400 { color: #0284c7 !important; }
         p.text-cyan-300 { color: #0e7490 !important; }
         p.text-rose-300 { color: #be123c !important; }
@@ -54,21 +60,67 @@
 <body class="bg-zinc-950 text-zinc-100 antialiased">
     <header class="sticky top-0 z-20 border-b border-zinc-800 bg-zinc-950/90 backdrop-blur">
         <div class="mx-auto flex max-w-5xl items-center justify-between px-4 py-3">
-            <a href="./index.html" class="text-zinc-100 hover:opacity-80" aria-label="Back to feed">
-                <i data-lucide="arrow-left" class="h-6 w-6 stroke-[2.5]" aria-hidden="true"></i>
-            </a>
+            <button id="edit-profile-button" class="text-zinc-100 hover:opacity-80" type="button" aria-label="Edit profile">
+            <i data-lucide="pencil" class="h-6 w-6 stroke-[2.5]" aria-hidden="true"></i>
+            </button>
             <div class="flex items-center gap-3">
-                <button id="edit-profile-button" class="text-zinc-900 hover:opacity-80" type="button" aria-label="Edit profile">
-                <i data-lucide="pencil" class="h-6 w-6 stroke-[2.5]" aria-hidden="true"></i>
-                </button>
                 <button id="viewers-icon-button" class="relative text-zinc-100 hover:opacity-80 p-1" aria-label="Profile viewers" title="Profile viewers">
-                    <i data-lucide="eye" class="h-6 w-6 stroke-[2.2]" aria-hidden="true"></i>
+                    <i data-lucide="eye" class="h-6 w-6 stroke-[2.5]" aria-hidden="true"></i>
                     <span id="viewer-badge" class="absolute -top-1 -right-1 hidden bg-rose-500 text-white text-[10px] font-bold px-1.5 py-0.2 rounded-full">0</span>
                 </button>
-
+                <button id="account-sidebar-toggle" type="button" class="text-zinc-100 hover:opacity-80 p-1" aria-label="Open account menu" aria-expanded="false" aria-controls="account-sidebar">
+                    <i data-lucide="menu" class="h-6 w-6 stroke-[2.5]" aria-hidden="true"></i>
+                </button>
             </div>
         </div>
     </header>
+    <button id="account-sidebar-backdrop" class="fixed inset-0 z-40 bg-black/55" type="button" aria-label="Close account menu"></button>
+    <aside id="account-sidebar" class="fixed right-0 top-0 bottom-0 z-50 flex w-80 max-w-[88%] flex-col border-l border-zinc-200 bg-white text-zinc-900 shadow-2xl" aria-label="Account menu" aria-hidden="true">
+        <div class="flex items-center justify-between border-b border-zinc-200 px-5 py-4">
+            <h2 class="text-lg font-bold">More</h2>
+            <button id="account-sidebar-close" type="button" class="rounded-full p-2 text-zinc-500 hover:bg-zinc-100" aria-label="Close account menu"><i data-lucide="x" class="h-5 w-5" aria-hidden="true"></i></button>
+        </div>
+        <nav class="space-y-1 overflow-y-auto p-3" aria-label="More options">
+            <a href="./wallet.html" class="flex items-center gap-3 rounded-xl px-3 py-3 text-sm font-semibold hover:bg-zinc-100"><i data-lucide="wallet" class="h-5 w-5 text-zinc-600"></i>Wallet</a>
+            <button id="activity-center-open" type="button" class="flex w-full items-center gap-3 rounded-xl px-3 py-3 text-left text-sm font-semibold hover:bg-zinc-100"><i data-lucide="history" class="h-5 w-5 text-zinc-600"></i>Activity center</button>
+            <button id="profile-qr-open" type="button" class="flex w-full items-center gap-3 rounded-xl px-3 py-3 text-left text-sm font-semibold hover:bg-zinc-100"><i data-lucide="qr-code" class="h-5 w-5 text-zinc-600"></i>Your QR code</button>
+            <a href="./boosts-and-ads.html" class="flex items-center gap-3 rounded-xl px-3 py-3 text-sm font-semibold hover:bg-zinc-100"><i data-lucide="megaphone" class="h-5 w-5 text-zinc-600"></i>Boost and Ads</a>
+            <a href="./settings.html" class="flex items-center gap-3 rounded-xl px-3 py-3 text-sm font-semibold hover:bg-zinc-100"><i data-lucide="settings-2" class="h-5 w-5 text-zinc-600"></i>Settings and privacy</a>
+        </nav>
+        <div class="mt-auto border-t border-zinc-200 p-3">
+            <p id="sidebar-logout-message" class="mb-2 hidden rounded-lg bg-rose-50 p-2 text-xs text-rose-700" role="alert"></p>
+            <button id="sidebar-logout-button" type="button" class="flex w-full items-center gap-3 rounded-xl px-3 py-3 text-left text-sm font-semibold text-rose-600 hover:bg-rose-50"><i data-lucide="log-out" class="h-5 w-5"></i>Log out</button>
+        </div>
+    </aside>
+    <div id="activity-center-modal" class="fixed inset-0 z-[60] hidden items-center justify-center bg-black/60 p-4" aria-hidden="true">
+        <section class="flex max-h-[85dvh] w-full max-w-lg flex-col overflow-hidden rounded-2xl bg-white text-zinc-900 shadow-2xl" role="dialog" aria-modal="true" aria-labelledby="activity-center-title">
+            <div class="flex items-center justify-between border-b border-zinc-100 px-5 py-4">
+                <h2 id="activity-center-title" class="text-lg font-bold">Activity center</h2>
+                <button id="activity-center-close" type="button" class="rounded-lg p-2 text-zinc-500 hover:bg-zinc-100" aria-label="Close activity center"><i data-lucide="x" class="h-5 w-5"></i></button>
+            </div>
+            <div class="grid grid-cols-3 border-b border-zinc-100" role="tablist" aria-label="Activity history">
+                <button class="activity-tab is-active border-b-2 px-2 py-3 text-sm font-bold" data-history-tab="watch" type="button" role="tab" aria-selected="true">Watch history</button>
+                <button class="activity-tab border-b-2 border-transparent px-2 py-3 text-sm font-semibold text-zinc-500" data-history-tab="comments" type="button" role="tab" aria-selected="false">Comment history</button>
+                <button class="activity-tab border-b-2 border-transparent px-2 py-3 text-sm font-semibold text-zinc-500" data-history-tab="searches" type="button" role="tab" aria-selected="false">Search history</button>
+            </div>
+            <p id="activity-center-message" class="hidden mx-5 mt-3 rounded-lg border border-rose-200 bg-rose-50 p-3 text-sm text-rose-600" role="alert"></p>
+            <div id="activity-center-list" class="min-h-40 flex-1 overflow-y-auto divide-y divide-zinc-100 px-5 py-2" role="tabpanel"></div>
+        </section>
+    </div>
+    <div id="profile-qr-modal" class="fixed inset-0 z-[60] hidden items-center justify-center bg-black/60 p-4" aria-hidden="true">
+        <section class="w-full max-w-sm rounded-2xl bg-white p-6 text-center text-zinc-900 shadow-2xl" role="dialog" aria-modal="true" aria-labelledby="profile-qr-title">
+            <div class="flex items-center justify-between">
+                <h2 id="profile-qr-title" class="text-lg font-bold">Your QR code</h2>
+                <button id="profile-qr-close" type="button" class="rounded-lg p-2 text-zinc-500 hover:bg-zinc-100" aria-label="Close QR code"><i data-lucide="x" class="h-5 w-5"></i></button>
+            </div>
+            <div id="profile-qr-code" class="mx-auto mt-5 flex min-h-52 w-52 items-center justify-center rounded-xl border border-zinc-100 bg-white p-3"></div>
+            <p class="mt-4 text-sm text-zinc-500">Scan to open your EarnTok profile.</p>
+            <a id="profile-qr-link" class="mt-2 block break-all text-xs text-sky-700 underline" href="#" target="_blank" rel="noopener"></a>
+            <button id="profile-qr-copy" type="button" class="mt-4 rounded-xl bg-zinc-900 px-5 py-2.5 text-sm font-bold text-white hover:bg-zinc-700">Copy profile link</button>
+            <p id="profile-qr-error" class="mt-3 hidden text-sm text-rose-600" role="alert"></p>
+            <p id="profile-qr-status" class="mt-3 hidden text-sm text-emerald-700" role="status"></p>
+        </section>
+    </div>
     <!-- BOTTOM MOBILE NAVIGATION BAR -->
     <nav class="fixed inset-x-0 bottom-0 z-30 flex items-center justify-around border-t border-zinc-200 bg-white px-3 pt-2 pb-[max(.5rem,env(safe-area-inset-bottom))] text-xs font-medium shadow-[0_-4px_16px_rgba(0,0,0,.06)]">
         <a href="./index.html" class="flex flex-col items-center space-y-0.5 text-gray-400 hover:text-black" aria-label="Home">
@@ -171,6 +223,7 @@
         import { auth, db } from './firebase.js';
         import { getUserFollowStats } from './follows.js';
         import { createProfileVideoViewer } from './profile-video-viewer.js';
+        import { signOut } from 'https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js';
         import { subscribeToUnreadMessages } from './unread-messages.js';
         import { onAuthStateChanged, updateProfile } from 'https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js';
         import {
@@ -648,6 +701,220 @@
             } catch (error) {
                 showError(error);
             }
+        });
+
+        let activityHistory = [];
+        let activeHistoryTab = 'watch';
+        const sidebar = document.getElementById('account-sidebar');
+        const sidebarToggle = document.getElementById('account-sidebar-toggle');
+        const sidebarBackdrop = document.getElementById('account-sidebar-backdrop');
+        const activityCenter = document.getElementById('activity-center-modal');
+        const activityCenterList = document.getElementById('activity-center-list');
+        const activityCenterMessage = document.getElementById('activity-center-message');
+        const qrModal = document.getElementById('profile-qr-modal');
+
+        function setSidebarOpen(open) {
+            sidebar.classList.toggle('is-open', open);
+            sidebarBackdrop.classList.toggle('is-open', open);
+            sidebar.setAttribute('aria-hidden', String(!open));
+            sidebarToggle.setAttribute('aria-expanded', String(open));
+            sidebarToggle.setAttribute('aria-label', open ? 'Close account menu' : 'Open account menu');
+        }
+
+        function historyTime(value) {
+            const date = value?.toDate ? value.toDate() : value instanceof Date ? value : null;
+            return date && !Number.isNaN(date.getTime())
+                ? new Intl.DateTimeFormat(undefined, { dateStyle: 'medium', timeStyle: 'short' }).format(date)
+                : '';
+        }
+
+        function setActivityHistoryTab(tab) {
+            activeHistoryTab = tab;
+            document.querySelectorAll('.activity-tab').forEach(button => {
+                const selected = button.dataset.historyTab === tab;
+                button.classList.toggle('is-active', selected);
+                button.classList.toggle('border-transparent', !selected);
+                button.classList.toggle('text-zinc-500', !selected);
+                button.classList.toggle('font-bold', selected);
+                button.classList.toggle('font-semibold', !selected);
+                button.setAttribute('aria-selected', String(selected));
+            });
+            renderActivityHistory();
+        }
+
+        function renderActivityHistory() {
+            activityCenterMessage.classList.add('hidden');
+            const actionItems = activeHistoryTab === 'watch'
+                ? [...new Map(activityHistory
+                    .filter(item => ['play', 'pause'].includes(item.action) && item.videoId)
+                    .map(item => [item.videoId, item])).values()]
+                : activeHistoryTab === 'comments'
+                    ? activityHistory.filter(item => item.action === 'comment')
+                    : activityHistory.filter(item => ['search', 'search_opened'].includes(item.action));
+            if (!actionItems.length) {
+                activityCenterList.innerHTML = `<p class="py-12 text-center text-sm text-zinc-500">No ${activeHistoryTab === 'watch' ? 'watch' : activeHistoryTab === 'comments' ? 'comment' : 'search'} history yet.</p>`;
+                return;
+            }
+            activityCenterList.innerHTML = actionItems.map(item => {
+                const details = item.details || {};
+                let title;
+                let subtitle;
+                let icon;
+                if (activeHistoryTab === 'watch') {
+                    const video = item.video || {};
+                    title = video.description || 'Video';
+                    subtitle = `${item.action === 'play' ? 'Watched' : 'Paused'}${video.username ? ` · @${video.username}` : ''}`;
+                    icon = 'play';
+                } else if (activeHistoryTab === 'comments') {
+                    const video = item.video || {};
+                    title = details.text || 'Comment';
+                    subtitle = video.description ? `On: ${video.description}` : 'Commented on a video';
+                    icon = 'message-circle';
+                } else {
+                    title = details.term || details.query || details.searchTerm || 'Search';
+                    subtitle = 'Searched EarnTok';
+                    icon = 'search';
+                }
+                return `<article class="flex items-start gap-3 py-3">
+                    <span class="mt-0.5 flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-zinc-100 text-zinc-600"><i data-lucide="${icon}" class="h-4 w-4" aria-hidden="true"></i></span>
+                    <div class="min-w-0 flex-1">
+                        <p class="break-words text-sm font-semibold text-zinc-900">${escapeHtml(title)}</p>
+                        <p class="mt-1 break-words text-xs text-zinc-500">${escapeHtml(subtitle)}</p>
+                    </div>
+                    <time class="shrink-0 text-right text-[11px] text-zinc-400">${escapeHtml(historyTime(item.createdAt))}</time>
+                </article>`;
+            }).join('');
+            lucide.createIcons();
+        }
+
+        async function loadActivityHistory() {
+            if (!user) return;
+            activityCenterMessage.classList.add('hidden');
+            activityCenterList.innerHTML = '<p class="py-12 text-center text-sm text-zinc-500">Loading history…</p>';
+            try {
+                const snapshot = await getDocs(query(collection(db, 'activity'), where('userId', '==', user.uid)));
+                activityHistory = snapshot.docs.map(item => ({ id: item.id, ...item.data() }))
+                    .sort((left, right) => (right.createdAt?.toMillis?.() || 0) - (left.createdAt?.toMillis?.() || 0))
+                    .slice(0, 300);
+                const videoIds = [...new Set(activityHistory
+                    .filter(item => ['play', 'pause', 'comment'].includes(item.action) && item.videoId)
+                    .map(item => item.videoId))];
+                const videoResults = await Promise.allSettled(videoIds.map(async id => {
+                    const videoSnapshot = await getDoc(doc(db, 'videos', id));
+                    return [id, videoSnapshot.exists() ? videoSnapshot.data() : null];
+                }));
+                const failures = videoResults.filter(result => result.status === 'rejected');
+                failures.forEach(result => console.error('Unable to load a video referenced by activity history:', result.reason));
+                const videosById = new Map(videoResults
+                    .filter(result => result.status === 'fulfilled')
+                    .map(result => result.value));
+                activityHistory = activityHistory.map(item => ({ ...item, video: videosById.get(item.videoId) || null }));
+                renderActivityHistory();
+                if (failures.length) {
+                    activityCenterMessage.textContent = 'Some video details could not be loaded, but your available history is shown.';
+                    activityCenterMessage.classList.remove('hidden');
+                }
+            } catch (error) {
+                console.error('Unable to load activity history:', error);
+                activityCenterList.innerHTML = '';
+                activityCenterMessage.textContent = 'Could not load activity history. Check your connection and Firestore permissions.';
+                activityCenterMessage.classList.remove('hidden');
+            }
+        }
+
+        async function openActivityCenter() {
+            if (!user) return;
+            setSidebarOpen(false);
+            activityCenter.classList.remove('hidden');
+            activityCenter.classList.add('flex');
+            activityCenter.setAttribute('aria-hidden', 'false');
+            setActivityHistoryTab('watch');
+            await loadActivityHistory();
+        }
+
+        function openProfileQr() {
+            if (!user) return;
+            setSidebarOpen(false);
+            const profileUrl = new URL(`./view-profile.html?uid=${encodeURIComponent(user.uid)}`, location.href).href;
+            const qrContainer = document.getElementById('profile-qr-code');
+            const qrError = document.getElementById('profile-qr-error');
+            qrContainer.replaceChildren();
+            qrError.classList.add('hidden');
+            document.getElementById('profile-qr-link').href = profileUrl;
+            document.getElementById('profile-qr-link').textContent = profileUrl;
+            qrModal.classList.remove('hidden');
+            qrModal.classList.add('flex');
+            qrModal.setAttribute('aria-hidden', 'false');
+            if (typeof window.QRCode !== 'function') {
+                qrError.textContent = 'The QR code could not be generated. You can still open or copy your profile link.';
+                qrError.classList.remove('hidden');
+                return;
+            }
+            new window.QRCode(qrContainer, {
+                text: profileUrl,
+                width: 184,
+                height: 184,
+                correctLevel: window.QRCode.CorrectLevel.M
+            });
+        }
+
+        sidebarToggle.addEventListener('click', () => setSidebarOpen(!sidebar.classList.contains('is-open')));
+        sidebarBackdrop.addEventListener('click', () => setSidebarOpen(false));
+        document.getElementById('account-sidebar-close').addEventListener('click', () => setSidebarOpen(false));
+        document.getElementById('activity-center-open').addEventListener('click', openActivityCenter);
+        document.getElementById('profile-qr-open').addEventListener('click', openProfileQr);
+        document.querySelectorAll('.activity-tab').forEach(button => {
+            button.addEventListener('click', () => setActivityHistoryTab(button.dataset.historyTab));
+        });
+        document.getElementById('activity-center-close').addEventListener('click', () => {
+            activityCenter.classList.add('hidden');
+            activityCenter.classList.remove('flex');
+            activityCenter.setAttribute('aria-hidden', 'true');
+        });
+        activityCenter.addEventListener('click', event => {
+            if (event.target === activityCenter) document.getElementById('activity-center-close').click();
+        });
+        document.getElementById('profile-qr-close').addEventListener('click', () => {
+            qrModal.classList.add('hidden');
+            qrModal.classList.remove('flex');
+            qrModal.setAttribute('aria-hidden', 'true');
+        });
+        qrModal.addEventListener('click', event => {
+            if (event.target === qrModal) document.getElementById('profile-qr-close').click();
+        });
+        document.getElementById('profile-qr-copy').addEventListener('click', async () => {
+            const profileUrl = document.getElementById('profile-qr-link').href;
+            try {
+                await navigator.clipboard.writeText(profileUrl);
+                const status = document.getElementById('profile-qr-status');
+                status.textContent = 'Profile link copied.';
+                status.classList.remove('hidden');
+            } catch (error) {
+                console.error('Unable to copy profile link:', error);
+                document.getElementById('profile-qr-error').textContent = 'Could not copy the link. Select and copy it above.';
+                document.getElementById('profile-qr-error').classList.remove('hidden');
+            }
+        });
+        document.getElementById('sidebar-logout-button').addEventListener('click', async event => {
+            const button = event.currentTarget;
+            const message = document.getElementById('sidebar-logout-message');
+            button.disabled = true;
+            message.classList.add('hidden');
+            try {
+                await signOut(auth);
+                location.replace('./oauth.html');
+            } catch (error) {
+                console.error('Unable to sign out:', error);
+                message.textContent = error.message || 'Could not log out. Please try again.';
+                message.classList.remove('hidden');
+                button.disabled = false;
+            }
+        });
+        document.addEventListener('keydown', event => {
+            if (event.key !== 'Escape') return;
+            if (!activityCenter.classList.contains('hidden')) document.getElementById('activity-center-close').click();
+            else if (!qrModal.classList.contains('hidden')) document.getElementById('profile-qr-close').click();
+            else setSidebarOpen(false);
         });
 
         onAuthStateChanged(auth, async currentUser => {

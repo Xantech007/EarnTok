@@ -1,0 +1,418 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="theme-color" content="#ffffff">
+    <title>EarnTok · Buy Coins</title>
+    <link rel="icon" type="image/png" href="./earntok-logo.png">
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <style>
+        :root { color-scheme: light; }
+        body { min-height: 100vh; }
+        body.bg-zinc-950 { background: #fff !important; color: #161823 !important; }
+        .bg-zinc-950, .bg-zinc-950\/90 { background-color: #fff !important; }
+        .bg-zinc-900, .bg-zinc-900\/90, .bg-zinc-900\/70 { background-color: #f8f8fa !important; }
+        .bg-zinc-800 { background-color: #f1f1f2 !important; }
+        .text-zinc-100 { color: #161823 !important; }
+        .text-zinc-300 { color: #454550 !important; }
+        .text-zinc-400, .text-zinc-500 { color: #777782 !important; }
+        .border-zinc-800, .border-zinc-700 { border-color: #e4e4e8 !important; }
+        .field { width: 100%; border: 1px solid #d8d8de; border-radius: .75rem; background: #fff; padding: .75rem .875rem; color: #161823; outline: none; }
+        .field:focus { border-color: #fe2c55; box-shadow: 0 0 0 3px rgb(254 44 85 / 10%); }
+        .buy-tab[aria-selected="true"] { color: #161823; border-color: #fe2c55; font-weight: 700; }
+    </style>
+</head>
+<body class="bg-zinc-950 text-zinc-100 antialiased">
+    <header class="sticky top-0 z-20 border-b border-zinc-800 bg-zinc-950/90 backdrop-blur">
+        <div class="mx-auto flex max-w-3xl items-center justify-between px-4 py-3">
+            <button type="button" data-history-back class="p-1 text-zinc-100 hover:opacity-80" aria-label="Go back">
+                <i data-lucide="arrow-left" class="h-6 w-6 stroke-[2.5]" aria-hidden="true"></i>
+            </button>
+            <h1 class="text-lg font-bold">Buy Coins</h1>
+            <a href="./withdraw-coins.html" class="text-sm font-semibold text-zinc-100 hover:opacity-80">Withdraw Coins</a>
+        </div>
+    </header>
+    <main class="mx-auto max-w-3xl px-4 py-6 pb-12">
+        <p id="buy-coins-message" class="mb-4 hidden rounded-xl border p-3 text-sm" role="status"></p>
+        <div class="mb-5 grid grid-cols-2 border-b border-zinc-200" role="tablist" aria-label="Coin payment method">
+            <button id="crypto-tab" class="buy-tab border-b-2 border-transparent px-4 py-3 text-sm text-zinc-500" type="button" role="tab" aria-selected="true" aria-controls="crypto-panel">Crypto</button>
+            <button id="p2p-tab" class="buy-tab border-b-2 border-transparent px-4 py-3 text-sm text-zinc-500" type="button" role="tab" aria-selected="false" aria-controls="p2p-panel">P2P</button>
+        </div>
+
+        <section id="crypto-panel" role="tabpanel" aria-labelledby="crypto-tab">
+            <div class="mb-5">
+                <h2 class="text-xl font-bold">Buy with crypto</h2>
+                <p class="mt-1 text-sm text-zinc-500">Choose a payment address, transfer the exact amount, then submit your proof. Coins are added to your available balance after admin approval.</p>
+            </div>
+            <div id="crypto-options" class="space-y-3"></div>
+            <form id="crypto-order-form" class="mt-5 space-y-4 rounded-2xl border border-zinc-200 bg-white p-5">
+                <h3 class="font-bold">Submit crypto payment</h3>
+                <label class="block text-sm font-semibold text-zinc-700">Payment address
+                    <select id="crypto-choice" class="field mt-2" required></select>
+                </label>
+                <label class="block text-sm font-semibold text-zinc-700">Coins to buy
+                    <input id="crypto-coins" class="field mt-2" type="number" min="1" step="1" inputmode="numeric" required>
+                </label>
+                <p id="crypto-estimate" class="text-sm text-zinc-500"></p>
+                <label class="block text-sm font-semibold text-zinc-700">Transaction reference (optional)
+                    <input id="crypto-reference" class="field mt-2" maxlength="160" autocomplete="off">
+                </label>
+                <label class="block text-sm font-semibold text-zinc-700">Payment proof (image or PDF)
+                    <input id="crypto-proof" class="field mt-2" type="file" accept="image/*,application/pdf" required>
+                </label>
+                <button id="crypto-submit" class="w-full rounded-xl bg-rose-500 px-5 py-3 font-bold text-white hover:bg-rose-600 disabled:cursor-wait disabled:opacity-60" type="submit">Submit for review</button>
+            </form>
+        </section>
+
+        <section id="p2p-panel" class="hidden" role="tabpanel" aria-labelledby="p2p-tab" aria-hidden="true">
+            <div class="mb-5">
+                <h2 class="text-xl font-bold">Buy from a merchant</h2>
+                <p class="mt-1 text-sm text-zinc-500">Pick a merchant, send payment using the displayed method and submit your receipt. The merchant’s coin inventory is reserved only after admin approval.</p>
+            </div>
+            <div id="merchant-options" class="space-y-3"></div>
+            <form id="p2p-order-form" class="mt-5 space-y-4 rounded-2xl border border-zinc-200 bg-white p-5">
+                <h3 class="font-bold">Submit P2P payment</h3>
+                <label class="block text-sm font-semibold text-zinc-700">Merchant
+                    <select id="merchant-choice" class="field mt-2" required></select>
+                </label>
+                <div id="merchant-instructions" class="hidden rounded-xl bg-zinc-50 p-4 text-sm text-zinc-600"></div>
+                <label class="block text-sm font-semibold text-zinc-700">Coins to buy
+                    <input id="p2p-coins" class="field mt-2" type="number" min="1" step="1" inputmode="numeric" required>
+                </label>
+                <label class="block text-sm font-semibold text-zinc-700">Payment reference (optional)
+                    <input id="p2p-reference" class="field mt-2" maxlength="160" autocomplete="off">
+                </label>
+                <label class="block text-sm font-semibold text-zinc-700">Payment receipt (image or PDF)
+                    <input id="p2p-proof" class="field mt-2" type="file" accept="image/*,application/pdf" required>
+                </label>
+                <button id="p2p-submit" class="w-full rounded-xl bg-rose-500 px-5 py-3 font-bold text-white hover:bg-rose-600 disabled:cursor-wait disabled:opacity-60" type="submit">Submit for review</button>
+            </form>
+        </section>
+
+        <section class="mt-8">
+            <h2 class="mb-3 text-lg font-bold">Your coin purchase requests</h2>
+            <div id="purchase-history" class="divide-y divide-zinc-100 rounded-2xl border border-zinc-200 bg-white">
+                <p class="p-5 text-center text-sm text-zinc-500">Loading requests…</p>
+            </div>
+        </section>
+    </main>
+    <script type="module">
+        import { auth, db } from './firebase.js';
+        import { enableHistoryBack } from './navigation.js';
+        import { onAuthStateChanged } from 'https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js';
+        import {
+            collection, doc, getDoc, getDocs, limit, query, serverTimestamp, setDoc, where, writeBatch
+        } from 'https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js';
+
+        lucide.createIcons();
+        enableHistoryBack();
+        const configRef = doc(db, 'admin', 'coinPayments');
+        const cryptoOptions = document.getElementById('crypto-options');
+        const merchantOptions = document.getElementById('merchant-options');
+        const cryptoChoice = document.getElementById('crypto-choice');
+        const merchantChoice = document.getElementById('merchant-choice');
+        const message = document.getElementById('buy-coins-message');
+        let user = null;
+        let cryptoMethods = [];
+        let merchants = [];
+
+        function escapeHtml(value) {
+            return String(value ?? '').replace(/[&<>"']/g, character => ({
+                '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;'
+            })[character]);
+        }
+
+        function showMessage(text, isError = false) {
+            message.textContent = text;
+            message.classList.remove('hidden', 'border-rose-200', 'bg-rose-50', 'text-rose-600', 'border-emerald-200', 'bg-emerald-50', 'text-emerald-700');
+            message.classList.add(...(isError
+                ? ['border-rose-200', 'bg-rose-50', 'text-rose-600']
+                : ['border-emerald-200', 'bg-emerald-50', 'text-emerald-700']));
+            message.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        }
+
+        function setTab(tab) {
+            const cryptoActive = tab === 'crypto';
+            document.getElementById('crypto-tab').setAttribute('aria-selected', String(cryptoActive));
+            document.getElementById('p2p-tab').setAttribute('aria-selected', String(!cryptoActive));
+            document.getElementById('crypto-panel').classList.toggle('hidden', !cryptoActive);
+            document.getElementById('p2p-panel').classList.toggle('hidden', cryptoActive);
+            document.getElementById('crypto-panel').setAttribute('aria-hidden', String(!cryptoActive));
+            document.getElementById('p2p-panel').setAttribute('aria-hidden', String(cryptoActive));
+        }
+
+        function activeItems(items) {
+            return items.filter(item => item && item.enabled !== false);
+        }
+
+        function renderCryptoMethods() {
+            cryptoMethods = activeItems(cryptoMethods).filter(item =>
+                item.id && item.cryptoName && item.chain && item.address
+                && Number.isFinite(Number(item.ratePerCoin)) && Number(item.ratePerCoin) > 0);
+            cryptoChoice.innerHTML = cryptoMethods.length
+                ? cryptoMethods.map(item => `<option value="${escapeHtml(item.id)}">${escapeHtml(item.cryptoName)} · ${escapeHtml(item.chain)}</option>`).join('')
+                : '<option value="">No crypto payment methods available</option>';
+            cryptoChoice.disabled = cryptoMethods.length === 0;
+            document.getElementById('crypto-submit').disabled = cryptoMethods.length === 0;
+            cryptoOptions.innerHTML = cryptoMethods.length ? cryptoMethods.map(item => `
+                <article class="rounded-2xl border border-zinc-200 bg-white p-5">
+                    <div class="flex flex-col gap-4 sm:flex-row">
+                        ${item.qrCodeUrl ? `<img class="h-36 w-36 rounded-xl border border-zinc-100 object-contain" src="${escapeHtml(item.qrCodeUrl)}" alt="${escapeHtml(item.cryptoName)} payment QR code" loading="lazy">` : ''}
+                        <div class="min-w-0 flex-1">
+                            <h3 class="font-bold">${escapeHtml(item.cryptoName)} · ${escapeHtml(item.chain)}</h3>
+                            <p class="mt-1 text-sm text-zinc-500">Rate: ${escapeHtml(item.ratePerCoin)} ${escapeHtml(item.cryptoName)} per coin</p>
+                            <p class="mt-3 break-all rounded-lg bg-zinc-50 p-3 font-mono text-xs text-zinc-700">${escapeHtml(item.address)}</p>
+                            ${item.instructions ? `<p class="mt-3 whitespace-pre-wrap text-sm text-zinc-600">${escapeHtml(item.instructions)}</p>` : ''}
+                        </div>
+                    </div>
+                </article>`).join('') : '<p class="rounded-2xl border border-dashed border-zinc-300 p-6 text-center text-sm text-zinc-500">Crypto payments are not available right now.</p>';
+            updateCryptoEstimate();
+        }
+
+        function renderMerchants() {
+            merchants = activeItems(merchants).filter(item => item.id && item.name
+                && ['Bank transfer', 'MoMo transfer'].includes(item.paymentMethod)
+                && Number.isSafeInteger(Number(item.totalCoins)) && Number(item.totalCoins) > 0
+                && Number.isSafeInteger(Number(item.minimumCoins)) && Number(item.minimumCoins) > 0
+                && Number(item.totalCoins) >= Number(item.minimumCoins)
+                && Number.isSafeInteger(Number(item.maximumCoins)) && Number(item.maximumCoins) >= Number(item.minimumCoins));
+            merchantChoice.innerHTML = merchants.length
+                ? merchants.map(item => `<option value="${escapeHtml(item.id)}">${escapeHtml(item.name)} · ${escapeHtml(Number(item.totalCoins).toLocaleString())} coins available</option>`).join('')
+                : '<option value="">No P2P merchants available</option>';
+            merchantChoice.disabled = merchants.length === 0;
+            document.getElementById('p2p-submit').disabled = merchants.length === 0;
+            merchantOptions.innerHTML = merchants.length ? merchants.map(item => `
+                <article class="rounded-2xl border border-zinc-200 bg-white p-5">
+                    <div class="flex items-start justify-between gap-3">
+                        <div><h3 class="font-bold">${escapeHtml(item.name)}</h3><p class="mt-1 text-sm text-zinc-500">${escapeHtml(item.paymentMethod)}</p></div>
+                        <span class="rounded-full bg-emerald-50 px-3 py-1 text-xs font-semibold text-emerald-700">${Number(item.totalCoins).toLocaleString()} coins available</span>
+                    </div>
+                    <p class="mt-3 text-sm text-zinc-600">Order range: ${Number(item.minimumCoins).toLocaleString()}–${Number(item.maximumCoins).toLocaleString()} coins</p>
+                </article>`).join('') : '<p class="rounded-2xl border border-dashed border-zinc-300 p-6 text-center text-sm text-zinc-500">P2P merchants are not available right now.</p>';
+            updateMerchantInstructions();
+        }
+
+        function updateCryptoEstimate() {
+            const selected = cryptoMethods.find(item => item.id === cryptoChoice.value);
+            const coins = Number(document.getElementById('crypto-coins').value);
+            const amount = selected && Number.isSafeInteger(coins) && coins > 0
+                ? coins * Number(selected.ratePerCoin)
+                : 0;
+            document.getElementById('crypto-estimate').textContent = selected && Number.isFinite(amount) && amount > 0
+                ? `Transfer ${Number(amount.toPrecision(15))} ${selected.cryptoName} on ${selected.chain}.`
+                : selected ? `Rate: ${selected.ratePerCoin} ${selected.cryptoName} per coin.` : '';
+        }
+
+        function updateMerchantInstructions() {
+            const selected = merchants.find(item => item.id === merchantChoice.value);
+            const instructions = document.getElementById('merchant-instructions');
+            const amountInput = document.getElementById('p2p-coins');
+            if (!selected) {
+                instructions.classList.add('hidden');
+                amountInput.removeAttribute('min');
+                amountInput.removeAttribute('max');
+                return;
+            }
+            amountInput.min = String(selected.minimumCoins);
+            amountInput.max = String(Math.min(selected.maximumCoins, selected.totalCoins));
+            instructions.innerHTML = `<p class="font-bold text-zinc-900">${escapeHtml(selected.paymentMethod)} payment details</p>
+                <p class="mt-2 whitespace-pre-wrap">${escapeHtml(selected.paymentInstructions || 'Contact the platform administrator for payment details.')}</p>`;
+            instructions.classList.remove('hidden');
+        }
+
+        async function loadConfiguration() {
+            const snapshot = await getDoc(configRef);
+            const config = snapshot.exists() ? snapshot.data() : {};
+            cryptoMethods = Array.isArray(config.cryptoMethods) ? config.cryptoMethods : [];
+            merchants = Array.isArray(config.merchants) ? config.merchants : [];
+            renderCryptoMethods();
+            renderMerchants();
+        }
+
+        function proofType(file) {
+            if (!file || file.size > 10 * 1024 * 1024) throw new Error('Choose a proof file smaller than 10 MB.');
+            if (file.type === 'application/pdf') return 'raw';
+            if (file.type.startsWith('image/')) return 'image';
+            throw new Error('Payment proof must be an image or PDF.');
+        }
+
+        async function uploadProof(file) {
+            const resourceType = proofType(file);
+            const body = new FormData();
+            body.append('file', file);
+            body.append('upload_preset', 'user_uploads');
+            body.append('folder', 'coin_payment_proofs');
+            const endpoint = `https://api.cloudinary.com/v1_1/s35mxosr/${resourceType}/upload`;
+            const response = await fetch(endpoint, { method: 'POST', body });
+            const result = await response.json();
+            if (!response.ok || !result.secure_url) {
+                throw new Error(result.error?.message || 'Could not upload payment proof.');
+            }
+            return result.secure_url;
+        }
+
+        async function submitRequest({ method, payment, coins, reference, file }) {
+            if (!user) throw new Error('Sign in to submit a coin purchase.');
+            if (!Number.isSafeInteger(coins) || coins < 1) throw new Error('Enter a positive whole number of coins.');
+            const proofUrl = await uploadProof(file);
+            const depositRef = doc(collection(db, 'coinDeposits'));
+            const activityRef = doc(collection(db, 'activities'));
+            const batch = writeBatch(db);
+            batch.set(depositRef, {
+                userId: user.uid,
+                userEmail: user.email || '',
+                userName: user.displayName || '',
+                method,
+                payment,
+                coins,
+                reference: reference.trim(),
+                proofUrl,
+                status: 'pending',
+                createdAt: serverTimestamp(),
+                updatedAt: serverTimestamp()
+            });
+            batch.set(activityRef, {
+                userId: 'system',
+                profileId: user.uid,
+                action: 'coin_deposit_submitted',
+                details: { depositId: depositRef.id, method, coins, currency: 'coins', status: 'pending' },
+                createdAt: serverTimestamp()
+            });
+            await batch.commit();
+            showMessage('Your payment proof was submitted. Coins will be credited after admin approval.');
+            await loadPurchaseHistory();
+        }
+
+        async function loadPurchaseHistory() {
+            const container = document.getElementById('purchase-history');
+            container.innerHTML = '<p class="p-5 text-center text-sm text-zinc-500">Loading requests…</p>';
+            try {
+                const snapshot = await getDocs(query(
+                    collection(db, 'coinDeposits'),
+                    where('userId', '==', user.uid),
+                    limit(100)
+                ));
+                if (snapshot.empty) {
+                    container.innerHTML = '<p class="p-5 text-center text-sm text-zinc-500">No coin purchase requests yet.</p>';
+                    return;
+                }
+                const requests = snapshot.docs.map(entry => ({ id: entry.id, ...entry.data() }))
+                    .sort((left, right) => (right.createdAt?.toMillis?.() || 0) - (left.createdAt?.toMillis?.() || 0));
+                container.innerHTML = requests.map(request => {
+                    const status = String(request.status || 'pending');
+                    const badge = status === 'approved' ? 'bg-emerald-50 text-emerald-700'
+                        : status === 'rejected' ? 'bg-rose-50 text-rose-700' : 'bg-amber-50 text-amber-700';
+                    const date = request.createdAt?.toDate?.();
+                    return `<article class="flex flex-wrap items-center justify-between gap-3 p-4">
+                        <div><p class="font-semibold">${Number(request.coins || 0).toLocaleString()} coins · ${escapeHtml(request.method || 'Payment')}</p>
+                            <p class="mt-1 text-xs text-zinc-500">${date ? escapeHtml(new Intl.DateTimeFormat(undefined, { dateStyle: 'medium', timeStyle: 'short' }).format(date)) : 'Just submitted'}</p>
+                            ${request.adminNote ? `<p class="mt-1 text-xs text-zinc-500">${escapeHtml(request.adminNote)}</p>` : ''}
+                        </div><span class="rounded-full px-3 py-1 text-xs font-bold capitalize ${badge}">${escapeHtml(status)}</span>
+                    </article>`;
+                }).join('');
+            } catch (error) {
+                console.error('Unable to load coin purchase history:', error);
+                container.innerHTML = '<p class="p-5 text-sm text-rose-600">Could not load purchase requests. Check Firestore permissions.</p>';
+            }
+        }
+
+        document.getElementById('crypto-tab').addEventListener('click', () => setTab('crypto'));
+        document.getElementById('p2p-tab').addEventListener('click', () => setTab('p2p'));
+        cryptoChoice.addEventListener('change', updateCryptoEstimate);
+        document.getElementById('crypto-coins').addEventListener('input', updateCryptoEstimate);
+        merchantChoice.addEventListener('change', updateMerchantInstructions);
+
+        document.getElementById('crypto-order-form').addEventListener('submit', async event => {
+            event.preventDefault();
+            const button = document.getElementById('crypto-submit');
+            const method = cryptoMethods.find(item => item.id === cryptoChoice.value);
+            const coins = Number(document.getElementById('crypto-coins').value);
+            if (!method) return showMessage('Choose an available crypto payment address.', true);
+            if (!Number.isSafeInteger(coins) || coins < 1) return showMessage('Enter a positive whole number of coins.', true);
+            const cryptoAmount = coins * Number(method.ratePerCoin);
+            if (!Number.isFinite(cryptoAmount) || cryptoAmount <= 0) return showMessage('The configured crypto rate produces an invalid transfer amount. Contact support.', true);
+            button.disabled = true;
+            button.textContent = 'Uploading proof…';
+            try {
+                await submitRequest({
+                    method: 'crypto',
+                    payment: {
+                        cryptoId: method.id,
+                        cryptoName: method.cryptoName,
+                        chain: method.chain,
+                        address: method.address,
+                        ratePerCoin: Number(method.ratePerCoin),
+                        cryptoAmount: Number(cryptoAmount.toPrecision(15))
+                    },
+                    coins,
+                    reference: document.getElementById('crypto-reference').value,
+                    file: document.getElementById('crypto-proof').files[0]
+                });
+                event.currentTarget.reset();
+                updateCryptoEstimate();
+            } catch (error) {
+                console.error('Unable to submit crypto payment proof:', error);
+                showMessage(error.message || 'Could not submit your payment proof.', true);
+            } finally {
+                button.disabled = cryptoMethods.length === 0;
+                button.textContent = 'Submit for review';
+            }
+        });
+
+        document.getElementById('p2p-order-form').addEventListener('submit', async event => {
+            event.preventDefault();
+            const button = document.getElementById('p2p-submit');
+            const merchant = merchants.find(item => item.id === merchantChoice.value);
+            const coins = Number(document.getElementById('p2p-coins').value);
+            if (!merchant) return showMessage('Choose an available P2P merchant.', true);
+            if (!Number.isSafeInteger(coins) || coins < Number(merchant.minimumCoins)
+                || coins > Number(merchant.maximumCoins) || coins > Number(merchant.totalCoins)) {
+                return showMessage(`Order amount must be between ${merchant.minimumCoins} and ${Math.min(merchant.maximumCoins, merchant.totalCoins)} coins.`, true);
+            }
+            button.disabled = true;
+            button.textContent = 'Uploading receipt…';
+            try {
+                await submitRequest({
+                    method: 'p2p',
+                    payment: {
+                        merchantId: merchant.id,
+                        merchantName: merchant.name,
+                        paymentMethod: merchant.paymentMethod
+                    },
+                    coins,
+                    reference: document.getElementById('p2p-reference').value,
+                    file: document.getElementById('p2p-proof').files[0]
+                });
+                event.currentTarget.reset();
+                updateMerchantInstructions();
+            } catch (error) {
+                console.error('Unable to submit P2P receipt:', error);
+                showMessage(error.message || 'Could not submit your payment receipt.', true);
+            } finally {
+                button.disabled = merchants.length === 0;
+                button.textContent = 'Submit for review';
+            }
+        });
+
+        onAuthStateChanged(auth, async currentUser => {
+            if (!currentUser) {
+                const returnTo = `${location.pathname}${location.search}`;
+                location.replace(`./oauth.html?returnTo=${encodeURIComponent(returnTo)}`);
+                return;
+            }
+            user = currentUser;
+            try {
+                await Promise.all([loadConfiguration(), loadPurchaseHistory()]);
+            } catch (error) {
+                console.error('Unable to load coin purchase options:', error);
+                showMessage('Could not load coin payment options. Check your connection and Firestore permissions.', true);
+            }
+        }, error => {
+            console.error('Unable to verify sign-in for coin purchase:', error);
+            showMessage('Could not verify your sign-in. Reload this page and try again.', true);
+        });
+    </script>
+</body>
+</html>

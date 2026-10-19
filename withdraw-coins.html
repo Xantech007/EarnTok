@@ -1,0 +1,365 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="theme-color" content="#ffffff">
+    <title>EarnTok · Withdraw Coins</title>
+    <link rel="icon" type="image/png" href="./earntok-logo.png">
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <style>
+        :root { color-scheme: light; }
+        body { min-height: 100vh; }
+        body.bg-zinc-950 { background: #fff !important; color: #161823 !important; }
+        .bg-zinc-950, .bg-zinc-950\/90 { background-color: #fff !important; }
+        .bg-zinc-900, .bg-zinc-900\/90, .bg-zinc-900\/70 { background-color: #f8f8fa !important; }
+        .text-zinc-100 { color: #161823 !important; }
+        .text-zinc-300 { color: #454550 !important; }
+        .text-zinc-400, .text-zinc-500 { color: #777782 !important; }
+        .border-zinc-800, .border-zinc-700 { border-color: #e4e4e8 !important; }
+        .field { width: 100%; border: 1px solid #d8d8de; border-radius: .75rem; background: #fff; padding: .75rem .875rem; color: #161823; outline: none; }
+        .field:focus { border-color: #fe2c55; box-shadow: 0 0 0 3px rgb(254 44 85 / 10%); }
+    </style>
+</head>
+<body class="bg-zinc-950 text-zinc-100 antialiased">
+    <header class="sticky top-0 z-20 border-b border-zinc-800 bg-zinc-950/90 backdrop-blur">
+        <div class="mx-auto flex max-w-3xl items-center justify-between px-4 py-3">
+            <button type="button" data-history-back class="p-1 text-zinc-100 hover:opacity-80" aria-label="Go back">
+                <i data-lucide="arrow-left" class="h-6 w-6 stroke-[2.5]" aria-hidden="true"></i>
+            </button>
+            <h1 class="text-lg font-bold">Withdraw Coins</h1>
+            <a href="./buy-coins.html" class="text-sm font-semibold text-zinc-100 hover:opacity-80">Buy Coins</a>
+        </div>
+    </header>
+    <main class="mx-auto max-w-3xl px-4 py-6 pb-12">
+        <p id="withdraw-message" class="mb-4 hidden rounded-xl border p-3 text-sm" role="status"></p>
+        <section id="withdraw-eligibility" class="rounded-2xl border border-zinc-200 bg-white p-5">
+            <h2 class="text-xl font-bold">Request a withdrawal</h2>
+            <p id="withdraw-eligibility-message" class="mt-2 text-sm text-zinc-500">Checking verification status…</p>
+            <p id="withdraw-available" class="mt-3 text-sm font-semibold text-zinc-700"></p>
+        </section>
+        <form id="withdraw-form" class="mt-5 hidden space-y-4 rounded-2xl border border-zinc-200 bg-white p-5">
+            <label class="block text-sm font-semibold text-zinc-700">Withdrawal method
+                <select id="withdraw-method" class="field mt-2" required>
+                    <option value="">Choose a method</option>
+                    <option value="crypto">Crypto</option>
+                    <option value="momo">MoMo transfer</option>
+                    <option value="bank">Bank transfer</option>
+                </select>
+            </label>
+            <label class="block text-sm font-semibold text-zinc-700">Payout currency
+                <select id="withdraw-currency" class="field mt-2" required disabled><option value="">Choose a method first</option></select>
+            </label>
+            <p id="withdraw-rate" class="text-sm text-zinc-500"></p>
+            <label class="block text-sm font-semibold text-zinc-700">Coins to withdraw
+                <input id="withdraw-coins" class="field mt-2" type="number" min="1" step="1" inputmode="numeric" required>
+            </label>
+            <p id="withdraw-estimate" class="text-sm font-semibold text-zinc-700"></p>
+
+            <div id="crypto-fields" class="hidden space-y-4">
+                <label class="block text-sm font-semibold text-zinc-700">Wallet address
+                    <input id="crypto-address" class="field mt-2" maxlength="300" autocomplete="off">
+                </label>
+                <label class="block text-sm font-semibold text-zinc-700">Network / chain
+                    <input id="crypto-network" class="field mt-2" maxlength="100" autocomplete="off">
+                </label>
+            </div>
+            <div id="momo-fields" class="hidden space-y-4">
+                <label class="block text-sm font-semibold text-zinc-700">Mobile money provider
+                    <input id="momo-provider" class="field mt-2" maxlength="100" autocomplete="organization">
+                </label>
+                <label class="block text-sm font-semibold text-zinc-700">Account holder name
+                    <input id="momo-name" class="field mt-2" maxlength="120" autocomplete="name">
+                </label>
+                <label class="block text-sm font-semibold text-zinc-700">Mobile money number
+                    <input id="momo-number" class="field mt-2" maxlength="50" autocomplete="tel">
+                </label>
+            </div>
+            <div id="bank-fields" class="hidden space-y-4">
+                <label class="block text-sm font-semibold text-zinc-700">Bank name
+                    <input id="bank-name" class="field mt-2" maxlength="120" autocomplete="organization">
+                </label>
+                <label class="block text-sm font-semibold text-zinc-700">Account holder name
+                    <input id="bank-holder" class="field mt-2" maxlength="120" autocomplete="name">
+                </label>
+                <label class="block text-sm font-semibold text-zinc-700">Account number / IBAN
+                    <input id="bank-number" class="field mt-2" maxlength="100" autocomplete="off">
+                </label>
+                <label class="block text-sm font-semibold text-zinc-700">Branch / routing code (optional)
+                    <input id="bank-routing" class="field mt-2" maxlength="100" autocomplete="off">
+                </label>
+            </div>
+            <p class="rounded-xl bg-amber-50 p-3 text-sm text-amber-800">Withdrawals are reviewed by an administrator. Coins are reserved from your available balance when you submit; rejected requests are refunded.</p>
+            <button id="withdraw-submit" type="submit" class="w-full rounded-xl bg-rose-500 px-5 py-3 font-bold text-white hover:bg-rose-600 disabled:cursor-wait disabled:opacity-60">Submit withdrawal request</button>
+        </form>
+        <section class="mt-8">
+            <h2 class="mb-3 text-lg font-bold">Your withdrawal requests</h2>
+            <div id="withdraw-history" class="divide-y divide-zinc-100 rounded-2xl border border-zinc-200 bg-white">
+                <p class="p-5 text-center text-sm text-zinc-500">Sign in to load withdrawal history.</p>
+            </div>
+        </section>
+    </main>
+    <script type="module">
+        import { auth, db } from './firebase.js';
+        import { enableHistoryBack } from './navigation.js';
+        import { onAuthStateChanged } from 'https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js';
+        import {
+            collection, doc, getDoc, getDocs, limit, query, runTransaction, serverTimestamp, where
+        } from 'https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js';
+
+        lucide.createIcons();
+        enableHistoryBack();
+        const userRefBase = id => doc(db, 'users', id);
+        const message = document.getElementById('withdraw-message');
+        const methodInput = document.getElementById('withdraw-method');
+        const currencyInput = document.getElementById('withdraw-currency');
+        const coinInput = document.getElementById('withdraw-coins');
+        let accountUser = null;
+        let accountBalance = 0;
+        let withdrawalRates = [];
+
+        function escapeHtml(value) {
+            return String(value ?? '').replace(/[&<>"']/g, character => ({
+                '&': '&#38;', '<': '&#60;', '>': '&#62;', '"': '&#34;', "'": '&#39;'
+            })[character]);
+        }
+
+        function showMessage(text, isError = false) {
+            message.textContent = text;
+            message.classList.remove('hidden', 'border-rose-200', 'bg-rose-50', 'text-rose-600', 'border-emerald-200', 'bg-emerald-50', 'text-emerald-700');
+            message.classList.add(...(isError
+                ? ['border-rose-200', 'bg-rose-50', 'text-rose-600']
+                : ['border-emerald-200', 'bg-emerald-50', 'text-emerald-700']));
+            message.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        }
+
+        function selectedRate() {
+            return withdrawalRates.find(rate => rate.method === methodInput.value && rate.currency === currencyInput.value);
+        }
+
+        function renderCurrencyOptions() {
+            const method = methodInput.value;
+            const options = withdrawalRates.filter(rate => rate.method === method);
+            currencyInput.innerHTML = options.length
+                ? `<option value="">Choose a currency</option>${options.map(rate => `<option value="${escapeHtml(rate.currency)}">${escapeHtml(rate.currency)}</option>`).join('')}`
+                : '<option value="">No currencies configured for this method</option>';
+            currencyInput.disabled = options.length === 0;
+            updateRateEstimate();
+        }
+
+        function updateRateEstimate() {
+            const rate = selectedRate();
+            const coins = Number(coinInput.value);
+            document.getElementById('withdraw-rate').textContent = rate
+                ? `Rate: ${rate.ratePerCoin} ${rate.currency} per coin.`
+                : '';
+            const payout = rate ? coins * rate.ratePerCoin : 0;
+            document.getElementById('withdraw-estimate').textContent = Number.isFinite(payout) && payout > 0
+                ? `Estimated payout: ${Number(payout.toPrecision(15))} ${rate.currency}`
+                : '';
+        }
+
+        function showMethodFields(method) {
+            for (const name of ['crypto', 'momo', 'bank']) {
+                const panel = document.getElementById(`${name}-fields`);
+                panel.classList.toggle('hidden', method !== name);
+                panel.querySelectorAll('input').forEach(input => {
+                    input.required = method === name && input.id !== 'bank-routing';
+                });
+            }
+        }
+
+        function payoutDetails(method) {
+            if (method === 'crypto') return {
+                walletAddress: document.getElementById('crypto-address').value.trim(),
+                network: document.getElementById('crypto-network').value.trim()
+            };
+            if (method === 'momo') return {
+                provider: document.getElementById('momo-provider').value.trim(),
+                accountName: document.getElementById('momo-name').value.trim(),
+                phoneNumber: document.getElementById('momo-number').value.trim()
+            };
+            return {
+                bankName: document.getElementById('bank-name').value.trim(),
+                accountName: document.getElementById('bank-holder').value.trim(),
+                accountNumber: document.getElementById('bank-number').value.trim(),
+                routingCode: document.getElementById('bank-routing').value.trim()
+            };
+        }
+
+        async function loadWithdrawalSettings() {
+            const snapshot = await getDoc(doc(db, 'admin', 'withdrawalSettings'));
+            const settings = snapshot.exists() ? snapshot.data() : {};
+            withdrawalRates = (Array.isArray(settings.rates) ? settings.rates : [])
+                .filter(rate => ['crypto', 'momo', 'bank'].includes(rate.method)
+                    && String(rate.currency || '').trim()
+                    && Number.isFinite(Number(rate.ratePerCoin)) && Number(rate.ratePerCoin) > 0)
+                .map(rate => ({
+                    id: String(rate.id || ''),
+                    method: rate.method,
+                    currency: String(rate.currency).trim(),
+                    ratePerCoin: Number(rate.ratePerCoin)
+                }));
+            renderCurrencyOptions();
+            if (!withdrawalRates.length) {
+                document.getElementById('withdraw-eligibility-message').textContent = 'Withdrawals are temporarily unavailable. Please check back later.';
+            }
+        }
+
+        async function loadHistory() {
+            const container = document.getElementById('withdraw-history');
+            const snapshot = await getDocs(query(
+                collection(db, 'coinWithdrawals'),
+                where('userId', '==', accountUser.uid),
+                limit(100)
+            ));
+            const requests = snapshot.docs.map(entry => ({ id: entry.id, ...entry.data() }))
+                .sort((left, right) => (right.createdAt?.toMillis?.() || 0) - (left.createdAt?.toMillis?.() || 0));
+            if (!requests.length) {
+                container.innerHTML = '<p class="p-5 text-center text-sm text-zinc-500">No withdrawal requests yet.</p>';
+                return;
+            }
+            container.innerHTML = requests.map(request => {
+                const date = request.createdAt?.toDate?.();
+                const status = String(request.status || 'pending');
+                const statusClass = status === 'approved' ? 'bg-emerald-50 text-emerald-700'
+                    : status === 'rejected' ? 'bg-rose-50 text-rose-700' : 'bg-amber-50 text-amber-700';
+                return `<article class="flex flex-wrap items-center justify-between gap-3 p-4">
+                    <div><p class="font-semibold">${Number(request.coins || 0).toLocaleString()} coins → ${escapeHtml(request.payoutAmount)} ${escapeHtml(request.currency)}</p>
+                        <p class="mt-1 text-xs capitalize text-zinc-500">${escapeHtml(request.method || '')}${date ? ` · ${escapeHtml(new Intl.DateTimeFormat(undefined, { dateStyle: 'medium', timeStyle: 'short' }).format(date))}` : ''}</p>
+                        ${request.adminNote ? `<p class="mt-1 text-xs text-zinc-500">${escapeHtml(request.adminNote)}</p>` : ''}
+                    </div><span class="rounded-full px-3 py-1 text-xs font-bold capitalize ${statusClass}">${escapeHtml(status)}</span>
+                </article>`;
+            }).join('');
+        }
+
+        methodInput.addEventListener('change', () => {
+            showMethodFields(methodInput.value);
+            renderCurrencyOptions();
+        });
+        currencyInput.addEventListener('change', updateRateEstimate);
+        coinInput.addEventListener('input', updateRateEstimate);
+
+        document.getElementById('withdraw-form').addEventListener('submit', async event => {
+            event.preventDefault();
+            const button = document.getElementById('withdraw-submit');
+            const method = methodInput.value;
+            const rate = selectedRate();
+            const coins = Number(coinInput.value);
+            if (!accountUser) return showMessage('Sign in to request a withdrawal.', true);
+            if (!rate) return showMessage('Choose an available withdrawal currency.', true);
+            if (!Number.isSafeInteger(coins) || coins < 1) return showMessage('Enter a positive whole number of coins.', true);
+            const payoutAmount = coins * rate.ratePerCoin;
+            if (!Number.isFinite(payoutAmount) || payoutAmount <= 0) return showMessage('The configured payout rate produces an invalid amount.', true);
+
+            button.disabled = true;
+            button.textContent = 'Submitting request…';
+            try {
+                const withdrawalRef = doc(collection(db, 'coinWithdrawals'));
+                const activityRef = doc(collection(db, 'activities'));
+                const currentUserRef = userRefBase(accountUser.uid);
+                const details = payoutDetails(method);
+                const updatedAvailableBalance = await runTransaction(db, async transaction => {
+                    const [accountSnapshot, settingsSnapshot] = await Promise.all([
+                        transaction.get(currentUserRef),
+                        transaction.get(doc(db, 'admin', 'withdrawalSettings'))
+                    ]);
+                    if (!accountSnapshot.exists()) throw new Error('Your wallet account could not be found.');
+                    const account = accountSnapshot.data();
+                    if (account.verify !== 'yes') throw new Error('Only verified users can request withdrawals.');
+                    const currentRates = settingsSnapshot.exists() && Array.isArray(settingsSnapshot.data().rates)
+                        ? settingsSnapshot.data().rates : [];
+                    const currentRate = currentRates.find(item => item.method === method && item.currency === rate.currency);
+                    if (!currentRate || Number(currentRate.ratePerCoin) !== rate.ratePerCoin) {
+                        throw new Error('The payout rate changed. Refresh the page and review the new rate.');
+                    }
+                    const availableBalance = Number(account.availableBalance ?? 0);
+                    if (!Number.isSafeInteger(availableBalance) || availableBalance < coins) {
+                        throw new Error('You do not have enough available coins for this withdrawal.');
+                    }
+                    transaction.update(currentUserRef, { availableBalance: availableBalance - coins });
+                    transaction.set(withdrawalRef, {
+                        userId: accountUser.uid,
+                        userName: account.fullName || accountUser.displayName || '',
+                        userEmail: accountUser.email || account.email || '',
+                        method,
+                        currency: rate.currency,
+                        ratePerCoin: rate.ratePerCoin,
+                        coins,
+                        payoutAmount: Number(payoutAmount.toPrecision(15)),
+                        payoutDetails: details,
+                        status: 'pending',
+                        createdAt: serverTimestamp(),
+                        updatedAt: serverTimestamp()
+                    });
+                    transaction.set(activityRef, {
+                        userId: 'system',
+                        profileId: accountUser.uid,
+                        action: 'withdrawal_submitted',
+                        details: {
+                            withdrawalId: withdrawalRef.id,
+                            method,
+                            currency: rate.currency,
+                            coins,
+                            payoutAmount: Number(payoutAmount.toPrecision(15)),
+                            status: 'pending'
+                        },
+                        createdAt: serverTimestamp()
+                    });
+                    return availableBalance - coins;
+                });
+                showMessage('Withdrawal submitted. The requested coins are reserved while admin reviews it.');
+                event.currentTarget.reset();
+                showMethodFields('');
+                renderCurrencyOptions();
+                accountBalance = updatedAvailableBalance;
+                document.getElementById('withdraw-available').textContent = `Available balance: ${accountBalance.toLocaleString()} coins`;
+                try {
+                    await loadHistory();
+                } catch (error) {
+                    console.error('Withdrawal was submitted, but its history list could not be refreshed:', error);
+                    showMessage('Withdrawal was submitted, but your history could not be refreshed. Reload the page to check its status.', true);
+                }
+            } catch (error) {
+                console.error('Unable to submit withdrawal request:', error);
+                showMessage(error.message || 'Could not submit withdrawal. Please try again.', true);
+            } finally {
+                button.disabled = false;
+                button.textContent = 'Submit withdrawal request';
+            }
+        });
+
+        onAuthStateChanged(auth, async user => {
+            if (!user) {
+                const returnTo = `${location.pathname}${location.search}`;
+                location.replace(`./oauth.html?returnTo=${encodeURIComponent(returnTo)}`);
+                return;
+            }
+            accountUser = user;
+            try {
+                const snapshot = await getDoc(userRefBase(user.uid));
+                if (!snapshot.exists()) throw new Error('Your account could not be found.');
+                const account = snapshot.data();
+                accountBalance = Number(account.availableBalance ?? 0);
+                document.getElementById('withdraw-available').textContent = `Available balance: ${accountBalance.toLocaleString()} coins`;
+                if (account.verify !== 'yes') {
+                    document.getElementById('withdraw-eligibility-message').textContent = 'Withdrawals are available to verified accounts only. Contact support to request verification.';
+                    document.getElementById('withdraw-history').innerHTML = '<p class="p-5 text-center text-sm text-zinc-500">Sign in with a verified account to view withdrawal requests.</p>';
+                    return;
+                }
+                document.getElementById('withdraw-eligibility-message').textContent = 'Your account is verified. Choose a payout method and currency to continue.';
+                document.getElementById('withdraw-form').classList.remove('hidden');
+                await Promise.all([loadWithdrawalSettings(), loadHistory()]);
+            } catch (error) {
+                console.error('Unable to load withdrawal account:', error);
+                document.getElementById('withdraw-eligibility-message').textContent = error.message || 'Could not load your withdrawal account.';
+                showMessage(error.message || 'Could not load withdrawal details.', true);
+            }
+        }, error => {
+            console.error('Unable to verify withdrawal sign-in:', error);
+            showMessage('Could not verify your sign-in. Reload this page and try again.', true);
+        });
+    </script>
+</body>
+</html>
