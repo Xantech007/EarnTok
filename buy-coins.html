@@ -172,7 +172,10 @@
                         <div class="min-w-0 flex-1">
                             <h3 class="font-bold">${escapeHtml(item.cryptoName)} · ${escapeHtml(item.chain)}</h3>
                             <p class="mt-1 text-sm text-zinc-500">Rate: ${escapeHtml(item.ratePerCoin)} ${escapeHtml(item.cryptoName)} per coin</p>
-                            <p class="mt-3 break-all rounded-lg bg-zinc-50 p-3 font-mono text-xs text-zinc-700">${escapeHtml(item.address)}</p>
+                            <button type="button" class="mt-3 flex w-full items-start gap-2 break-all rounded-lg bg-zinc-50 p-3 text-left font-mono text-xs text-zinc-700 hover:bg-zinc-100" data-copy-payment="${escapeHtml(item.address)}" aria-label="Copy ${escapeHtml(item.cryptoName)} wallet address">
+                                <span class="min-w-0 flex-1">${escapeHtml(item.address)}</span><i data-lucide="copy" class="h-4 w-4 shrink-0 text-zinc-500" aria-hidden="true"></i>
+                            </button>
+                            <p class="copy-feedback mt-1 min-h-4 text-xs text-emerald-700" role="status" aria-live="polite"></p>
                             ${item.instructions ? `<p class="mt-3 whitespace-pre-wrap text-sm text-zinc-600">${escapeHtml(item.instructions)}</p>` : ''}
                         </div>
                     </div>
@@ -180,9 +183,16 @@
             updateCryptoEstimate();
         }
 
+        function merchantHasPaymentDetails(item) {
+            return item.paymentMethod === 'Bank transfer'
+                ? Boolean(item.bankAccountName && item.bankName && item.bankAccountNumber)
+                : Boolean(item.momoName && item.momoNetwork && item.momoNumber);
+        }
+
         function renderMerchants() {
             merchants = activeItems(merchants).filter(item => item.id && item.name
                 && ['Bank transfer', 'MoMo transfer'].includes(item.paymentMethod)
+                && (merchantHasPaymentDetails(item) || item.paymentInstructions)
                 && Number.isSafeInteger(Number(item.totalCoins)) && Number(item.totalCoins) > 0
                 && Number.isSafeInteger(Number(item.minimumCoins)) && Number(item.minimumCoins) > 0
                 && Number(item.totalCoins) >= Number(item.minimumCoins)
@@ -202,6 +212,9 @@
                         <span class="inline-flex items-center gap-1 rounded-full bg-emerald-50 px-3 py-1 text-xs font-semibold text-emerald-700"><i data-lucide="coins" class="h-3.5 w-3.5 text-amber-500" aria-hidden="true"></i>${Number(item.totalCoins).toLocaleString()} coins available</span>
                     </div>
                     <p class="mt-3 flex items-center gap-1 text-sm text-zinc-600"><i data-lucide="coins" class="h-4 w-4 text-amber-400" aria-hidden="true"></i>Order range: ${Number(item.minimumCoins).toLocaleString()}–${Number(item.maximumCoins).toLocaleString()} coins</p>
+                    ${paymentDetailsMarkup(item)}
+                    ${!merchantHasPaymentDetails(item) && item.paymentInstructions ? `<p class="mt-3 whitespace-pre-wrap text-sm text-zinc-600">${escapeHtml(item.paymentInstructions)}</p>` : ''}
+                    <p class="copy-feedback mt-2 min-h-4 text-xs text-emerald-700" role="status" aria-live="polite"></p>
                 </article>`).join('') : '<p class="rounded-2xl border border-dashed border-zinc-300 p-6 text-center text-sm text-zinc-500">P2P merchants are not available right now.</p>';
             updateMerchantInstructions();
             lucide.createIcons();
@@ -218,6 +231,55 @@
                 : selected ? `Rate: ${selected.ratePerCoin} ${selected.cryptoName} per coin.` : '';
         }
 
+        function copyButtonMarkup(label, value) {
+            if (!value) return '';
+            return `<button type="button" class="mt-1 inline-flex max-w-full items-center gap-2 break-all text-left font-mono text-sm font-semibold text-zinc-800 hover:text-rose-600" data-copy-payment="${escapeHtml(value)}" aria-label="Copy ${escapeHtml(label)}"><span>${escapeHtml(value)}</span><i data-lucide="copy" class="h-4 w-4 shrink-0" aria-hidden="true"></i></button>`;
+        }
+
+        function paymentDetailsMarkup(merchant) {
+            const details = merchant.paymentMethod === 'MoMo transfer'
+                ? [
+                    { label: 'MoMo name', value: merchant.momoName },
+                    { label: 'Network', value: merchant.momoNetwork },
+                    { label: 'MoMo number', value: merchant.momoNumber, copy: true }
+                ]
+                : [
+                    { label: 'Account name', value: merchant.bankAccountName },
+                    { label: 'Bank', value: merchant.bankName },
+                    { label: 'Account number', value: merchant.bankAccountNumber, copy: true }
+                ];
+            return `<div class="mt-4 grid gap-3 rounded-xl bg-zinc-50 p-4 text-sm sm:grid-cols-2">
+                ${details.map(({ label, value, copy }) => `<div><p class="text-xs font-semibold text-zinc-500">${label}</p>${copy ? copyButtonMarkup(label, value) : `<p class="mt-1 break-words font-medium text-zinc-800">${escapeHtml(value || 'Not provided')}</p>`}</div>`).join('')}
+            </div>`;
+        }
+
+        async function copyPaymentValue(button) {
+            const value = button.dataset.copyPayment;
+            const feedbackContainer = button.closest('article, #merchant-instructions');
+            const feedback = feedbackContainer?.querySelector('.copy-feedback');
+            try {
+                try {
+                    await navigator.clipboard.writeText(value);
+                } catch (clipboardError) {
+                    const input = document.createElement('textarea');
+                    input.value = value;
+                    input.setAttribute('readonly', '');
+                    input.style.position = 'fixed';
+                    input.style.opacity = '0';
+                    document.body.append(input);
+                    input.select();
+                    const copied = document.execCommand('copy');
+                    input.remove();
+                    if (!copied) throw clipboardError;
+                }
+                if (feedback) feedback.textContent = 'Copied to clipboard.';
+                button.setAttribute('aria-label', 'Copied to clipboard');
+            } catch (error) {
+                console.error('Unable to copy payment detail:', error);
+                if (feedback) feedback.textContent = 'Could not copy. Select and copy the value manually.';
+            }
+        }
+
         function updateMerchantInstructions() {
             const selected = merchants.find(item => item.id === merchantChoice.value);
             const instructions = document.getElementById('merchant-instructions');
@@ -231,8 +293,11 @@
             amountInput.min = String(selected.minimumCoins);
             amountInput.max = String(Math.min(selected.maximumCoins, selected.totalCoins));
             instructions.innerHTML = `<p class="font-bold text-zinc-900">${escapeHtml(selected.paymentMethod)} payment details</p>
-                <p class="mt-2 whitespace-pre-wrap">${escapeHtml(selected.paymentInstructions || 'Contact the platform administrator for payment details.')}</p>`;
+                <div class="mt-3 grid gap-3">${paymentDetailsMarkup(selected)}
+                ${!merchantHasPaymentDetails(selected) && selected.paymentInstructions ? `<p class="whitespace-pre-wrap text-sm text-zinc-600">${escapeHtml(selected.paymentInstructions)}</p>` : ''}
+                <p class="copy-feedback min-h-4 text-xs text-emerald-700" role="status" aria-live="polite"></p></div>`;
             instructions.classList.remove('hidden');
+            lucide.createIcons();
         }
 
         async function loadConfiguration() {
@@ -334,6 +399,10 @@
 
         document.getElementById('crypto-tab').addEventListener('click', () => setTab('crypto'));
         document.getElementById('p2p-tab').addEventListener('click', () => setTab('p2p'));
+        document.addEventListener('click', event => {
+            const button = event.target.closest('[data-copy-payment]');
+            if (button) copyPaymentValue(button);
+        });
         cryptoChoice.addEventListener('change', updateCryptoEstimate);
         document.getElementById('crypto-coins').addEventListener('input', updateCryptoEstimate);
         merchantChoice.addEventListener('change', updateMerchantInstructions);

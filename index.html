@@ -136,6 +136,8 @@
             filter: drop-shadow(0 1px 2px rgba(0, 0, 0, .95));
             transition: transform .15s ease, background-color .15s ease;
         }
+        .video-card .feed-action-column .like-btn.text-tiktok-red { color: #fe2c55; }
+        .video-card .feed-action-column .bookmark-btn.text-yellow-400 { color: #facc15; }
         .video-card .feed-action-column button:not(.follow-btn):hover {
             background: rgba(0, 0, 0, .18);
         }
@@ -669,6 +671,28 @@
                     });
                 }
 
+                function restoreSavedVideoState() {
+                    document.querySelectorAll('.video-card').forEach(card => {
+                        const saved = savedVideoIds.has(card.dataset.id);
+                        card.dataset.bookmarked = String(saved);
+                        const button = card.querySelector('.bookmark-btn');
+                        if (button) {
+                            button.classList.toggle('text-yellow-400', saved);
+                            button.classList.toggle('text-white', !saved);
+                        }
+                    });
+                }
+
+                async function loadSavedVideoState(user) {
+                    const snapshot = await getDoc(doc(db, 'users', user.uid));
+                    if (currentUser?.uid !== user.uid) return;
+                    const ids = snapshot.exists() && Array.isArray(snapshot.data().savedVideoIds)
+                        ? snapshot.data().savedVideoIds
+                        : [];
+                    savedVideoIds = new Set(ids.filter(id => typeof id === 'string'));
+                    restoreSavedVideoState();
+                }
+
                 card.addEventListener('click', (e) => {
                     // Prevent trigger if clicking action buttons or drawer
                     if (e.target.closest('button, a, #comment-drawer')) return;
@@ -801,6 +825,7 @@
             }
             if (!isBookmarked) {
                 card.setAttribute('data-bookmarked', 'true');
+                savedVideoIds.add(card.dataset.id);
                 btn.classList.add('text-yellow-400');
                 btn.classList.remove('text-white');
                 card.dataset.saves = String(Number(card.dataset.saves || 0) + 1);
@@ -808,6 +833,7 @@
                 showToast('Saved to Favorites');
             } else {
                 card.setAttribute('data-bookmarked', 'false');
+                savedVideoIds.delete(card.dataset.id);
                 btn.classList.remove('text-yellow-400');
                 btn.classList.add('text-white');
                 card.dataset.saves = String(Math.max(0, Number(card.dataset.saves || 0) - 1));
@@ -1241,6 +1267,7 @@
         let authReadyResolve;
         const authReady = new Promise(resolve => { authReadyResolve = resolve; });
         let currentUser = auth.currentUser;
+        let savedVideoIds = new Set();
         let unsubscribeUnreadMessages = null;
         let publishedVideos = [];
         let followedCreatorIds = new Set();
@@ -1256,6 +1283,7 @@
 
         onAuthStateChanged(auth, user => {
             currentUser = user;
+            savedVideoIds = new Set();
             unsubscribeUnreadMessages?.();
             unsubscribeUnreadMessages = subscribeToUnreadMessages(db, user?.uid);
             if (user && activeFeedTab === 'following') {
@@ -1272,6 +1300,9 @@
             if (user) {
                 restoreLikedState();
                 updateCommentFormAvatar(user);
+                loadSavedVideoState(user).catch(error => {
+                    console.error('Unable to restore saved video state:', error);
+                });
             }
             restoreFollowButtons(user).catch(error => {
                 console.error('Unable to load followed creators:', error);
@@ -2032,6 +2063,7 @@
             cards.forEach(card => videoFeed.append(card));
             lucide.createIcons();
             restoreLikedState();
+            restoreSavedVideoState();
             try {
                 await restoreFollowButtons(currentUser);
             } catch (error) {

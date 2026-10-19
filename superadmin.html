@@ -1227,7 +1227,7 @@
                         <h3 class="font-semibold">${escapeHtml(item.name || `Merchant ${index + 1}`)}</h3>
                         <button class="btn btn-danger text-sm" type="button" data-remove-merchant="${index}">Remove</button>
                     </div>
-                    <div class="grid gap-3 sm:grid-cols-2">
+                    <div class="merchant-fields grid gap-3 sm:grid-cols-2">
                         <label class="text-sm font-medium">Merchant name<input class="field mt-1" data-merchant-index="${index}" data-merchant-field="name" value="${escapeHtml(item.name)}" maxlength="100" required></label>
                         <div class="flex items-center gap-3 sm:row-span-2">
                             ${item.profilePic
@@ -1242,11 +1242,20 @@
                             <option value="Bank transfer" ${item.paymentMethod === 'Bank transfer' ? 'selected' : ''}>Bank transfer</option>
                             <option value="MoMo transfer" ${item.paymentMethod === 'MoMo transfer' ? 'selected' : ''}>MoMo transfer</option>
                         </select></label>
+                        <div class="merchant-payment-details grid gap-3 sm:col-span-2 sm:grid-cols-2 ${item.paymentMethod === 'Bank transfer' ? '' : 'hidden'}" data-merchant-payment-fields="Bank transfer">
+                            <label class="text-sm font-medium">Account name<input class="field mt-1" data-merchant-index="${index}" data-merchant-field="bankAccountName" value="${escapeHtml(item.bankAccountName)}" maxlength="120" ${item.paymentMethod === 'Bank transfer' ? 'required' : ''}></label>
+                            <label class="text-sm font-medium">Bank<input class="field mt-1" data-merchant-index="${index}" data-merchant-field="bankName" value="${escapeHtml(item.bankName)}" maxlength="120" ${item.paymentMethod === 'Bank transfer' ? 'required' : ''}></label>
+                            <label class="text-sm font-medium sm:col-span-2">Account number<input class="field mt-1" data-merchant-index="${index}" data-merchant-field="bankAccountNumber" value="${escapeHtml(item.bankAccountNumber)}" maxlength="100" autocomplete="off" ${item.paymentMethod === 'Bank transfer' ? 'required' : ''}></label>
+                        </div>
+                        <div class="merchant-payment-details grid gap-3 sm:col-span-2 sm:grid-cols-2 ${item.paymentMethod === 'MoMo transfer' ? 'hidden' : ''}" data-merchant-payment-fields="MoMo transfer">
+                            <label class="text-sm font-medium">MoMo name<input class="field mt-1" data-merchant-index="${index}" data-merchant-field="momoName" value="${escapeHtml(item.momoName)}" maxlength="120" ${item.paymentMethod === 'MoMo transfer' ? 'required' : ''}></label>
+                            <label class="text-sm font-medium">Network<input class="field mt-1" data-merchant-index="${index}" data-merchant-field="momoNetwork" value="${escapeHtml(item.momoNetwork)}" maxlength="100" ${item.paymentMethod === 'MoMo transfer' ? 'required' : ''}></label>
+                            <label class="text-sm font-medium sm:col-span-2">MoMo number<input class="field mt-1" data-merchant-index="${index}" data-merchant-field="momoNumber" value="${escapeHtml(item.momoNumber)}" maxlength="50" autocomplete="tel" ${item.paymentMethod === 'MoMo transfer' ? 'required' : ''}></label>
+                        </div>
                         <label class="text-sm font-medium">Total coins available<input class="field mt-1" data-merchant-index="${index}" data-merchant-field="totalCoins" type="number" min="0" step="1" value="${escapeHtml(item.totalCoins)}" required></label>
                         <label class="text-sm font-medium">Minimum order (coins)<input class="field mt-1" data-merchant-index="${index}" data-merchant-field="minimumCoins" type="number" min="1" step="1" value="${escapeHtml(item.minimumCoins)}" required></label>
                         <label class="text-sm font-medium">Maximum order (coins)<input class="field mt-1" data-merchant-index="${index}" data-merchant-field="maximumCoins" type="number" min="1" step="1" value="${escapeHtml(item.maximumCoins)}" required></label>
                         <label class="flex items-center gap-2 pt-6 text-sm font-medium"><input data-merchant-index="${index}" data-merchant-field="enabled" type="checkbox" class="h-4 w-4 accent-rose-500" ${item.enabled !== false ? 'checked' : ''}>Available to users</label>
-                        <label class="text-sm font-medium sm:col-span-2">Payment recipient and instructions<textarea class="field mt-1 min-h-24" data-merchant-index="${index}" data-merchant-field="paymentInstructions" maxlength="1500" required>${escapeHtml(item.paymentInstructions)}</textarea></label>
                     </div>
                 </article>`).join('');
         }
@@ -1272,6 +1281,12 @@
                 maximumCoins: item.maximumCoins ?? '',
                 paymentMethod: item.paymentMethod === 'MoMo transfer' ? 'MoMo transfer' : 'Bank transfer',
                 paymentInstructions: String(item.paymentInstructions || ''),
+                bankAccountName: String(item.bankAccountName || ''),
+                bankName: String(item.bankName || ''),
+                bankAccountNumber: String(item.bankAccountNumber || ''),
+                momoName: String(item.momoName || ''),
+                momoNetwork: String(item.momoNetwork || ''),
+                momoNumber: String(item.momoNumber || ''),
                 profilePic: String(item.profilePic || ''),
                 enabled: item.enabled !== false
             }));
@@ -1479,9 +1494,11 @@
                     || !Number.isSafeInteger(item.totalCoins) || item.totalCoins < 0
                     || ![item.minimumCoins, item.maximumCoins].every(value => Number.isSafeInteger(value) && value > 0)
                     || item.minimumCoins > item.maximumCoins
-                    || !item.paymentInstructions
+                    || (item.paymentMethod === 'Bank transfer'
+                        ? !item.bankAccountName || !item.bankName || !item.bankAccountNumber
+                        : !item.momoName || !item.momoNetwork || !item.momoNumber)
                     || !validHttpUrl(item.profilePic)) {
-                    throw new Error('Each merchant needs a profile picture, payment details, a valid transfer method, non-negative whole-number inventory, and positive order limits (minimum ≤ maximum).');
+                    throw new Error('Each merchant needs a profile picture, all details for the selected payment method, non-negative whole-number inventory, and valid order limits (minimum ≤ maximum).');
                 }
                 item.profilePic = validHttpUrl(item.profilePic);
             }
@@ -1821,6 +1838,12 @@
                 maximumCoins: '',
                 paymentMethod: 'Bank transfer',
                 paymentInstructions: '',
+                bankAccountName: '',
+                bankName: '',
+                bankAccountNumber: '',
+                momoName: '',
+                momoNetwork: '',
+                momoNumber: '',
                 profilePic: '',
                 enabled: true
             });
@@ -1834,6 +1857,15 @@
             renderMerchants();
         });
         document.getElementById('admin-merchants').addEventListener('change', async event => {
+            const methodInput = event.target.closest('[data-merchant-field="paymentMethod"]');
+            if (methodInput) {
+                const card = methodInput.closest('[data-merchant-card]');
+                card.querySelectorAll('[data-merchant-payment-fields]').forEach(fields => {
+                    const active = fields.dataset.merchantPaymentFields === methodInput.value;
+                    fields.classList.toggle('hidden', !active);
+                    fields.querySelectorAll('input').forEach(input => { input.required = active; });
+                });
+            }
             const input = event.target.closest('[data-merchant-profile-upload]');
             const file = input?.files?.[0];
             if (!input || !file) return;
