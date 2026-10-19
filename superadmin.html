@@ -190,7 +190,7 @@
                 </section>
                 <section data-wallet-section="merchants" class="rounded-2xl border border-zinc-800 bg-zinc-900/50 p-5">
                     <div class="flex flex-wrap items-start justify-between gap-3">
-                        <div><h2 class="text-xl font-bold">P2P merchants</h2><p class="mt-1 text-sm text-zinc-500">Add merchants and their available coin inventory, order limits, transfer method, and payment instructions.</p></div>
+                        <div><h2 class="text-xl font-bold">P2P merchants</h2><p class="mt-1 text-sm text-zinc-500">Add each merchant's profile picture, available coin inventory, order limits, transfer method, and payment instructions.</p></div>
                         <button id="add-merchant" class="btn btn-muted" type="button">＋ Add merchant</button>
                     </div>
                     <div id="admin-merchants" class="mt-4 space-y-4"></div>
@@ -242,12 +242,13 @@
                 </nav>
                 <section data-growth-section="rewards" class="rounded-2xl border border-zinc-800 bg-zinc-900/50 p-5">
                     <h2 class="text-xl font-bold">Earnings per activity</h2>
-                    <p class="mt-1 text-sm text-zinc-500">Coins are credited to the acting user's earnings balance for each successful like, comment, and share.</p>
-                    <form id="activity-rewards-form" class="mt-5 grid gap-4 sm:grid-cols-3">
+                    <p class="mt-1 text-sm text-zinc-500">Coins are credited to the acting user's earnings balance for each successful like, comment, share, and first watch of a video. A user can earn the watch reward once per video.</p>
+                    <form id="activity-rewards-form" class="mt-5 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
                         <label class="text-sm">Like reward (coins)<input id="reward-like" class="field mt-2" type="number" min="0" step="1" required></label>
                         <label class="text-sm">Comment reward (coins)<input id="reward-comment" class="field mt-2" type="number" min="0" step="1" required></label>
                         <label class="text-sm">Share reward (coins)<input id="reward-share" class="field mt-2" type="number" min="0" step="1" required></label>
-                        <div class="sm:col-span-3"><p id="activity-rewards-message" class="hidden rounded-xl border p-3 text-sm" role="status"></p><button class="btn btn-primary mt-3" type="submit">Save reward amounts</button></div>
+                        <label class="text-sm">Video watch reward (coins)<input id="reward-watch" class="field mt-2" type="number" min="0" step="1" required></label>
+                        <div class="sm:col-span-2 lg:col-span-4"><p id="activity-rewards-message" class="hidden rounded-xl border p-3 text-sm" role="status"></p><button class="btn btn-primary mt-3" type="submit">Save reward amounts</button></div>
                     </form>
                 </section>
                 <section data-growth-section="prices" class="hidden rounded-2xl border border-zinc-800 bg-zinc-900/50 p-5">
@@ -1050,7 +1051,7 @@
 
         async function loadGrowthSettings() {
             const settings = [
-                ['activityRewards', ['like', 'comment', 'share'], ['reward-like', 'reward-comment', 'reward-share']],
+                ['activityRewards', ['like', 'comment', 'share', 'watch'], ['reward-like', 'reward-comment', 'reward-share', 'reward-watch']],
                 ['boostSettings', ['likes', 'followers', 'videoViews', 'profileViews'], ['boost-price-likes', 'boost-price-followers', 'boost-price-videoViews', 'boost-price-profileViews']]
             ];
             for (const [documentId, fields, inputIds] of settings) {
@@ -1221,13 +1222,22 @@
                 return;
             }
             container.innerHTML = merchants.map((item, index) => `
-                <article class="rounded-xl border border-zinc-700 bg-white p-4 text-zinc-900">
+                <article class="merchant-card rounded-xl border border-zinc-700 bg-white p-4 text-zinc-900" data-merchant-card="${escapeHtml(item.id)}">
                     <div class="mb-3 flex items-center justify-between gap-2">
                         <h3 class="font-semibold">${escapeHtml(item.name || `Merchant ${index + 1}`)}</h3>
                         <button class="btn btn-danger text-sm" type="button" data-remove-merchant="${index}">Remove</button>
                     </div>
                     <div class="grid gap-3 sm:grid-cols-2">
                         <label class="text-sm font-medium">Merchant name<input class="field mt-1" data-merchant-index="${index}" data-merchant-field="name" value="${escapeHtml(item.name)}" maxlength="100" required></label>
+                        <div class="flex items-center gap-3 sm:row-span-2">
+                            ${item.profilePic
+                                ? `<img class="merchant-profile-preview h-16 w-16 shrink-0 rounded-full border border-zinc-200 object-cover" src="${escapeHtml(item.profilePic)}" alt="${escapeHtml(item.name || 'Merchant')} profile picture">`
+                                : '<span class="merchant-profile-preview flex h-16 w-16 shrink-0 items-center justify-center rounded-full bg-zinc-100 text-xl font-bold text-zinc-500">?</span>'}
+                            <label class="min-w-0 flex-1 text-sm font-medium">Merchant profile picture
+                                <input class="field mt-1" data-merchant-profile-upload="${escapeHtml(item.id)}" type="file" accept="image/*">
+                                <span class="merchant-profile-upload-status mt-1 block text-xs text-zinc-500" role="status">${item.profilePic ? 'Profile picture uploaded.' : 'Upload a profile picture before saving.'}</span>
+                            </label>
+                        </div>
                         <label class="text-sm font-medium">Payment method<select class="field mt-1" data-merchant-index="${index}" data-merchant-field="paymentMethod">
                             <option value="Bank transfer" ${item.paymentMethod === 'Bank transfer' ? 'selected' : ''}>Bank transfer</option>
                             <option value="MoMo transfer" ${item.paymentMethod === 'MoMo transfer' ? 'selected' : ''}>MoMo transfer</option>
@@ -1262,6 +1272,7 @@
                 maximumCoins: item.maximumCoins ?? '',
                 paymentMethod: item.paymentMethod === 'MoMo transfer' ? 'MoMo transfer' : 'Bank transfer',
                 paymentInstructions: String(item.paymentInstructions || ''),
+                profilePic: String(item.profilePic || ''),
                 enabled: item.enabled !== false
             }));
             renderCryptoPaymentOptions();
@@ -1468,9 +1479,11 @@
                     || !Number.isSafeInteger(item.totalCoins) || item.totalCoins < 0
                     || ![item.minimumCoins, item.maximumCoins].every(value => Number.isSafeInteger(value) && value > 0)
                     || item.minimumCoins > item.maximumCoins
-                    || !item.paymentInstructions) {
-                    throw new Error('Each merchant needs payment details, a valid transfer method, non-negative whole-number inventory, and positive order limits (minimum ≤ maximum).');
+                    || !item.paymentInstructions
+                    || !validHttpUrl(item.profilePic)) {
+                    throw new Error('Each merchant needs a profile picture, payment details, a valid transfer method, non-negative whole-number inventory, and positive order limits (minimum ≤ maximum).');
                 }
+                item.profilePic = validHttpUrl(item.profilePic);
             }
             return next;
         }
@@ -1635,7 +1648,8 @@
             const values = {
                 like: Number(document.getElementById('reward-like').value),
                 comment: Number(document.getElementById('reward-comment').value),
-                share: Number(document.getElementById('reward-share').value)
+                share: Number(document.getElementById('reward-share').value),
+                watch: Number(document.getElementById('reward-watch').value)
             };
             if (Object.values(values).some(value => !Number.isSafeInteger(value) || value < 0)) {
                 showMessage(message, 'Reward values must be non-negative whole numbers of coins.', true);
@@ -1807,6 +1821,7 @@
                 maximumCoins: '',
                 paymentMethod: 'Bank transfer',
                 paymentInstructions: '',
+                profilePic: '',
                 enabled: true
             });
             renderMerchants();
@@ -1817,6 +1832,30 @@
             if (!button) return;
             merchants.splice(Number(button.dataset.removeMerchant), 1);
             renderMerchants();
+        });
+        document.getElementById('admin-merchants').addEventListener('change', async event => {
+            const input = event.target.closest('[data-merchant-profile-upload]');
+            const file = input?.files?.[0];
+            if (!input || !file) return;
+            const merchant = merchants.find(item => item.id === input.dataset.merchantProfileUpload);
+            if (!merchant) return;
+            const card = input.closest('[data-merchant-card]');
+            const status = card.querySelector('.merchant-profile-upload-status');
+            const preview = card.querySelector('.merchant-profile-preview');
+            input.disabled = true;
+            status.textContent = 'Uploading profile picture…';
+            try {
+                const profilePic = await uploadToCloudinary(file, 'image');
+                merchant.profilePic = profilePic;
+                preview.outerHTML = `<img class="merchant-profile-preview h-16 w-16 shrink-0 rounded-full border border-zinc-200 object-cover" src="${escapeHtml(profilePic)}" alt="${escapeHtml(merchant.name || 'Merchant')} profile picture">`;
+                status.textContent = 'Profile picture uploaded. Save merchants to publish this change.';
+            } catch (error) {
+                console.error('Unable to upload merchant profile picture:', error);
+                status.textContent = error.message || 'Could not upload profile picture.';
+            } finally {
+                input.disabled = false;
+                input.value = '';
+            }
         });
         document.getElementById('save-merchants').addEventListener('click', () =>
             saveCoinPaymentSettings({ cryptoChanged: false, merchantChanged: true }));

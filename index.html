@@ -655,6 +655,20 @@
                 const video = card.querySelector('video');
                 if (!video) return;
                 const playOverlay = card.querySelector('.play-icon-overlay');
+                if (video.dataset.watchRewardListener !== 'true') {
+                    video.dataset.watchRewardListener = 'true';
+                    video.addEventListener('playing', async () => {
+                        const actor = auth.currentUser;
+                        if (!actor) return;
+                        try {
+                            const earned = await recordVideoWatch(db, actor, card.dataset.id);
+                            if (earned > 0) window.showToast(`You earned ${earned} coins for watching this video!`);
+                        } catch (error) {
+                            console.error('Unable to record video watch reward:', error);
+                            window.showToast(error.message || 'Could not record your video watch.');
+                        }
+                    });
+                }
 
                 card.addEventListener('click', (e) => {
                     // Prevent trigger if clicking action buttons or drawer
@@ -663,8 +677,10 @@
                     window.requireUser().then(user => {
                         if (!user) return;
                         if (video instanceof HTMLVideoElement) {
-                            window.recordVideoActivity(card.dataset.id, video.paused ? 'play' : 'pause')
-                                .catch(error => console.error('Unable to record playback activity:', error));
+                            if (!video.paused) {
+                                window.recordVideoActivity(card.dataset.id, 'pause')
+                                    .catch(error => console.error('Unable to record playback activity:', error));
+                            }
                         }
                         if (video.paused) {
                             video.play();
@@ -1195,7 +1211,7 @@
         import { auth, db } from './firebase.js';
         import { getFollowingUserIds, toggleUserFollow } from './follows.js';
         import { subscribeToUnreadMessages } from './unread-messages.js';
-        import { prepareActivityReward, writeRewardedActivity } from './activity-rewards.js';
+        import { prepareActivityReward, recordVideoWatch, writeRewardedActivity } from './activity-rewards.js';
         import { onAuthStateChanged } from 'https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js';
         import {
             addDoc, collection, doc, getDoc, getDocs, query, runTransaction,

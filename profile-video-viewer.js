@@ -2,7 +2,7 @@ import {
     addDoc, collection, doc, getDoc, runTransaction, serverTimestamp
 } from 'https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js';
 import { toggleUserFollow, isUserFollowing } from './follows.js';
-import { prepareActivityReward, writeRewardedActivity } from './activity-rewards.js';
+import { prepareActivityReward, recordVideoWatch, writeRewardedActivity } from './activity-rewards.js';
 
 const DEFAULT_AVATAR = 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?auto=format&fit=crop&w=200&q=80';
 
@@ -77,17 +77,18 @@ export function createProfileVideoViewer({ auth, db }) {
                 playingSlide = entry.target;
                 if (video.dataset.historyListener !== 'true') {
                     video.dataset.historyListener = 'true';
-                    video.addEventListener('playing', () => {
+                    video.addEventListener('playing', async () => {
                         const user = auth.currentUser;
-                        if (!user || video.dataset.historyPlaying === 'true') return;
+                        if (!user) return;
+                        if (video.dataset.historyPlaying === 'true') return;
                         video.dataset.historyPlaying = 'true';
-                        addDoc(collection(db, 'activity'), {
-                            videoId: entry.target.dataset.id,
-                            userId: user.uid,
-                            action: 'play',
-                            details: {},
-                            createdAt: serverTimestamp()
-                        }).catch(error => console.error('Could not save profile video watch history:', error));
+                        try {
+                            const earned = await recordVideoWatch(db, user, entry.target.dataset.id);
+                            if (earned > 0) showToast(`You earned ${earned} coins for watching this video!`);
+                        } catch (error) {
+                            console.error('Could not save profile video watch activity:', error);
+                            showToast(error.message || 'Could not record your video watch.');
+                        }
                     });
                     video.addEventListener('pause', () => {
                         video.dataset.historyPlaying = 'false';

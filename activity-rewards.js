@@ -1,9 +1,11 @@
-import { doc } from 'https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js';
+import {
+    collection, doc, runTransaction, serverTimestamp
+} from 'https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js';
 
-const REWARDED_ACTIONS = new Set(['like', 'comment', 'share']);
+const REWARDED_ACTIONS = new Set(['like', 'comment', 'share', 'watch']);
 
 export async function prepareActivityReward(transaction, db, userId, action, existingUserSnapshot = null) {
-    if (!['like', 'unlike', 'comment', 'share'].includes(action) || !userId || userId.startsWith('guest-')) {
+    if (![...REWARDED_ACTIONS, 'unlike'].includes(action) || !userId || userId.startsWith('guest-')) {
         return { amount: 0, userRef: null, userSnapshot: null, currentEarnings: 0 };
     }
 
@@ -28,6 +30,44 @@ export async function prepareActivityReward(transaction, db, userId, action, exi
         throw new Error('Your earnings balance cannot accept this activity reward.');
     }
     return { amount, userRef, userSnapshot, currentEarnings };
+}
+
+export async function recordVideoWatch(db, user, videoId) {
+    if (!user?.uid || !videoId) return 0;
+
+    const watchedRef = doc(db, 'users', user.uid, 'watchedVideos', videoId);
+    const activityRef = doc(collection(db, 'activity'));
+    const rewardNoticeRef = doc(collection(db, 'activities'));
+
+    return runTransaction(db, async transaction => {
+        const watchedSnapshot = await transaction.get(watchedRef);
+        if (watchedSnapshot.exists()) {
+            transaction.set(activityRef, {
+                videoId,
+                userId: user.uid,
+                action: 'play',
+                details: { coinsEarned: 0, watchRewarded: false },
+                createdAt: serverTimestamp()
+            });
+            return 0;
+        }
+
+        const reward = await prepareActivityReward(transaction, db, user.uid, 'watch');
+        transaction.set(watchedRef, {
+            videoId,
+            userId: user.uid,
+            coinsEarned: reward.amount,
+            createdAt: serverTimestamp()
+        });
+        writeRewardedActivity(transaction, reward, activityRef, {
+            videoId,
+            userId: user.uid,
+            action: 'play',
+            details: { watchRewarded: true },
+            createdAt: serverTimestamp()
+        }, {}, rewardNoticeRef);
+        return reward.amount;
+    });
 }
 
 export function writeRewardedActivity(transaction, reward, activityRef, activity, userUpdates = {}, rewardNoticeRef = null) {

@@ -310,7 +310,9 @@
                 case 'coin_purchase': return `credited ${formatCount(activity.details?.amount)} coins to your available balance`;
                 case 'coin_deposit_rejected': return `could not approve your ${formatCount(activity.details?.coins)}-coin payment${activity.details?.note ? `: ${activity.details.note}` : ''}`;
                 case 'coin_transfer': return `transferred ${formatCount(activity.details?.amount)} coins from earnings to available balance`;
-                case 'activity_reward': return `earned ${formatCount(activity.details?.amount)} coins for a ${activity.details?.sourceAction || 'feed'} activity`;
+                case 'activity_reward': return activity.details?.sourceAction === 'play'
+                    ? `earned ${formatCount(activity.details?.amount)} coins for watching a video`
+                    : `earned ${formatCount(activity.details?.amount)} coins for a ${activity.details?.sourceAction || 'feed'} activity`;
                 case 'boost_request': return `submitted a ${activity.details?.promotionType || 'promotion'} campaign for ${formatCount(activity.details?.amount)} coins`;
                 case 'boost_approved': return `marked your ${activity.details?.promotionType || 'promotion'} campaign as fulfilled`;
                 case 'boost_rejected': return `rejected your promotion request and refunded ${formatCount(activity.details?.coins)} coins`;
