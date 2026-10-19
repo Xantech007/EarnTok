@@ -25,7 +25,7 @@
     <header class="sticky top-0 z-20 border-b border-zinc-800 bg-zinc-950/90 backdrop-blur">
         <div class="mx-auto flex max-w-3xl items-center justify-between px-4 py-3">
             <button type="button" data-history-back class="p-1" aria-label="Go back"><i data-lucide="arrow-left" class="h-6 w-6"></i></button>
-            <h1 class="text-lg font-bold">Boost and Ads</h1>
+            <h1 class="flex items-center gap-2 text-lg font-bold"><i data-lucide="coins" class="h-5 w-5 text-amber-400" aria-hidden="true"></i>Boost and Ads</h1>
             <a href="./wallet.html" class="text-sm font-semibold">Wallet</a>
         </div>
     </header>
@@ -36,7 +36,7 @@
                 <span class="rounded-full bg-rose-50 px-3 py-1 text-xs font-bold text-rose-600">Verified users</span>
             </div>
             <p id="boost-message" class="mt-4 hidden rounded-xl border p-3 text-sm" role="status"></p>
-            <p id="boost-balance" class="mt-4 text-sm font-semibold text-zinc-700">Available balance: — coins</p>
+            <p id="boost-balance" class="mt-4 flex items-center gap-1 text-sm font-semibold text-zinc-700"><i data-lucide="coins" class="h-4 w-4 text-amber-400" aria-hidden="true"></i><span>Available balance: — coins</span></p>
             <form id="boost-form" class="mt-5 space-y-4">
                 <label class="block text-sm font-semibold">Promotion goal
                     <select id="boost-type" class="field mt-2" required>
@@ -95,9 +95,10 @@
             const units = Number(document.getElementById('boost-units').value);
             const rate = selectedRate();
             const cost = units * rate;
-            document.getElementById('boost-price').textContent = Number.isSafeInteger(cost)
-                ? `${formatCoins(rate)} coins per unit · Total: ${formatCoins(cost)} coins`
+            document.getElementById('boost-price').innerHTML = Number.isSafeInteger(cost)
+                ? `<i data-lucide="coins" class="inline h-4 w-4 text-amber-400 align-[-0.15em]" aria-hidden="true"></i> ${formatCoins(rate)} coins per unit · Total: ${formatCoins(cost)} coins`
                 : 'The requested amount is too large.';
+            lucide.createIcons();
         }
         function updateGoalFields() {
             const needsVideo = ['likes', 'videoViews'].includes(typeSelect.value);
@@ -113,9 +114,10 @@
                 const rows = snapshot.docs.map(item => ({ id: item.id, ...item.data() }))
                     .sort((left, right) => (right.createdAt?.toMillis?.() || 0) - (left.createdAt?.toMillis?.() || 0));
                 container.innerHTML = rows.length ? rows.map(item => `<article class="flex items-center justify-between gap-3 p-4">
-                    <div><p class="font-semibold">${item.type === 'videoViews' ? 'Video views' : item.type === 'profileViews' ? 'Profile views' : item.type === 'followers' ? 'Followers' : 'Likes'} · ${formatCoins(item.units)} units</p><p class="mt-1 text-xs text-zinc-500">${formatCoins(item.coinsCost)} coins · ${escapeHtml(item.videoDescription || '')}</p></div>
+                    <div><p class="font-semibold">${item.type === 'videoViews' ? 'Video views' : item.type === 'profileViews' ? 'Profile views' : item.type === 'followers' ? 'Followers' : 'Likes'} · ${formatCoins(item.units)} units</p><p class="mt-1 flex items-center gap-1 text-xs text-zinc-500"><i data-lucide="coins" class="h-3.5 w-3.5 text-amber-400" aria-hidden="true"></i>${formatCoins(item.coinsCost)} coins · ${escapeHtml(item.videoDescription || '')}</p></div>
                     <span class="rounded-full bg-zinc-100 px-3 py-1 text-xs font-semibold capitalize text-zinc-600">${escapeHtml(item.status || 'pending')}</span>
                 </article>`).join('') : '<p class="p-5 text-center text-sm text-zinc-500">You have no promotion requests yet.</p>';
+                lucide.createIcons();
             } catch (error) {
                 console.error('Unable to load promotion history:', error);
                 container.innerHTML = '<p class="p-5 text-center text-sm text-rose-600">Could not load your promotion requests.</p>';
@@ -136,7 +138,7 @@
                     document.getElementById('boost-form').classList.add('hidden');
                     return;
                 }
-                balanceLabel.textContent = `Available balance: ${formatCoins(account.availableBalance)} coins`;
+                balanceLabel.querySelector('span').textContent = `Available balance: ${formatCoins(account.availableBalance)} coins`;
                 if (settingsSnapshot.exists()) Object.assign(prices, settingsSnapshot.data());
                 videos = videosSnapshot.docs
                     .filter(item => item.data().admin === 'yes')
@@ -229,7 +231,7 @@
                     });
                 });
                 account.availableBalance -= cost;
-                balanceLabel.textContent = `Available balance: ${formatCoins(account.availableBalance)} coins`;
+                balanceLabel.querySelector('span').textContent = `Available balance: ${formatCoins(account.availableBalance)} coins`;
                 showMessage('Promotion request submitted. Coins are reserved while it is reviewed.');
                 await loadHistory();
             } catch (error) {

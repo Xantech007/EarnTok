@@ -511,15 +511,14 @@
                         <span class="flex h-12 w-12 items-center justify-center rounded-full bg-zinc-800 text-xl">▧</span>
                         Upload
                     </button>
-                    <button id="capture-media-button" class="flex h-[4.5rem] w-[4.5rem] items-center justify-center rounded-full border-4 border-white" type="button" aria-label="Take photo">
-                        <span class="h-14 w-14 rounded-full bg-rose-500"></span>
+                    <button id="capture-media-button" class="flex h-[4.5rem] w-[4.5rem] touch-none select-none items-center justify-center rounded-full border-4 border-white transition-transform" type="button" aria-label="Take photo; press and hold to record video">
+                        <span class="shutter-core h-14 w-14 rounded-full bg-rose-500 transition-all"></span>
                     </button>
                     <button id="camera-mode-button" class="flex flex-col items-center gap-2 text-xs text-zinc-300" type="button">
                         <span class="flex h-12 w-12 items-center justify-center rounded-full bg-zinc-800 text-xl">◉</span>
                         Use camera
                     </button>
                 </div>
-                <button id="record-video-button" class="mx-auto mb-6 hidden rounded-full bg-rose-500 px-5 py-2 text-sm font-semibold" type="button">Start recording</button>
                 <input id="local-media-input" class="hidden" type="file" accept="video/*,image/*">
             </div>
         </dialog>
@@ -1172,7 +1171,16 @@
         // Toast Helper
         function showToast(msg) {
             const toast = document.getElementById('toast');
-            toast.textContent = msg;
+            if (/\bcoins?\b/i.test(msg)) {
+                const coinIcon = document.createElement('i');
+                coinIcon.setAttribute('data-lucide', 'coins');
+                coinIcon.className = 'mr-1 inline h-4 w-4 align-[-0.15em] text-amber-400';
+                coinIcon.setAttribute('aria-hidden', 'true');
+                toast.replaceChildren(coinIcon, document.createTextNode(msg));
+                lucide.createIcons();
+            } else {
+                toast.textContent = msg;
+            }
             toast.classList.remove('opacity-0');
             setTimeout(() => toast.classList.add('opacity-0'), 2000);
         }
@@ -1226,7 +1234,6 @@
         const cameraStatus = document.getElementById('camera-status');
         const cameraPlaceholder = document.getElementById('camera-placeholder');
         const cameraCaptureButton = document.getElementById('capture-media-button');
-        const recordVideoButton = document.getElementById('record-video-button');
         const localMediaInput = document.getElementById('local-media-input');
         const createUploadStatus = document.getElementById('create-upload-status');
         const PENDING_CLOUD_NAME = 'hjkjnzpz';
@@ -1244,6 +1251,8 @@
         let activeRecordingDiscarded = null;
         let recordedChunks = [];
         let mediaPreviewUrl = '';
+        let shutterHoldTimer = null;
+        let shutterRecording = false;
 
         onAuthStateChanged(auth, user => {
             currentUser = user;
@@ -1496,6 +1505,8 @@
         };
 
         function stopCamera() {
+            clearTimeout(shutterHoldTimer);
+            shutterHoldTimer = null;
             if (mediaRecorder?.state === 'recording') {
                 if (activeRecordingDiscarded) activeRecordingDiscarded.value = true;
                 mediaRecorder.stop();
@@ -1507,12 +1518,12 @@
             cameraPreview.srcObject = null;
             cameraPreview.classList.add('hidden');
             cameraPlaceholder.classList.remove('hidden');
-            recordVideoButton.classList.add('hidden');
-            recordVideoButton.textContent = 'Start recording';
-            recordVideoButton.classList.remove('bg-zinc-700');
-            recordVideoButton.classList.add('bg-rose-500');
+            cameraCaptureButton.classList.remove('is-recording');
+            cameraCaptureButton.classList.remove('scale-95');
+            cameraCaptureButton.querySelector('.shutter-core').classList.remove('scale-75', 'rounded-xl');
             cameraStatus.textContent = '';
             mediaRecorder = null;
+            shutterRecording = false;
             recordedChunks = [];
             activeRecordingDiscarded = null;
         }
@@ -1621,20 +1632,15 @@
                 cameraPreview.classList.remove('hidden');
                 cameraPlaceholder.classList.add('hidden');
                 cameraCaptureButton.setAttribute('aria-label', 'Take photo');
-                cameraStatus.textContent = 'Tap the shutter for a photo, or record a video.';
-                if (window.MediaRecorder && MediaRecorder.isTypeSupported('video/webm;codecs=vp8,opus')) {
-                    recordVideoButton.classList.remove('hidden');
-                } else if (window.MediaRecorder) {
-                    recordVideoButton.classList.remove('hidden');
-                } else {
-                    cameraStatus.textContent = 'Video recording is not supported. You can still take a photo.';
-                }
+                cameraStatus.textContent = window.MediaRecorder
+                    ? 'Tap the shutter to take a photo. Press and hold to record a video.'
+                    : 'Tap the shutter to take a photo. Video recording is not supported.';
             } catch (error) {
                 console.error('Unable to open device camera:', error);
                 cameraStatus.textContent = 'Camera permission was denied or the camera is unavailable. Use Upload instead.';
             }
         });
-        cameraCaptureButton.addEventListener('click', () => {
+        function capturePhoto() {
             if (!cameraStream || !cameraPreview.videoWidth) {
                 localMediaInput.click();
                 return;
@@ -1651,14 +1657,11 @@
                 cameraDialog.close();
                 setSelectedMedia(new File([blob], `earntok-${Date.now()}.jpg`, { type: 'image/jpeg' }));
             }, 'image/jpeg', .92);
-        });
-        recordVideoButton.addEventListener('click', () => {
+        }
+        function startVideoRecording() {
             if (!cameraStream) return;
-            if (mediaRecorder?.state === 'recording') {
-                mediaRecorder.stop();
-                recordVideoButton.textContent = 'Start recording';
-                recordVideoButton.classList.remove('bg-zinc-700');
-                recordVideoButton.classList.add('bg-rose-500');
+            if (!window.MediaRecorder) {
+                cameraStatus.textContent = 'Video recording is not supported on this device.';
                 return;
             }
             recordedChunks = [];
@@ -1676,6 +1679,9 @@
                     if (event.data.size) chunks.push(event.data);
                 });
                 mediaRecorder.addEventListener('stop', () => {
+                    shutterRecording = false;
+                    cameraCaptureButton.classList.remove('is-recording', 'scale-95');
+                    cameraCaptureButton.querySelector('.shutter-core').classList.remove('scale-75', 'rounded-xl');
                     if (discarded.value) return;
                     if (!chunks.length) {
                         cameraStatus.textContent = 'No video was recorded.';
@@ -1686,13 +1692,64 @@
                     setSelectedMedia(new File([video], `earntok-${Date.now()}.webm`, { type: video.type }));
                 }, { once: true });
                 mediaRecorder.start();
-                recordVideoButton.textContent = 'Stop recording';
-                recordVideoButton.classList.remove('bg-rose-500');
-                recordVideoButton.classList.add('bg-zinc-700');
-                cameraStatus.textContent = 'Recording… tap Stop recording when you are done.';
+                shutterRecording = true;
+                cameraCaptureButton.classList.add('is-recording');
+                cameraCaptureButton.classList.add('scale-95');
+                cameraCaptureButton.querySelector('.shutter-core').classList.add('scale-75', 'rounded-xl');
+                cameraStatus.textContent = 'Recording… release the shutter to finish.';
             } catch (error) {
                 console.error('Unable to record video:', error);
                 cameraStatus.textContent = 'Could not start recording. Check camera permissions and try again.';
+            }
+        }
+        function finishVideoRecording() {
+            clearTimeout(shutterHoldTimer);
+            shutterHoldTimer = null;
+            if (mediaRecorder?.state === 'recording') {
+                mediaRecorder.stop();
+                cameraCaptureButton.classList.remove('is-recording');
+                cameraCaptureButton.classList.remove('scale-95');
+                cameraCaptureButton.querySelector('.shutter-core').classList.remove('scale-75', 'rounded-xl');
+                cameraStatus.textContent = 'Finishing video…';
+            }
+        }
+        cameraCaptureButton.addEventListener('pointerdown', event => {
+            if (event.button !== undefined && event.button !== 0) return;
+            event.preventDefault();
+            cameraCaptureButton.setPointerCapture(event.pointerId);
+            shutterHoldTimer = window.setTimeout(() => {
+                shutterHoldTimer = null;
+                startVideoRecording();
+            }, 350);
+        });
+        cameraCaptureButton.addEventListener('pointerup', event => {
+            event.preventDefault();
+            if (shutterHoldTimer !== null) {
+                clearTimeout(shutterHoldTimer);
+                shutterHoldTimer = null;
+                capturePhoto();
+            } else if (shutterRecording) {
+                finishVideoRecording();
+            } else {
+                capturePhoto();
+            }
+        });
+        cameraCaptureButton.addEventListener('pointercancel', () => {
+            if (shutterRecording) finishVideoRecording();
+            else {
+                clearTimeout(shutterHoldTimer);
+                shutterHoldTimer = null;
+            }
+        });
+        cameraCaptureButton.addEventListener('click', event => {
+            if (event.detail !== 0) return;
+            capturePhoto();
+        });
+        cameraCaptureButton.addEventListener('lostpointercapture', () => {
+            if (shutterRecording) finishVideoRecording();
+            else {
+                clearTimeout(shutterHoldTimer);
+                shutterHoldTimer = null;
             }
         });
         document.getElementById('close-details').addEventListener('click', () => detailsDialog.close());

@@ -303,7 +303,7 @@
                 ? `<button class="pin-video absolute top-2 right-2 z-20 flex h-7 w-7 items-center justify-center rounded-full ${pinned ? 'bg-rose-500 text-white shadow-md' : 'bg-black/50 text-white/80 hover:bg-rose-500 hover:text-white backdrop-blur-sm'} transition" data-id="${escapeHtml(video.id)}" type="button" title="${pinned ? 'Unpin post' : 'Pin post'}" aria-label="${pinned ? 'Unpin post' : 'Pin post'}"><i data-lucide="pin" class="h-3.5 w-3.5 ${pinned ? 'fill-current' : ''}"></i></button>`
                 : (pinned ? `<span class="absolute top-2 right-2 z-10 flex h-7 w-7 items-center justify-center rounded-full bg-rose-500 text-white shadow-md" title="Pinned post" aria-label="Pinned post"><i data-lucide="pin" class="h-3.5 w-3.5 fill-current"></i></span>` : '');
 
-            return `<article class="group relative overflow-hidden bg-zinc-900 ${isPublished ? 'cursor-pointer' : ''}" data-profile-video-id="${escapeHtml(video.id)}" ${isPublished ? 'tabindex="0" role="button"' : ''} aria-label="Watch ${escapeHtml(video.description || 'post')}">
+            return `<article class="group relative overflow-hidden bg-zinc-900 ${isPublished ? 'cursor-pointer' : ''}" data-profile-video-id="${escapeHtml(video.id)}" ${isPublished ? 'tabindex="0"' : ''} aria-label="Watch ${escapeHtml(video.description || 'post')}">
                 ${media}
                 ${pinIconHtml}
             </article>`;
@@ -595,15 +595,17 @@
         }
 
         function openProfileVideo(event) {
-            const button = event.target.closest('.open-profile-video');
-            if (!button) return;
-            const videoId = button.dataset.id;
+            if (event.target.closest('.pin-video, .delete-upload')) return;
+            const card = event.target.closest('[data-profile-video-id]');
+            if (!card) return;
+            const videoId = card.dataset.profileVideoId;
             const selectedVideo = renderedItems.find(video => video.id === videoId);
             if (!selectedVideo) return;
             const creatorVideos = selectedVideo.userId === user.uid
                 ? uploads.filter(video => video.admin === 'yes')
                 : renderedItems.filter(video => video.userId === selectedVideo.userId);
-            videoViewer.open(creatorVideos.map(video => ({
+            const posts = creatorVideos.length ? creatorVideos : [selectedVideo];
+            videoViewer.open(posts.map(video => ({
                 ...video,
                 creatorUsername: video.userId === user.uid
                     ? (profile.username ? `@${profile.username}` : profile.fullName || user.displayName)
@@ -621,6 +623,7 @@
         }
         document.getElementById('content-grid').addEventListener('click', openProfileVideo);
         document.getElementById('content-grid').addEventListener('keydown', event => {
+            if (event.target.closest('button, a, input, select, textarea')) return;
             if (event.key !== 'Enter' && event.key !== ' ') return;
             event.preventDefault();
             openProfileVideo(event);

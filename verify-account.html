@@ -23,7 +23,7 @@
     <header class="sticky top-0 z-20 border-b border-zinc-800 bg-zinc-950/90 backdrop-blur">
         <div class="mx-auto flex max-w-2xl items-center justify-between px-4 py-3">
             <button type="button" data-history-back class="p-1" aria-label="Go back"><i data-lucide="arrow-left" class="h-6 w-6"></i></button>
-            <h1 class="text-lg font-bold">Verify account</h1>
+            <h1 class="flex items-center gap-2 text-lg font-bold"><i data-lucide="coins" class="h-5 w-5 text-amber-400" aria-hidden="true"></i>Verify account</h1>
             <a href="./wallet.html" class="text-sm font-semibold">Wallet</a>
         </div>
     </header>
@@ -34,8 +34,8 @@
                 <div><h2 class="text-xl font-bold">Request account verification</h2><p class="mt-1 text-sm text-zinc-500">Submit a request for review. The configured fee is charged from your available balance; pending review may take some time.</p></div>
             </div>
             <p id="verification-message" class="mt-5 hidden rounded-xl border p-3 text-sm" role="status"></p>
-            <p id="verification-fee" class="mt-5 rounded-xl bg-zinc-50 p-4 text-sm font-semibold text-zinc-700">Verification fee: loading…</p>
-            <p id="verification-balance" class="mt-3 text-sm text-zinc-600">Available balance: — coins</p>
+            <p id="verification-fee" class="mt-5 flex items-center gap-1 rounded-xl bg-zinc-50 p-4 text-sm font-semibold text-zinc-700"><i data-lucide="coins" class="h-4 w-4 shrink-0 text-amber-400" aria-hidden="true"></i><span>Verification fee: loading…</span></p>
+            <p class="mt-3 flex items-center gap-1 text-sm text-zinc-600"><i data-lucide="coins" class="h-4 w-4 text-amber-400" aria-hidden="true"></i><span id="verification-balance">Available balance: — coins</span></p>
             <button id="verification-submit" class="mt-5 w-full rounded-xl bg-rose-500 px-5 py-3 font-bold text-white hover:bg-rose-600 disabled:cursor-not-allowed disabled:opacity-50" type="button" disabled>Submit verification request</button>
         </section>
         <section class="rounded-2xl border border-zinc-200 bg-white p-5">
@@ -62,6 +62,11 @@
             message.className = `mt-5 rounded-xl border p-3 text-sm ${error ? 'border-rose-200 bg-rose-50 text-rose-700' : 'border-emerald-200 bg-emerald-50 text-emerald-700'}`;
         }
         function formatCoins(amount) { return Number(amount || 0).toLocaleString(); }
+        function escapeHtml(value) {
+            return String(value ?? '').replace(/[&<>"']/g, character => ({
+                '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;'
+            })[character]);
+        }
         async function loadStatus() {
             const container = document.getElementById('verification-history');
             try {
@@ -73,7 +78,8 @@
                     return;
                 }
                 const status = request.status || 'pending';
-                container.textContent = `Status: ${status}. Fee: ${formatCoins(request.coinsCost)} coins.${status === 'rejected' ? ' The fee was refunded; you may submit a new request.' : ''}`;
+                container.innerHTML = `Status: ${escapeHtml(status)}. <i data-lucide="coins" class="inline h-4 w-4 text-amber-400 align-[-0.15em]" aria-hidden="true"></i> Fee: ${formatCoins(request.coinsCost)} coins.${status === 'rejected' ? ' The fee was refunded; you may submit a new request.' : ''}`;
+                lucide.createIcons();
                 if (status === 'pending') {
                     document.getElementById('verification-submit').disabled = true;
                     showMessage('Your verification request is pending review.');
@@ -100,7 +106,7 @@
                 account = accountSnapshot.data();
                 fee = Number(settingsSnapshot.exists() ? settingsSnapshot.data().fee ?? 0 : 0);
                 if (!Number.isSafeInteger(fee) || fee < 0) throw new Error('The configured verification fee is invalid.');
-                document.getElementById('verification-fee').textContent = `Verification fee: ${formatCoins(fee)} coins`;
+                document.querySelector('#verification-fee span').textContent = `Verification fee: ${formatCoins(fee)} coins`;
                 document.getElementById('verification-balance').textContent = `Available balance: ${formatCoins(account.availableBalance)} coins`;
                 const button = document.getElementById('verification-submit');
                 if (account.verify === 'yes') {

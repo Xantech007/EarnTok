@@ -36,17 +36,17 @@
     </header>
     <main class="mx-auto max-w-3xl px-4 py-8">
         <section class="rounded-3xl bg-zinc-900/70 p-6 shadow-sm sm:p-8">
-            <p class="text-sm font-semibold text-zinc-500">Your coins</p>
+            <p class="flex items-center gap-1 text-sm font-semibold text-zinc-500"><i data-lucide="coins" class="h-4 w-4 text-amber-400" aria-hidden="true"></i>Your coins</p>
             <h2 class="mt-1 text-2xl font-bold">Wallet balance</h2>
             <p id="wallet-error" class="mt-4 hidden rounded-xl border border-rose-200 bg-rose-50 p-3 text-sm text-rose-600" role="alert"></p>
             <div class="mt-6 grid gap-4 sm:grid-cols-2">
                 <article class="rounded-2xl border border-zinc-800 bg-white p-5">
                     <p class="text-sm text-zinc-500">Earnings Balance</p>
-                    <p id="earnings-balance" class="mt-2 text-3xl font-bold">— <span class="text-base font-semibold text-zinc-500">coins</span></p>
+                    <p id="earnings-balance" class="mt-2 flex items-center gap-2 text-3xl font-bold">— <i data-lucide="coins" class="h-6 w-6 text-amber-400" aria-hidden="true"></i><span class="text-base font-semibold text-zinc-500">coins</span></p>
                 </article>
                 <article class="rounded-2xl border border-zinc-800 bg-white p-5">
                     <p class="text-sm text-zinc-500">Available Balance</p>
-                    <p id="available-balance" class="mt-2 text-3xl font-bold">— <span class="text-base font-semibold text-zinc-500">coins</span></p>
+                    <p id="available-balance" class="mt-2 flex items-center gap-2 text-3xl font-bold">— <i data-lucide="coins" class="h-6 w-6 text-amber-400" aria-hidden="true"></i><span class="text-base font-semibold text-zinc-500">coins</span></p>
                 </article>
             </div>
             <div class="mt-6 grid gap-3 sm:grid-cols-2">
@@ -133,8 +133,9 @@
                 const snapshot = await getDoc(doc(db, 'users', user.uid));
                 if (!snapshot.exists()) throw new Error('Your wallet account could not be found.');
                 const account = snapshot.data();
-                document.getElementById('earnings-balance').innerHTML = `${displayCoins(account.earningsBalance)} <span class="text-base font-semibold text-zinc-500">coins</span>`;
-                document.getElementById('available-balance').innerHTML = `${displayCoins(account.availableBalance)} <span class="text-base font-semibold text-zinc-500">coins</span>`;
+                document.getElementById('earnings-balance').innerHTML = `${displayCoins(account.earningsBalance)} <i data-lucide="coins" class="h-6 w-6 text-amber-400" aria-hidden="true"></i><span class="text-base font-semibold text-zinc-500">coins</span>`;
+                document.getElementById('available-balance').innerHTML = `${displayCoins(account.availableBalance)} <i data-lucide="coins" class="h-6 w-6 text-amber-400" aria-hidden="true"></i><span class="text-base font-semibold text-zinc-500">coins</span>`;
+                lucide.createIcons();
                 accountUser = user;
                 if (account.verify === 'yes') {
                     transferButton.classList.remove('hidden');
@@ -205,8 +206,9 @@
                         availableBalance: availableBalance + amount
                     };
                 });
-                document.getElementById('earnings-balance').innerHTML = `${displayCoins(updatedBalances.earningsBalance)} <span class="text-base font-semibold text-zinc-500">coins</span>`;
-                document.getElementById('available-balance').innerHTML = `${displayCoins(updatedBalances.availableBalance)} <span class="text-base font-semibold text-zinc-500">coins</span>`;
+                document.getElementById('earnings-balance').innerHTML = `${displayCoins(updatedBalances.earningsBalance)} <i data-lucide="coins" class="h-6 w-6 text-amber-400" aria-hidden="true"></i><span class="text-base font-semibold text-zinc-500">coins</span>`;
+                document.getElementById('available-balance').innerHTML = `${displayCoins(updatedBalances.availableBalance)} <i data-lucide="coins" class="h-6 w-6 text-amber-400" aria-hidden="true"></i><span class="text-base font-semibold text-zinc-500">coins</span>`;
+                lucide.createIcons();
                 document.getElementById('transfer-form').reset();
                 setWalletMessage('Coins transferred to your available balance.');
             } catch (error) {

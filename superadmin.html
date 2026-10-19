@@ -94,7 +94,7 @@
             <nav class="mb-8 flex gap-2 overflow-x-auto border-b border-zinc-800" aria-label="Admin sections">
                 <button class="admin-tab tab-active shrink-0 border-b-2 px-4 py-3 text-sm font-semibold" data-admin-tab="videos" type="button">Videos</button>
                 <button class="admin-tab shrink-0 border-b-2 border-transparent px-4 py-3 text-sm font-semibold text-zinc-500" data-admin-tab="users" type="button">Users</button>
-                <button class="admin-tab shrink-0 border-b-2 border-transparent px-4 py-3 text-sm font-semibold text-zinc-500" data-admin-tab="wallet" type="button">Coins &amp; wallet</button>
+                <button class="admin-tab inline-flex shrink-0 items-center gap-2 border-b-2 border-transparent px-4 py-3 text-sm font-semibold text-zinc-500" data-admin-tab="wallet" type="button"><i data-lucide="coins" class="h-4 w-4 text-amber-400" aria-hidden="true"></i>Coins &amp; wallet</button>
                 <button class="admin-tab shrink-0 border-b-2 border-transparent px-4 py-3 text-sm font-semibold text-zinc-500" data-admin-tab="growth" type="button">Growth &amp; verification</button>
                 <button class="admin-tab shrink-0 border-b-2 border-transparent px-4 py-3 text-sm font-semibold text-zinc-500" data-admin-tab="activity" type="button">Website activity</button>
             </nav>
@@ -830,7 +830,7 @@
                         <div class="min-w-0"><p class="truncate font-semibold">${escapeHtml(user.fullName || 'EarnTok user')}</p>
                             <p class="truncate text-xs text-zinc-500">${user.username ? `@${escapeHtml(user.username)}` : escapeHtml(user.id)}</p>
                             <p class="mt-1 text-xs text-zinc-400">${formatCount(user.followers)} followers · ${formatCount(user.following)} following</p>
-                            <p class="mt-1 text-xs text-zinc-500">Earnings: ${formatCount(user.userData.earningsBalance)} · Available: ${formatCount(user.userData.availableBalance)} coins</p>
+                            <p class="mt-1 flex items-center gap-1 text-xs text-zinc-500"><i data-lucide="coins" class="h-3.5 w-3.5 text-amber-400" aria-hidden="true"></i>Earnings: ${formatCount(user.userData.earningsBalance)} · Available: ${formatCount(user.userData.availableBalance)} coins</p>
                             ${user.verify === 'yes' ? '<p class="mt-1 flex items-center gap-1 text-xs font-semibold text-sky-400"><i data-lucide="badge-check" class="h-4 w-4 shrink-0" aria-hidden="true"></i>Verified</p>' : ''}
                         </div>
                     </div>

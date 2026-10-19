@@ -103,7 +103,16 @@ export function createProfileVideoViewer({ auth, db }) {
 
     function showToast(message) {
         const toast = dialog.querySelector('.viewer-toast');
-        toast.textContent = message;
+        if (/\bcoins?\b/i.test(message)) {
+            const coinIcon = document.createElement('i');
+            coinIcon.setAttribute('data-lucide', 'coins');
+            coinIcon.className = 'mr-1 inline h-4 w-4 align-[-0.15em] text-amber-400';
+            coinIcon.setAttribute('aria-hidden', 'true');
+            toast.replaceChildren(coinIcon, document.createTextNode(message));
+            lucide.createIcons();
+        } else {
+            toast.textContent = message;
+        }
         toast.classList.remove('opacity-0');
         clearTimeout(toastTimeout);
         toastTimeout = setTimeout(() => toast.classList.add('opacity-0'), 2200);
