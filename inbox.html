@@ -292,6 +292,17 @@
             return Number.isFinite(count) && count >= 0 ? Math.floor(count).toLocaleString() : '0';
         }
 
+        const SYSTEM_ACTIVITY_ACTIONS = new Set([
+            'welcome_bonus', 'coin_deposit_submitted', 'coin_purchase', 'coin_deposit_rejected',
+            'coin_transfer', 'withdrawal_submitted', 'withdrawal_approved', 'withdrawal_rejected',
+            'activity_reward', 'boost_request', 'boost_approved', 'boost_rejected',
+            'verification_submitted', 'verification_approved', 'verification_rejected'
+        ]);
+        const INBOX_ACTIVITY_ACTIONS = new Set([
+            ...SYSTEM_ACTIVITY_ACTIONS, 'follow_creator', 'profile_view', 'like', 'comment',
+            'share', 'save', 'comment_like'
+        ]);
+
         function activityMessage(activity) {
             switch (activity.action) {
                 case 'welcome_bonus': return `credited you with a welcome bonus of ${formatCount(activity.details?.amount)} coins`;
@@ -299,6 +310,13 @@
                 case 'coin_purchase': return `credited ${formatCount(activity.details?.amount)} coins to your available balance`;
                 case 'coin_deposit_rejected': return `could not approve your ${formatCount(activity.details?.coins)}-coin payment${activity.details?.note ? `: ${activity.details.note}` : ''}`;
                 case 'coin_transfer': return `transferred ${formatCount(activity.details?.amount)} coins from earnings to available balance`;
+                case 'activity_reward': return `earned ${formatCount(activity.details?.amount)} coins for a ${activity.details?.sourceAction || 'feed'} activity`;
+                case 'boost_request': return `submitted a ${activity.details?.promotionType || 'promotion'} campaign for ${formatCount(activity.details?.amount)} coins`;
+                case 'boost_approved': return `marked your ${activity.details?.promotionType || 'promotion'} campaign as fulfilled`;
+                case 'boost_rejected': return `rejected your promotion request and refunded ${formatCount(activity.details?.coins)} coins`;
+                case 'verification_submitted': return `submitted your verification request for ${formatCount(activity.details?.amount)} coins`;
+                case 'verification_approved': return 'approved your account verification';
+                case 'verification_rejected': return `rejected your verification request and refunded ${formatCount(activity.details?.coins)} coins`;
                 case 'withdrawal_submitted': return `reserved ${formatCount(activity.details?.coins)} coins for a ${activity.details?.currency || ''} withdrawal`;
                 case 'withdrawal_approved': return `approved your ${formatCount(activity.details?.coins)}-coin withdrawal`;
                 case 'withdrawal_rejected': return `rejected your ${formatCount(activity.details?.coins)}-coin withdrawal and refunded the coins${activity.details?.note ? `: ${activity.details.note}` : ''}`;
@@ -368,19 +386,19 @@
                 const { records, hasReadErrors } = await queryUserActivities();
                 const activities = records
                     .filter(item => item.userId !== currentUser.uid)
-                    .filter(item => ['welcome_bonus', 'coin_deposit_submitted', 'coin_purchase', 'coin_deposit_rejected', 'coin_transfer', 'withdrawal_submitted', 'withdrawal_approved', 'withdrawal_rejected', 'follow_creator', 'profile_view', 'like', 'comment', 'share', 'save', 'comment_like'].includes(item.action))
+                    .filter(item => INBOX_ACTIVITY_ACTIONS.has(item.action))
                     .sort((left, right) => (activityDate(right.createdAt)?.getTime() || 0) - (activityDate(left.createdAt)?.getTime() || 0));
                 if (!activities.length) {
                     renderEmptyActivity(activityList, 'No activity yet.');
                 } else {
                     const profiles = await Promise.all(activities.map(item => {
-                        if (['welcome_bonus', 'coin_deposit_submitted', 'coin_purchase', 'coin_deposit_rejected', 'coin_transfer', 'withdrawal_submitted', 'withdrawal_approved', 'withdrawal_rejected'].includes(item.action) || !item.userId || item.userId.startsWith('guest-')) return Promise.resolve(null);
+                        if (SYSTEM_ACTIVITY_ACTIONS.has(item.action) || !item.userId || item.userId.startsWith('guest-')) return Promise.resolve(null);
                         return getContactProfile(item.userId, { id: item.userId });
                     }));
                     activityList.innerHTML = activities.map((item, index) => {
                         const profile = profiles[index] || {};
                         const guest = item.userId?.startsWith('guest-');
-                        const name = ['welcome_bonus', 'coin_deposit_submitted', 'coin_purchase', 'coin_deposit_rejected', 'coin_transfer', 'withdrawal_submitted', 'withdrawal_approved', 'withdrawal_rejected'].includes(item.action) ? 'EarnTok' : guest ? 'Anonymous visitor' : (profile.fullName || 'EarnTok user');
+                        const name = SYSTEM_ACTIVITY_ACTIONS.has(item.action) ? 'EarnTok' : guest ? 'Anonymous visitor' : (profile.fullName || 'EarnTok user');
                         const username = profile.username ? `@${profile.username}` : '';
                         const date = activityDate(item.createdAt);
                         const time = date ? formatTime(date) : '';
@@ -396,7 +414,7 @@
                             </div>
                             <span class="shrink-0 text-xs text-zinc-400">${escapeHtml(time)}</span>
                         </div>`;
-                        return !['welcome_bonus', 'coin_deposit_submitted', 'coin_purchase', 'coin_deposit_rejected', 'coin_transfer', 'withdrawal_submitted', 'withdrawal_approved', 'withdrawal_rejected'].includes(item.action) && !guest && item.userId
+                        return !SYSTEM_ACTIVITY_ACTIONS.has(item.action) && !guest && item.userId
                             ? `<a href="./view-profile.html?uid=${encodeURIComponent(item.userId)}" class="block hover:bg-zinc-50">${row}</a>`
                             : row;
                     }).join('');
@@ -417,7 +435,7 @@
                 const { records, hasReadErrors } = await queryUserActivities();
                 const latest = records
                     .filter(item => item.userId !== currentUser.uid)
-                    .filter(item => ['welcome_bonus', 'coin_deposit_submitted', 'coin_purchase', 'coin_deposit_rejected', 'coin_transfer', 'withdrawal_submitted', 'withdrawal_approved', 'withdrawal_rejected', 'follow_creator', 'profile_view', 'like', 'comment', 'share', 'save', 'comment_like'].includes(item.action))
+                    .filter(item => INBOX_ACTIVITY_ACTIONS.has(item.action))
                     .sort((left, right) => (activityDate(right.createdAt)?.getTime() || 0) - (activityDate(left.createdAt)?.getTime() || 0))[0];
                 if (!latest) {
                     if (hasReadErrors) {
@@ -426,11 +444,10 @@
                     return;
                 }
                 const guest = latest.userId?.startsWith('guest-');
-                const systemActions = ['welcome_bonus', 'coin_deposit_submitted', 'coin_purchase', 'coin_deposit_rejected', 'coin_transfer', 'withdrawal_submitted', 'withdrawal_approved', 'withdrawal_rejected'];
-                const profile = !systemActions.includes(latest.action) && !guest && latest.userId
+                const profile = !SYSTEM_ACTIVITY_ACTIONS.has(latest.action) && !guest && latest.userId
                     ? await getContactProfile(latest.userId, { id: latest.userId })
                     : {};
-                const actor = systemActions.includes(latest.action) ? 'EarnTok' : guest ? 'Someone' : (profile.fullName || 'Someone');
+                const actor = SYSTEM_ACTIVITY_ACTIONS.has(latest.action) ? 'EarnTok' : guest ? 'Someone' : (profile.fullName || 'Someone');
                 activityPreviewMessage.textContent = `${actor} ${activityMessage(latest)}`;
                 const date = activityDate(latest.createdAt);
                 activityPreviewTime.textContent = date ? formatTime(date) : '';

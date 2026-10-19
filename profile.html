@@ -85,6 +85,7 @@
             <button id="activity-center-open" type="button" class="flex w-full items-center gap-3 rounded-xl px-3 py-3 text-left text-sm font-semibold hover:bg-zinc-100"><i data-lucide="history" class="h-5 w-5 text-zinc-600"></i>Activity center</button>
             <button id="profile-qr-open" type="button" class="flex w-full items-center gap-3 rounded-xl px-3 py-3 text-left text-sm font-semibold hover:bg-zinc-100"><i data-lucide="qr-code" class="h-5 w-5 text-zinc-600"></i>Your QR code</button>
             <a href="./boosts-and-ads.html" class="flex items-center gap-3 rounded-xl px-3 py-3 text-sm font-semibold hover:bg-zinc-100"><i data-lucide="megaphone" class="h-5 w-5 text-zinc-600"></i>Boost and Ads</a>
+            <a id="verify-account-link" href="./verify-account.html" class="hidden items-center gap-3 rounded-xl px-3 py-3 text-sm font-semibold text-sky-400 hover:bg-zinc-100"><i data-lucide="badge-check" class="h-5 w-5 text-sky-400"></i>Verify account</a>
             <a href="./settings.html" class="flex items-center gap-3 rounded-xl px-3 py-3 text-sm font-semibold hover:bg-zinc-100"><i data-lucide="settings-2" class="h-5 w-5 text-zinc-600"></i>Settings and privacy</a>
         </nav>
         <div class="mt-auto border-t border-zinc-200 p-3">
@@ -227,7 +228,7 @@
         import { subscribeToUnreadMessages } from './unread-messages.js';
         import { onAuthStateChanged, updateProfile } from 'https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js';
         import {
-            collection, deleteDoc, doc, getDoc, getDocs, query, serverTimestamp,
+            collection, deleteDoc, doc, getDoc, getDocs, query, serverTimestamp, Timestamp,
             setDoc, updateDoc, where
         } from 'https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js';
 
@@ -247,6 +248,7 @@
         let activeFilter = 'all';
         let viewerActivities = [];
         let viewerLoadFailed = false;
+        let viewersLastSeenAt = null;
         let unsubscribeUnreadMessages = null;
         let renderedItems = [];
 
@@ -495,8 +497,11 @@
                 }
                 viewerActivities = [...latest.values()];
                 const badge = document.getElementById('viewer-badge');
-                if (viewerActivities.length > 0) {
-                    badge.textContent = viewerActivities.length;
+                const unreadCount = viewerActivities.filter(activity =>
+                    !viewersLastSeenAt || (activity.createdAt?.toMillis?.() || 0) > viewersLastSeenAt.toMillis()
+                ).length;
+                if (unreadCount > 0) {
+                    badge.textContent = unreadCount;
                     badge.classList.remove('hidden');
                 } else {
                     badge.classList.add('hidden');
@@ -504,6 +509,22 @@
             } catch (error) {
                 console.error('Unable to load profile viewers:', error);
                 viewerLoadFailed = true;
+            }
+        }
+
+        async function openProfileViewers() {
+            const badge = document.getElementById('viewer-badge');
+            const previousLastSeenAt = viewersLastSeenAt;
+            viewersLastSeenAt = Timestamp.now();
+            badge.classList.add('hidden');
+            await loadUsersModal('viewers', user.uid);
+            try {
+                await updateDoc(doc(db, 'users', user.uid), { viewersLastSeenAt });
+            } catch (error) {
+                viewersLastSeenAt = previousLastSeenAt;
+                console.error('Unable to save profile viewer read status:', error);
+                showError(error);
+                await loadViewerActivities();
             }
         }
 
@@ -543,7 +564,11 @@
             }
             uploads = ownVideosSnapshot.docs.map(item => ({ id: item.id, ...item.data() }));
             const accountData = userSnapshot.exists() ? userSnapshot.data() : {};
+            viewersLastSeenAt = accountData.viewersLastSeenAt || null;
             profile.verify = profile.verify === 'yes' || accountData.verify === 'yes' ? 'yes' : 'no';
+            const verificationLink = document.getElementById('verify-account-link');
+            verificationLink.classList.toggle('hidden', profile.verify === 'yes');
+            verificationLink.classList.toggle('flex', profile.verify !== 'yes');
             pinnedVideos = Array.isArray(profile.pinnedVideos)
                 ? profile.pinnedVideos.slice(0, 3)
                 : Array.isArray(accountData.pinnedVideos) ? accountData.pinnedVideos.slice(0, 3) : [];
@@ -562,7 +587,7 @@
 
             document.getElementById('follower-btn').addEventListener('click', () => loadUsersModal('followers', user.uid));
             document.getElementById('following-btn').addEventListener('click', () => loadUsersModal('following', user.uid));
-            document.getElementById('viewers-icon-button').addEventListener('click', () => loadUsersModal('viewers', user.uid));
+            document.getElementById('viewers-icon-button').addEventListener('click', openProfileViewers);
             document.getElementById('users-modal-close').addEventListener('click', () => {
                 document.getElementById('users-modal').classList.add('hidden');
                 document.getElementById('users-modal').classList.remove('flex');

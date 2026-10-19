@@ -326,6 +326,7 @@
 
         document.getElementById('crypto-order-form').addEventListener('submit', async event => {
             event.preventDefault();
+            const form = event.currentTarget;
             const button = document.getElementById('crypto-submit');
             const method = cryptoMethods.find(item => item.id === cryptoChoice.value);
             const coins = Number(document.getElementById('crypto-coins').value);
@@ -350,7 +351,7 @@
                     reference: document.getElementById('crypto-reference').value,
                     file: document.getElementById('crypto-proof').files[0]
                 });
-                event.currentTarget.reset();
+                form.reset();
                 updateCryptoEstimate();
             } catch (error) {
                 console.error('Unable to submit crypto payment proof:', error);
@@ -363,6 +364,7 @@
 
         document.getElementById('p2p-order-form').addEventListener('submit', async event => {
             event.preventDefault();
+            const form = event.currentTarget;
             const button = document.getElementById('p2p-submit');
             const merchant = merchants.find(item => item.id === merchantChoice.value);
             const coins = Number(document.getElementById('p2p-coins').value);
@@ -385,7 +387,7 @@
                     reference: document.getElementById('p2p-reference').value,
                     file: document.getElementById('p2p-proof').files[0]
                 });
-                event.currentTarget.reset();
+                form.reset();
                 updateMerchantInstructions();
             } catch (error) {
                 console.error('Unable to submit P2P receipt:', error);

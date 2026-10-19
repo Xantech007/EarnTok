@@ -243,6 +243,7 @@
 
         document.getElementById('withdraw-form').addEventListener('submit', async event => {
             event.preventDefault();
+            const form = event.currentTarget;
             const button = document.getElementById('withdraw-submit');
             const method = methodInput.value;
             const rate = selectedRate();
@@ -310,7 +311,7 @@
                     return availableBalance - coins;
                 });
                 showMessage('Withdrawal submitted. The requested coins are reserved while admin reviews it.');
-                event.currentTarget.reset();
+                form.reset();
                 showMethodFields('');
                 renderCurrencyOptions();
                 accountBalance = updatedAvailableBalance;

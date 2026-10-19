@@ -1,0 +1,187 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="theme-color" content="#ffffff">
+    <title>EarnTok · Verify account</title>
+    <link rel="icon" type="image/png" href="./earntok-logo.png">
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <style>
+        :root { color-scheme: light; }
+        body.bg-zinc-950 { background: #fff !important; color: #161823 !important; }
+        .bg-zinc-950, .bg-zinc-950\/90 { background-color: #fff !important; }
+        .bg-zinc-900, .bg-zinc-900\/90 { background-color: #f8f8fa !important; }
+        .text-zinc-100 { color: #161823 !important; }
+        .text-zinc-300 { color: #454550 !important; }
+        .text-zinc-400, .text-zinc-500 { color: #777782 !important; }
+        .border-zinc-800, .border-zinc-700 { border-color: #e4e4e8 !important; }
+    </style>
+</head>
+<body class="bg-zinc-950 text-zinc-100 antialiased">
+    <header class="sticky top-0 z-20 border-b border-zinc-800 bg-zinc-950/90 backdrop-blur">
+        <div class="mx-auto flex max-w-2xl items-center justify-between px-4 py-3">
+            <button type="button" data-history-back class="p-1" aria-label="Go back"><i data-lucide="arrow-left" class="h-6 w-6"></i></button>
+            <h1 class="text-lg font-bold">Verify account</h1>
+            <a href="./wallet.html" class="text-sm font-semibold">Wallet</a>
+        </div>
+    </header>
+    <main class="mx-auto max-w-2xl space-y-5 px-4 py-6">
+        <section class="rounded-2xl border border-zinc-200 bg-white p-5">
+            <div class="flex items-start gap-4">
+                <span class="rounded-full bg-sky-50 p-3 text-sky-600"><i data-lucide="badge-check" class="h-6 w-6"></i></span>
+                <div><h2 class="text-xl font-bold">Request account verification</h2><p class="mt-1 text-sm text-zinc-500">Submit a request for review. The configured fee is charged from your available balance; pending review may take some time.</p></div>
+            </div>
+            <p id="verification-message" class="mt-5 hidden rounded-xl border p-3 text-sm" role="status"></p>
+            <p id="verification-fee" class="mt-5 rounded-xl bg-zinc-50 p-4 text-sm font-semibold text-zinc-700">Verification fee: loading…</p>
+            <p id="verification-balance" class="mt-3 text-sm text-zinc-600">Available balance: — coins</p>
+            <button id="verification-submit" class="mt-5 w-full rounded-xl bg-rose-500 px-5 py-3 font-bold text-white hover:bg-rose-600 disabled:cursor-not-allowed disabled:opacity-50" type="button" disabled>Submit verification request</button>
+        </section>
+        <section class="rounded-2xl border border-zinc-200 bg-white p-5">
+            <h2 class="text-lg font-bold">Request status</h2>
+            <div id="verification-history" class="mt-3 rounded-xl bg-zinc-50 p-4 text-sm text-zinc-600">Loading status…</div>
+        </section>
+    </main>
+    <script type="module">
+        import { auth, db } from './firebase.js';
+        import { enableHistoryBack } from './navigation.js';
+        import { onAuthStateChanged } from 'https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js';
+        import {
+            doc, getDoc, runTransaction, serverTimestamp, collection, query, where, getDocs, limit
+        } from 'https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js';
+
+        lucide.createIcons();
+        enableHistoryBack();
+        const message = document.getElementById('verification-message');
+        let user = null;
+        let fee = 0;
+        let account = null;
+        function showMessage(text, error = false) {
+            message.textContent = text;
+            message.className = `mt-5 rounded-xl border p-3 text-sm ${error ? 'border-rose-200 bg-rose-50 text-rose-700' : 'border-emerald-200 bg-emerald-50 text-emerald-700'}`;
+        }
+        function formatCoins(amount) { return Number(amount || 0).toLocaleString(); }
+        async function loadStatus() {
+            const container = document.getElementById('verification-history');
+            try {
+                const results = await getDocs(query(collection(db, 'verificationRequests'), where('userId', '==', user.uid), limit(10)));
+                const request = results.docs.map(item => item.data()).sort((a, b) =>
+                    (b.createdAt?.toMillis?.() || 0) - (a.createdAt?.toMillis?.() || 0))[0];
+                if (!request) {
+                    container.textContent = 'You have not submitted a verification request.';
+                    return;
+                }
+                const status = request.status || 'pending';
+                container.textContent = `Status: ${status}. Fee: ${formatCoins(request.coinsCost)} coins.${status === 'rejected' ? ' The fee was refunded; you may submit a new request.' : ''}`;
+                if (status === 'pending') {
+                    document.getElementById('verification-submit').disabled = true;
+                    showMessage('Your verification request is pending review.');
+                } else if (status === 'approved') {
+                    const button = document.getElementById('verification-submit');
+                    button.disabled = true;
+                    button.textContent = 'Account verified';
+                    showMessage('Your account has been verified.');
+                }
+            } catch (error) {
+                console.error('Unable to load verification status:', error);
+                container.textContent = 'Could not load request status.';
+                showMessage('Could not load your verification status. Check your connection and try again.', true);
+            }
+        }
+        async function initialize(currentUser) {
+            user = currentUser;
+            try {
+                const [accountSnapshot, settingsSnapshot] = await Promise.all([
+                    getDoc(doc(db, 'users', user.uid)),
+                    getDoc(doc(db, 'admin', 'verificationSettings'))
+                ]);
+                if (!accountSnapshot.exists()) throw new Error('Your account profile could not be found.');
+                account = accountSnapshot.data();
+                fee = Number(settingsSnapshot.exists() ? settingsSnapshot.data().fee ?? 0 : 0);
+                if (!Number.isSafeInteger(fee) || fee < 0) throw new Error('The configured verification fee is invalid.');
+                document.getElementById('verification-fee').textContent = `Verification fee: ${formatCoins(fee)} coins`;
+                document.getElementById('verification-balance').textContent = `Available balance: ${formatCoins(account.availableBalance)} coins`;
+                const button = document.getElementById('verification-submit');
+                if (account.verify === 'yes') {
+                    showMessage('Your account is already verified.');
+                    button.textContent = 'Account verified';
+                    await loadStatus();
+                    return;
+                }
+                button.disabled = false;
+                await loadStatus();
+            } catch (error) {
+                console.error('Unable to load verification page:', error);
+                showMessage(error.message || 'Could not load verification settings.', true);
+            }
+        }
+        document.getElementById('verification-submit').addEventListener('click', async event => {
+            const button = event.currentTarget;
+            if (!user || account?.verify === 'yes') return;
+            button.disabled = true;
+            try {
+                const requestRef = doc(db, 'verificationRequests', user.uid);
+                const userRef = doc(db, 'users', user.uid);
+                const settingsRef = doc(db, 'admin', 'verificationSettings');
+                const activityRef = doc(collection(db, 'activities'));
+                const newBalance = await runTransaction(db, async transaction => {
+                    const [userSnapshot, settingsSnapshot, requestSnapshot] = await Promise.all([
+                        transaction.get(userRef),
+                        transaction.get(settingsRef),
+                        transaction.get(requestRef)
+                    ]);
+                    if (!userSnapshot.exists()) throw new Error('Your account profile could not be found.');
+                    const currentAccount = userSnapshot.data();
+                    if (currentAccount.verify === 'yes') throw new Error('Your account is already verified.');
+                    if (requestSnapshot.exists() && requestSnapshot.data().status === 'pending') {
+                        throw new Error('You already have a verification request awaiting review.');
+                    }
+                    const currentFee = Number(settingsSnapshot.exists() ? settingsSnapshot.data().fee ?? 0 : 0);
+                    if (!Number.isSafeInteger(currentFee) || currentFee < 0 || currentFee !== fee) {
+                        throw new Error('The verification fee changed. Refresh this page and try again.');
+                    }
+                    const balance = Number(currentAccount.availableBalance ?? 0);
+                    if (!Number.isSafeInteger(balance) || balance < currentFee) {
+                        throw new Error('Your available balance is too low to pay the verification fee.');
+                    }
+                    transaction.update(userRef, { availableBalance: balance - currentFee });
+                    transaction.set(requestRef, {
+                        userId: user.uid,
+                        coinsCost: currentFee,
+                        status: 'pending',
+                        createdAt: serverTimestamp(),
+                        updatedAt: serverTimestamp()
+                    });
+                    transaction.set(activityRef, {
+                        userId: 'system',
+                        profileId: user.uid,
+                        action: 'verification_submitted',
+                        details: { requestId: requestRef.id, amount: currentFee, currency: 'coins', status: 'pending' },
+                        createdAt: serverTimestamp()
+                    });
+                    return balance - currentFee;
+                });
+                account.availableBalance = newBalance;
+                document.getElementById('verification-balance').textContent = `Available balance: ${formatCoins(newBalance)} coins`;
+                showMessage('Verification request submitted. Your fee is reserved until an admin reviews the request.');
+                await loadStatus();
+            } catch (error) {
+                console.error('Unable to submit verification request:', error);
+                showMessage(error.message || 'Could not submit your verification request.', true);
+                button.disabled = false;
+            }
+        });
+        onAuthStateChanged(auth, currentUser => {
+            if (!currentUser) {
+                location.href = `./oauth.html?returnTo=${encodeURIComponent(location.pathname + location.search)}`;
+                return;
+            }
+            initialize(currentUser);
+        }, error => {
+            console.error('Unable to check sign-in state:', error);
+            showMessage('Could not verify your sign-in status. Please reload.', true);
+        });
+    </script>
+</body>
+</html>

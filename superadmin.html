@@ -95,6 +95,7 @@
                 <button class="admin-tab tab-active shrink-0 border-b-2 px-4 py-3 text-sm font-semibold" data-admin-tab="videos" type="button">Videos</button>
                 <button class="admin-tab shrink-0 border-b-2 border-transparent px-4 py-3 text-sm font-semibold text-zinc-500" data-admin-tab="users" type="button">Users</button>
                 <button class="admin-tab shrink-0 border-b-2 border-transparent px-4 py-3 text-sm font-semibold text-zinc-500" data-admin-tab="wallet" type="button">Coins &amp; wallet</button>
+                <button class="admin-tab shrink-0 border-b-2 border-transparent px-4 py-3 text-sm font-semibold text-zinc-500" data-admin-tab="growth" type="button">Growth &amp; verification</button>
                 <button class="admin-tab shrink-0 border-b-2 border-transparent px-4 py-3 text-sm font-semibold text-zinc-500" data-admin-tab="activity" type="button">Website activity</button>
             </nav>
             <section id="videos-panel" class="admin-panel">
@@ -224,6 +225,60 @@
                     <div id="withdrawal-list" class="divide-y divide-zinc-800">
                         <p class="p-8 text-center text-sm text-zinc-400">Select Withdrawals to load requests.</p>
                     </div>
+                </section>
+            </section>
+
+            <section id="growth-panel" class="admin-panel hidden">
+                <div class="mb-5">
+                    <h1 class="text-3xl font-bold">Growth &amp; verification</h1>
+                    <p class="mt-2 text-sm text-zinc-400">Configure coin rewards and campaign pricing, then review paid promotion and verification requests.</p>
+                </div>
+                <nav class="mb-6 flex gap-2 overflow-x-auto border-b border-zinc-800" aria-label="Growth settings and requests">
+                    <button class="growth-subtab shrink-0 border-b-2 px-4 py-3 text-sm font-semibold" data-growth-section-button="rewards" type="button">Activity rewards</button>
+                    <button class="growth-subtab shrink-0 border-b-2 border-transparent px-4 py-3 text-sm font-semibold text-zinc-500" data-growth-section-button="prices" type="button">Promotion prices</button>
+                    <button class="growth-subtab shrink-0 border-b-2 border-transparent px-4 py-3 text-sm font-semibold text-zinc-500" data-growth-section-button="verification-fee" type="button">Verification fee</button>
+                    <button class="growth-subtab shrink-0 border-b-2 border-transparent px-4 py-3 text-sm font-semibold text-zinc-500" data-growth-section-button="boost-requests" type="button">Boost requests</button>
+                    <button class="growth-subtab shrink-0 border-b-2 border-transparent px-4 py-3 text-sm font-semibold text-zinc-500" data-growth-section-button="verification-requests" type="button">Verification requests</button>
+                </nav>
+                <section data-growth-section="rewards" class="rounded-2xl border border-zinc-800 bg-zinc-900/50 p-5">
+                    <h2 class="text-xl font-bold">Earnings per activity</h2>
+                    <p class="mt-1 text-sm text-zinc-500">Coins are credited to the acting user's earnings balance for each successful like, comment, and share.</p>
+                    <form id="activity-rewards-form" class="mt-5 grid gap-4 sm:grid-cols-3">
+                        <label class="text-sm">Like reward (coins)<input id="reward-like" class="field mt-2" type="number" min="0" step="1" required></label>
+                        <label class="text-sm">Comment reward (coins)<input id="reward-comment" class="field mt-2" type="number" min="0" step="1" required></label>
+                        <label class="text-sm">Share reward (coins)<input id="reward-share" class="field mt-2" type="number" min="0" step="1" required></label>
+                        <div class="sm:col-span-3"><p id="activity-rewards-message" class="hidden rounded-xl border p-3 text-sm" role="status"></p><button class="btn btn-primary mt-3" type="submit">Save reward amounts</button></div>
+                    </form>
+                </section>
+                <section data-growth-section="prices" class="hidden rounded-2xl border border-zinc-800 bg-zinc-900/50 p-5">
+                    <h2 class="text-xl font-bold">Promotion price per unit</h2>
+                    <p class="mt-1 text-sm text-zinc-500">Set the coin cost per requested like, follower, video view, and profile view. Paid campaigns enter a pending queue for manual fulfillment; purchases do not fabricate engagement counts.</p>
+                    <form id="boost-prices-form" class="mt-5 grid gap-4 sm:grid-cols-2">
+                        <label class="text-sm">Per like (coins)<input id="boost-price-likes" class="field mt-2" type="number" min="0" step="1" required></label>
+                        <label class="text-sm">Per follower (coins)<input id="boost-price-followers" class="field mt-2" type="number" min="0" step="1" required></label>
+                        <label class="text-sm">Per video view (coins)<input id="boost-price-videoViews" class="field mt-2" type="number" min="0" step="1" required></label>
+                        <label class="text-sm">Per profile view (coins)<input id="boost-price-profileViews" class="field mt-2" type="number" min="0" step="1" required></label>
+                        <div class="sm:col-span-2"><p id="boost-prices-message" class="hidden rounded-xl border p-3 text-sm" role="status"></p><button class="btn btn-primary mt-3" type="submit">Save promotion prices</button></div>
+                    </form>
+                </section>
+                <section data-growth-section="verification-fee" class="hidden max-w-xl rounded-2xl border border-zinc-800 bg-zinc-900/50 p-5">
+                    <h2 class="text-xl font-bold">Verification request fee</h2>
+                    <form id="verification-fee-form" class="mt-5">
+                        <label class="block text-sm">Fee in coins<input id="verification-fee" class="field mt-2" type="number" min="0" step="1" required></label>
+                        <p class="mt-2 text-xs text-zinc-500">The fee is charged from available balance when the user submits a request. Rejected requests are refunded.</p>
+                        <p id="verification-fee-message" class="mt-4 hidden rounded-xl border p-3 text-sm" role="status"></p>
+                        <button class="btn btn-primary mt-3" type="submit">Save verification fee</button>
+                    </form>
+                </section>
+                <section data-growth-section="boost-requests" class="hidden overflow-hidden rounded-2xl border border-zinc-800 bg-zinc-900/50">
+                    <div class="flex items-center justify-between gap-3 border-b border-zinc-800 p-5"><div><h2 class="text-xl font-bold">Paid promotion requests</h2><p class="mt-1 text-sm text-zinc-500">Approve when fulfilled or reject to refund the coins.</p></div><button id="refresh-boost-requests" class="btn btn-muted" type="button">Refresh</button></div>
+                    <p id="boost-requests-message" class="mx-5 mt-4 hidden rounded-xl border p-3 text-sm" role="status"></p>
+                    <div id="boost-request-list" class="divide-y divide-zinc-800"><p class="p-8 text-center text-sm text-zinc-400">Select Boost requests to load.</p></div>
+                </section>
+                <section data-growth-section="verification-requests" class="hidden overflow-hidden rounded-2xl border border-zinc-800 bg-zinc-900/50">
+                    <div class="flex items-center justify-between gap-3 border-b border-zinc-800 p-5"><div><h2 class="text-xl font-bold">Verification requests</h2><p class="mt-1 text-sm text-zinc-500">Approval marks the user's account and public profile as verified; rejection refunds the fee.</p></div><button id="refresh-verification-requests" class="btn btn-muted" type="button">Refresh</button></div>
+                    <p id="verification-requests-message" class="mx-5 mt-4 hidden rounded-xl border p-3 text-sm" role="status"></p>
+                    <div id="verification-request-list" class="divide-y divide-zinc-800"><p class="p-8 text-center text-sm text-zinc-400">Select Verification requests to load.</p></div>
                 </section>
             </section>
 
@@ -877,7 +932,7 @@
                 const videosById = new Map(videoEntries);
                 activityList.innerHTML = activities.length ? activities.map(activity => {
                     const actor = profilesById.get(activity.userId);
-                    const actorName = activity.action === 'welcome_bonus'
+                    const actorName = activity.userId === 'system' || activity.action === 'welcome_bonus'
                         ? 'EarnTok'
                         : activity.userId?.startsWith('guest-')
                         ? 'Guest visitor'
@@ -945,6 +1000,11 @@
                 }
                 if (tab === 'activity') loadActivity();
                 if (tab === 'videos') loadVideos();
+                if (tab === 'growth') {
+                    setGrowthSubtab('rewards');
+                    loadGrowthSettings();
+                    loadedAdminPanels.add('growth');
+                }
             }
         }
 
@@ -986,6 +1046,133 @@
                 showMessage(document.getElementById('withdrawal-review-message'), 'Could not load withdrawal requests. Check Firestore permissions.', true);
             }
             loadedAdminPanels.add('wallet');
+        }
+
+        async function loadGrowthSettings() {
+            const settings = [
+                ['activityRewards', ['like', 'comment', 'share'], ['reward-like', 'reward-comment', 'reward-share']],
+                ['boostSettings', ['likes', 'followers', 'videoViews', 'profileViews'], ['boost-price-likes', 'boost-price-followers', 'boost-price-videoViews', 'boost-price-profileViews']]
+            ];
+            for (const [documentId, fields, inputIds] of settings) {
+                try {
+                    const snapshot = await getDoc(doc(db, 'admin', documentId));
+                    const values = snapshot.exists() ? snapshot.data() : {};
+                    fields.forEach((field, index) => {
+                        const value = Number(values[field] ?? 0);
+                        if (!Number.isSafeInteger(value) || value < 0) {
+                            throw new Error(`The configured ${field} value must be a non-negative whole number.`);
+                        }
+                        document.getElementById(inputIds[index]).value = String(value);
+                    });
+                } catch (error) {
+                    console.error(`Unable to load ${documentId}:`, error);
+                    const messageId = documentId === 'activityRewards' ? 'activity-rewards-message' : 'boost-prices-message';
+                    showMessage(document.getElementById(messageId), error.message || 'Could not load settings. Check Firestore permissions.', true);
+                }
+            }
+            try {
+                const snapshot = await getDoc(doc(db, 'admin', 'verificationSettings'));
+                const fee = Number(snapshot.exists() ? snapshot.data().fee ?? 0 : 0);
+                if (!Number.isSafeInteger(fee) || fee < 0) throw new Error('The stored verification fee must be a non-negative whole number.');
+                document.getElementById('verification-fee').value = String(fee);
+            } catch (error) {
+                console.error('Unable to load verification fee:', error);
+                showMessage(document.getElementById('verification-fee-message'), error.message || 'Could not load verification fee.', true);
+            }
+        }
+
+        async function loadGrowthRequests(collectionName, listId, messageId, type) {
+            const list = document.getElementById(listId);
+            const message = document.getElementById(messageId);
+            clearMessage(message);
+            list.innerHTML = '<p class="p-8 text-center text-sm text-zinc-400">Loading requests…</p>';
+            try {
+                const snapshot = await getDocs(query(collection(db, collectionName), orderBy('createdAt', 'desc'), limit(100)));
+                if (snapshot.empty) {
+                    list.innerHTML = '<p class="p-8 text-center text-sm text-zinc-400">No requests found.</p>';
+                    return;
+                }
+                list.innerHTML = snapshot.docs.map(item => {
+                    const request = item.data();
+                    const isBoost = type === 'boost';
+                    const summary = isBoost
+                        ? `${escapeHtml(request.type || 'promotion')} · ${formatCount(request.units)} unit(s) · ${formatCount(request.coinsCost)} coins${request.videoDescription ? ` · ${escapeHtml(request.videoDescription)}` : ''}`
+                        : `Verification request · ${formatCount(request.coinsCost)} coins`;
+                    const pending = request.status === 'pending';
+                    return `<article class="flex flex-col gap-3 p-5 sm:flex-row sm:items-center sm:justify-between">
+                        <div class="min-w-0"><p class="break-all text-xs text-zinc-500">${escapeHtml(request.userId || '')}</p><p class="mt-1 font-semibold">${summary}</p><p class="mt-1 text-xs text-zinc-400">Status: ${escapeHtml(request.status || 'unknown')}${request.videoId ? ` · Video: ${escapeHtml(request.videoId)}` : ''}</p></div>
+                        ${pending ? `<div class="flex shrink-0 gap-2"><button class="btn btn-muted" type="button" data-growth-action="reject" data-growth-type="${type}" data-growth-id="${escapeHtml(item.id)}">Reject &amp; refund</button><button class="btn btn-primary" type="button" data-growth-action="approve" data-growth-type="${type}" data-growth-id="${escapeHtml(item.id)}">${isBoost ? 'Mark fulfilled' : 'Approve verification'}</button></div>` : ''}
+                    </article>`;
+                }).join('');
+            } catch (error) {
+                console.error(`Unable to load ${collectionName}:`, error);
+                list.innerHTML = '<p class="p-8 text-center text-sm text-rose-200">Could not load requests. Check Firestore permissions and connection.</p>';
+                showMessage(message, error.message || 'Could not load requests.', true);
+            }
+        }
+
+        async function reviewGrowthRequest(requestId, type, decision) {
+            const collectionName = type === 'boost' ? 'boostRequests' : 'verificationRequests';
+            const requestRef = doc(db, collectionName, requestId);
+            const activityRef = doc(collection(db, 'activities'));
+            await runTransaction(db, async transaction => {
+                const requestSnapshot = await transaction.get(requestRef);
+                if (!requestSnapshot.exists()) throw new Error('This request no longer exists.');
+                const request = requestSnapshot.data();
+                if (request.status !== 'pending') throw new Error('This request has already been reviewed.');
+                const isReject = decision === 'reject';
+                const userRef = doc(db, 'users', request.userId);
+                const userSnapshot = isReject || (type === 'verification' && !isReject)
+                    ? await transaction.get(userRef)
+                    : null;
+                if (userSnapshot && !userSnapshot.exists()) throw new Error('The requesting user account could not be found.');
+                if (isReject) {
+                    const balance = Number(userSnapshot.data().availableBalance ?? 0);
+                    const refund = Number(request.coinsCost ?? 0);
+                    if (!Number.isSafeInteger(balance) || balance < 0 || !Number.isSafeInteger(refund) || refund < 0
+                        || !Number.isSafeInteger(balance + refund)) {
+                        throw new Error("The user's available balance cannot accept the refund.");
+                    }
+                    transaction.update(userRef, { availableBalance: balance + refund });
+                } else if (type === 'verification') {
+                    transaction.set(userRef, { verify: 'yes' }, { merge: true });
+                    transaction.set(doc(db, 'profiles', request.userId), { verify: 'yes' }, { merge: true });
+                }
+                transaction.update(requestRef, {
+                    status: isReject ? 'rejected' : type === 'boost' ? 'fulfilled' : 'approved',
+                    reviewedAt: serverTimestamp(),
+                    reviewedBy: 'superadmin',
+                    updatedAt: serverTimestamp()
+                });
+                transaction.set(activityRef, {
+                    userId: 'system',
+                    profileId: request.userId,
+                    action: `${type}_${isReject ? 'rejected' : 'approved'}`,
+                    details: {
+                        requestId,
+                        coins: Number(request.coinsCost ?? 0),
+                        currency: 'coins',
+                        ...(type === 'boost' ? { promotionType: request.type, units: request.units } : {}),
+                        ...(isReject ? { refunded: true } : {})
+                    },
+                    createdAt: serverTimestamp()
+                });
+            });
+        }
+
+        function setGrowthSubtab(section) {
+            document.querySelectorAll('[data-growth-section]').forEach(panel => {
+                panel.classList.toggle('hidden', panel.dataset.growthSection !== section);
+            });
+            document.querySelectorAll('[data-growth-section-button]').forEach(button => {
+                const selected = button.dataset.growthSectionButton === section;
+                button.classList.toggle('border-rose-500', selected);
+                button.classList.toggle('text-zinc-100', selected);
+                button.classList.toggle('border-transparent', !selected);
+                button.classList.toggle('text-zinc-500', !selected);
+            });
+            if (section === 'boost-requests') loadGrowthRequests('boostRequests', 'boost-request-list', 'boost-requests-message', 'boost');
+            if (section === 'verification-requests') loadGrowthRequests('verificationRequests', 'verification-request-list', 'verification-requests-message', 'verification');
         }
 
         function setWalletSubtab(section) {
@@ -1439,6 +1626,93 @@
         document.querySelectorAll('[data-wallet-section-button]').forEach(button => {
             button.addEventListener('click', () => setWalletSubtab(button.dataset.walletSectionButton));
         });
+        document.querySelectorAll('[data-growth-section-button]').forEach(button => {
+            button.addEventListener('click', () => setGrowthSubtab(button.dataset.growthSectionButton));
+        });
+        document.getElementById('activity-rewards-form').addEventListener('submit', async event => {
+            event.preventDefault();
+            const message = document.getElementById('activity-rewards-message');
+            const values = {
+                like: Number(document.getElementById('reward-like').value),
+                comment: Number(document.getElementById('reward-comment').value),
+                share: Number(document.getElementById('reward-share').value)
+            };
+            if (Object.values(values).some(value => !Number.isSafeInteger(value) || value < 0)) {
+                showMessage(message, 'Reward values must be non-negative whole numbers of coins.', true);
+                return;
+            }
+            try {
+                await setDoc(doc(db, 'admin', 'activityRewards'), { ...values, updatedAt: serverTimestamp() }, { merge: true });
+                showMessage(message, 'Activity rewards saved.');
+            } catch (error) {
+                console.error('Unable to save activity rewards:', error);
+                showMessage(message, error.message || 'Could not save activity rewards.', true);
+            }
+        });
+        document.getElementById('boost-prices-form').addEventListener('submit', async event => {
+            event.preventDefault();
+            const message = document.getElementById('boost-prices-message');
+            const values = {
+                likes: Number(document.getElementById('boost-price-likes').value),
+                followers: Number(document.getElementById('boost-price-followers').value),
+                videoViews: Number(document.getElementById('boost-price-videoViews').value),
+                profileViews: Number(document.getElementById('boost-price-profileViews').value)
+            };
+            if (Object.values(values).some(value => !Number.isSafeInteger(value) || value < 0)) {
+                showMessage(message, 'Promotion prices must be non-negative whole numbers of coins.', true);
+                return;
+            }
+            try {
+                await setDoc(doc(db, 'admin', 'boostSettings'), { ...values, updatedAt: serverTimestamp() }, { merge: true });
+                showMessage(message, 'Promotion prices saved.');
+            } catch (error) {
+                console.error('Unable to save promotion prices:', error);
+                showMessage(message, error.message || 'Could not save promotion prices.', true);
+            }
+        });
+        document.getElementById('verification-fee-form').addEventListener('submit', async event => {
+            event.preventDefault();
+            const message = document.getElementById('verification-fee-message');
+            const fee = Number(document.getElementById('verification-fee').value);
+            if (!Number.isSafeInteger(fee) || fee < 0) {
+                showMessage(message, 'Verification fee must be a non-negative whole number of coins.', true);
+                return;
+            }
+            try {
+                await setDoc(doc(db, 'admin', 'verificationSettings'), { fee, updatedAt: serverTimestamp() }, { merge: true });
+                showMessage(message, 'Verification fee saved.');
+            } catch (error) {
+                console.error('Unable to save verification fee:', error);
+                showMessage(message, error.message || 'Could not save verification fee.', true);
+            }
+        });
+        document.getElementById('refresh-boost-requests').addEventListener('click', () =>
+            loadGrowthRequests('boostRequests', 'boost-request-list', 'boost-requests-message', 'boost'));
+        document.getElementById('refresh-verification-requests').addEventListener('click', () =>
+            loadGrowthRequests('verificationRequests', 'verification-request-list', 'verification-requests-message', 'verification'));
+        for (const [listId, type, listName, messageId] of [
+            ['boost-request-list', 'boost', 'boostRequests', 'boost-requests-message'],
+            ['verification-request-list', 'verification', 'verificationRequests', 'verification-requests-message']
+        ]) {
+            document.getElementById(listId).addEventListener('click', async event => {
+                const button = event.target.closest('[data-growth-action]');
+                if (!button) return;
+                button.disabled = true;
+                const decision = button.dataset.growthAction;
+                const requestId = button.dataset.growthId;
+                const message = document.getElementById(messageId);
+                clearMessage(message);
+                try {
+                    await reviewGrowthRequest(requestId, type, decision);
+                    showMessage(message, decision === 'reject' ? 'Request rejected and coins refunded.' : type === 'boost' ? 'Promotion marked fulfilled.' : 'Account verified.');
+                    await loadGrowthRequests(listName, listId, messageId, type);
+                } catch (error) {
+                    console.error(`Unable to ${decision} ${type} request:`, error);
+                    showMessage(message, error.message || `Could not ${decision} this request.`, true);
+                    button.disabled = false;
+                }
+            });
+        }
         document.getElementById('user-search').addEventListener('input', renderUsers);
         document.getElementById('refresh-users').addEventListener('click', () => {
             userPage = 0;

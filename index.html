@@ -1195,6 +1195,7 @@
         import { auth, db } from './firebase.js';
         import { getFollowingUserIds, toggleUserFollow } from './follows.js';
         import { subscribeToUnreadMessages } from './unread-messages.js';
+        import { prepareActivityReward, writeRewardedActivity } from './activity-rewards.js';
         import { onAuthStateChanged } from 'https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js';
         import {
             addDoc, collection, doc, getDoc, getDocs, query, runTransaction,
@@ -1350,22 +1351,38 @@
         };
 
         async function persistActivity(videoId, action, details = {}, update = null) {
-            const actorId = currentUser?.uid ?? getGuestId();
+            const actor = currentUser;
+            const actorId = actor?.uid ?? getGuestId();
             const videoRef = doc(db, 'videos', videoId);
             const activityRef = doc(collection(db, 'activity'));
+            const rewardNoticeRef = ['like', 'comment', 'share'].includes(action)
+                ? doc(collection(db, 'activities'))
+                : null;
             await runTransaction(db, async transaction => {
                 const videoSnapshot = await transaction.get(videoRef);
                 if (!videoSnapshot.exists()) throw new Error('This video is no longer available.');
                 let userSnapshot = null;
-                if (currentUser && ['like', 'unlike', 'save', 'unsave'].includes(action)) {
-                    userSnapshot = await transaction.get(doc(db, 'users', currentUser.uid));
+                let reward = null;
+                if (actor && ['like', 'unlike'].includes(action)) {
+                    userSnapshot = await transaction.get(doc(db, 'users', actor.uid));
+                    const userData = userSnapshot.exists() ? userSnapshot.data() : {};
+                    const likedIds = Array.isArray(userData.likedVideoIds) ? userData.likedVideoIds : [];
+                    const currentlyLiked = likedIds.includes(videoId);
+                    if (currentlyLiked === (action === 'like')) return;
+                    reward = await prepareActivityReward(transaction, db, actor.uid, action, userSnapshot);
+                } else if (actor && ['save', 'unsave'].includes(action)) {
+                    userSnapshot = await transaction.get(doc(db, 'users', actor.uid));
                 }
                 const updates = {};
                 if (update) {
                     const value = videoSnapshot.data()[update.field];
-                    updates[update.field] = Math.max(0, numberValue(value) + update.delta);
+                    const delta = ['like', 'unlike'].includes(action)
+                        ? action === 'like' ? 1 : -1
+                        : update.delta;
+                    updates[update.field] = Math.max(0, numberValue(value) + delta);
                 }
                 if (update) transaction.update(videoRef, updates);
+                const userUpdates = {};
                 if (userSnapshot?.exists()) {
                     const userData = userSnapshot.data();
                     const field = action === 'like' || action === 'unlike' ? 'likedVideoIds' : 'savedVideoIds';
@@ -1373,15 +1390,23 @@
                     const nextIds = action === 'like' || action === 'save'
                         ? [...new Set([...ids, videoId])]
                         : ids.filter(id => id !== videoId);
-                    transaction.set(doc(db, 'users', currentUser.uid), { [field]: nextIds }, { merge: true });
+                    userUpdates[field] = nextIds;
                 }
-                transaction.set(activityRef, {
+                const activity = {
                     videoId,
                     userId: actorId,
                     action,
                     details,
                     createdAt: serverTimestamp()
-                });
+                };
+                if (reward) {
+                    writeRewardedActivity(transaction, reward, activityRef, activity, userUpdates, rewardNoticeRef);
+                } else {
+                    if (Object.keys(userUpdates).length) {
+                        transaction.set(doc(db, 'users', actor.uid), userUpdates, { merge: true });
+                    }
+                    transaction.set(activityRef, activity);
+                }
             });
         }
 
@@ -1390,20 +1415,22 @@
             if (!actorId) throw new Error('Sign in before commenting.');
             const videoRef = doc(db, 'videos', videoId);
             const activityRef = doc(collection(db, 'activity'));
+            const rewardNoticeRef = doc(collection(db, 'activities'));
             await runTransaction(db, async transaction => {
                 const videoSnapshot = await transaction.get(videoRef);
                 if (!videoSnapshot.exists()) throw new Error('This video is no longer available.');
+                const reward = await prepareActivityReward(transaction, db, actorId, 'comment');
                 const existingComments = Array.isArray(videoSnapshot.data().comments)
                     ? videoSnapshot.data().comments
                     : [];
                 transaction.update(videoRef, { comments: [comment, ...existingComments] });
-                transaction.set(activityRef, {
+                writeRewardedActivity(transaction, reward, activityRef, {
                     videoId,
                     userId: actorId,
                     action: 'comment',
                     details: { text: comment.text },
                     createdAt: serverTimestamp()
-                });
+                }, {}, rewardNoticeRef);
             });
         }
 

@@ -2,6 +2,7 @@ import {
     addDoc, collection, doc, getDoc, runTransaction, serverTimestamp
 } from 'https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js';
 import { toggleUserFollow, isUserFollowing } from './follows.js';
+import { prepareActivityReward, writeRewardedActivity } from './activity-rewards.js';
 
 const DEFAULT_AVATAR = 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?auto=format&fit=crop&w=200&q=80';
 
@@ -139,6 +140,7 @@ export function createProfileVideoViewer({ auth, db }) {
         const videoRef = doc(db, 'videos', videoId);
         const userRef = doc(db, 'users', user.uid);
         const activityRef = doc(collection(db, 'activity'));
+        const rewardNoticeRef = field === 'likesCount' ? doc(collection(db, 'activities')) : null;
 
         return runTransaction(db, async transaction => {
             const [videoSnapshot, userSnapshot] = await Promise.all([
@@ -160,15 +162,24 @@ export function createProfileVideoViewer({ auth, db }) {
                 ? [...new Set([...currentIds, videoId])]
                 : currentIds.filter(id => id !== videoId);
             const count = Math.max(0, (Number(videoSnapshot.data()[field]) || 0) + (shouldEngage ? 1 : -1));
+            const recordedAction = alreadyEngaged ? (field === 'likesCount' ? 'unlike' : 'unsave') : action;
+            const reward = field === 'likesCount'
+                ? await prepareActivityReward(transaction, db, user.uid, recordedAction, userSnapshot)
+                : null;
             transaction.update(videoRef, { [field]: count });
-            transaction.set(userRef, { [listField]: nextIds }, { merge: true });
-            transaction.set(activityRef, {
+            const activity = {
                 videoId,
                 userId: user.uid,
-                action: alreadyEngaged ? (field === 'likesCount' ? 'unlike' : 'unsave') : action,
+                action: recordedAction,
                 details: {},
                 createdAt: serverTimestamp()
-            });
+            };
+            if (reward) {
+                writeRewardedActivity(transaction, reward, activityRef, activity, { [listField]: nextIds }, rewardNoticeRef);
+            } else {
+                transaction.set(userRef, { [listField]: nextIds }, { merge: true });
+                transaction.set(activityRef, activity);
+            }
             return { count, engaged: shouldEngage };
         });
     }
@@ -290,19 +301,21 @@ export function createProfileVideoViewer({ auth, db }) {
             };
             const videoRef = doc(db, 'videos', activeSlide.dataset.id);
             const activityRef = doc(collection(db, 'activity'));
+            const rewardNoticeRef = doc(collection(db, 'activities'));
             const updatedComments = await runTransaction(db, async transaction => {
                 const snapshot = await transaction.get(videoRef);
                 if (!snapshot.exists()) throw new Error('This video is no longer available.');
+                const reward = await prepareActivityReward(transaction, db, user.uid, 'comment');
                 const comments = Array.isArray(snapshot.data().comments) ? snapshot.data().comments : [];
                 const nextComments = [comment, ...comments];
                 transaction.update(videoRef, { comments: nextComments });
-                transaction.set(activityRef, {
+                writeRewardedActivity(transaction, reward, activityRef, {
                     videoId: activeSlide.dataset.id,
                     userId: user.uid,
                     action: 'comment',
                     details: { text },
                     createdAt: serverTimestamp()
-                });
+                }, {}, rewardNoticeRef);
                 return nextComments;
             });
             activeSlide.videoData.comments = updatedComments;
@@ -338,18 +351,20 @@ export function createProfileVideoViewer({ auth, db }) {
 
             const videoRef = doc(db, 'videos', slide.dataset.id);
             const activityRef = doc(collection(db, 'activity'));
+            const rewardNoticeRef = doc(collection(db, 'activities'));
             const shareCount = await runTransaction(db, async transaction => {
                 const snapshot = await transaction.get(videoRef);
                 if (!snapshot.exists()) throw new Error('This video is no longer available.');
+                const reward = await prepareActivityReward(transaction, db, user.uid, 'share');
                 const count = Math.max(0, (Number(snapshot.data().sharesCount) || 0) + 1);
                 transaction.update(videoRef, { sharesCount: count });
-                transaction.set(activityRef, {
+                writeRewardedActivity(transaction, reward, activityRef, {
                     videoId: slide.dataset.id,
                     userId: user.uid,
                     action: 'share',
                     details: { method: navigator.share ? 'native' : 'copy_link' },
                     createdAt: serverTimestamp()
-                });
+                }, {}, rewardNoticeRef);
                 return count;
             });
             slide.dataset.shares = String(shareCount);
