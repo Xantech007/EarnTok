@@ -1,0 +1,515 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="theme-color" content="#ffffff">
+    <title>EarnTok · Inbox</title>
+    <link rel="icon" type="image/png" href="./earntok-logo.png">
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <style>
+        :root { color-scheme: light; }
+        body { min-height: 100vh; }
+        .field { width: 100%; border: 1px solid #d8d8de; border-radius: .75rem; background: #fff; padding: .75rem .875rem; color: #161823; outline: none; }
+        .field:focus { border-color: #fe2c55; }
+        body.bg-zinc-950 { background: #fff !important; color: #161823 !important; }
+        .bg-zinc-950, .bg-zinc-950\/90, .bg-zinc-950\/95 { background-color: #fff !important; }
+        .bg-zinc-900, .bg-zinc-900\/90, .bg-zinc-900\/70, .bg-zinc-900\/50 { background-color: #f8f8fa !important; }
+        .bg-zinc-800 { background-color: #f1f1f2 !important; }
+        .text-zinc-100 { color: #161823 !important; }
+        .text-zinc-300 { color: #454550 !important; }
+        .text-zinc-400, .text-zinc-500, .text-zinc-600 { color: #777782 !important; }
+        .text-sky-400 { color: #0284c7 !important; }
+        .bg-tiktok-red { background-color: #fe2c55; }
+        img.rounded-full, .avatar-img {
+            object-fit: cover !important;
+            aspect-ratio: 1 / 1 !important;
+        }
+    </style>
+</head>
+<body class="bg-zinc-950 text-zinc-100 antialiased flex flex-col min-h-screen">
+    <!-- Header -->
+    <header class="sticky top-0 z-20 border-b border-zinc-200 bg-white/90 backdrop-blur">
+        <div class="mx-auto flex max-w-3xl items-center justify-between px-4 py-3">
+            <a href="./index.html" class="text-zinc-900 hover:opacity-80 p-1" aria-label="Back to feed">
+                <i data-lucide="arrow-left" class="h-6 w-6 stroke-[2.5]" aria-hidden="true"></i>
+            </a>
+            <h1 class="text-lg font-bold text-zinc-900 tracking-tight">Inbox</h1>
+            <div class="flex items-center gap-2">
+                <button id="new-chat-button" class="p-1 text-zinc-900 hover:text-rose-500 transition" aria-label="New chat" title="New chat">
+                    <i data-lucide="square-pen" class="h-6 w-6 stroke-[2.2]" aria-hidden="true"></i>
+                </button>
+            </div>
+        </div>
+    </header>
+
+    <!-- Main Content -->
+    <main class="mx-auto w-full max-w-3xl flex-1 px-4 pb-24 pt-3">
+        <!-- Search Bar -->
+        <div class="relative my-2">
+            <i data-lucide="search" class="absolute left-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-zinc-400" aria-hidden="true"></i>
+            <input id="chat-search" type="search" placeholder="Search direct messages…" class="w-full rounded-full bg-zinc-100 pl-10 pr-4 py-2.5 text-sm text-zinc-900 placeholder:text-zinc-400 outline-none border border-transparent focus:border-zinc-300 focus:bg-white transition">
+        </div>
+
+        <!-- Section Header -->
+        <div class="flex items-center justify-between pt-3 pb-2 border-b border-zinc-100">
+            <h2 class="text-xs font-bold uppercase tracking-wider text-zinc-400">Direct Messages</h2>
+            <span id="chat-count-label" class="text-xs text-zinc-400 font-medium">Loading…</span>
+        </div>
+
+        <p id="inbox-error-message" class="hidden my-3 rounded-xl border border-rose-200 bg-rose-50 p-3 text-sm text-rose-600" role="alert"></p>
+
+        <!-- Chats List -->
+        <div id="chats-list" class="divide-y divide-zinc-100 mt-1">
+            <div class="py-16 text-center text-zinc-400">
+                <i data-lucide="loader" class="h-8 w-8 animate-spin mx-auto text-rose-500 mb-2"></i>
+                <p class="text-sm">Loading your chats…</p>
+            </div>
+        </div>
+    </main>
+
+    <!-- New Chat Modal -->
+    <div id="new-chat-modal" class="fixed inset-0 z-50 hidden items-center justify-center bg-black/50 p-4">
+        <div class="relative w-full max-w-md rounded-2xl bg-white p-6 shadow-2xl max-h-[85vh] flex flex-col">
+            <div class="flex items-center justify-between border-b border-zinc-100 pb-3">
+                <h3 class="text-lg font-bold text-zinc-900">New Message</h3>
+                <button id="new-chat-modal-close" class="rounded-lg p-1 text-zinc-500 hover:bg-zinc-100 transition" aria-label="Close modal">
+                    <i data-lucide="x" class="h-5 w-5"></i>
+                </button>
+            </div>
+            
+            <div class="relative my-3">
+                <i data-lucide="search" class="absolute left-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-zinc-400" aria-hidden="true"></i>
+                <input id="user-search-input" type="search" placeholder="Search by name or @username…" class="w-full rounded-full bg-zinc-100 pl-10 pr-4 py-2 text-sm text-zinc-900 placeholder:text-zinc-400 outline-none border border-transparent focus:border-zinc-300 focus:bg-white transition">
+            </div>
+
+            <div class="text-xs font-semibold text-zinc-400 uppercase tracking-wider mb-2" id="contacts-list-title">Creators & Friends</div>
+
+            <div id="contacts-list" class="divide-y divide-zinc-100 overflow-y-auto flex-1 max-h-96">
+                <div class="py-12 text-center text-zinc-400">
+                    <i data-lucide="loader" class="h-8 w-8 animate-spin mx-auto text-rose-500 mb-2"></i>
+                    <p class="text-sm">Loading contacts…</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- BOTTOM MOBILE NAVIGATION BAR -->
+    <nav class="fixed inset-x-0 bottom-0 z-30 flex items-center justify-around border-t border-zinc-200 bg-white px-3 pt-2 pb-[max(.5rem,env(safe-area-inset-bottom))] text-xs font-medium shadow-[0_-4px_16px_rgba(0,0,0,.06)]">
+        <a href="./index.html" class="flex flex-col items-center space-y-0.5 text-gray-400 hover:text-black" aria-label="Home">
+            <i data-lucide="home" class="h-6 w-6" aria-hidden="true"></i><span>Home</span>
+        </a>
+        <a href="friends.html" id="nav-friends" class="flex flex-col items-center text-gray-400 hover:text-black space-y-0.5">
+            <i data-lucide="users" class="w-6 h-6" aria-hidden="true"></i>
+            <span>Friends</span>
+        </a>
+        <!-- Create Button (+) with TikTok Dual-Glow Effect -->
+        <a href="./index.html?openCreate=1" class="group relative flex h-8 w-[54px] items-center justify-center active:scale-95 transition" aria-label="Create a video or photo">
+            <span class="absolute left-0 z-0 h-7 w-[45px] rounded-lg bg-cyan-400" style="background-color:#25f4ee"></span>
+            <span class="absolute right-0 z-0 h-7 w-[45px] rounded-lg bg-rose-500" style="background-color:#fe2c55"></span>
+            <span class="relative z-10 flex h-7 w-11 items-center justify-center rounded-lg bg-black text-white">
+                <i data-lucide="plus" class="w-5 h-5 stroke-[3]" aria-hidden="true"></i>
+            </span>
+        </a>
+        <a href="inbox.html" id="nav-inbox" class="flex flex-col items-center text-rose-500 hover:text-black space-y-0.5 relative">
+            <i data-lucide="message-square" class="w-6 h-6" aria-hidden="true"></i>
+            <span>Inbox</span>
+        </a>
+        <a href="./profile.html" id="nav-profile" class="flex flex-col items-center text-gray-400 hover:text-black space-y-0.5">
+            <i data-lucide="user" class="w-6 h-6" aria-hidden="true"></i>
+            <span>Profile</span>
+        </a>
+    </nav>
+
+    <script type="module">
+        import { auth, db } from './firebase.js';
+        import { onAuthStateChanged } from 'https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js';
+        import {
+            collection, doc, getDoc, getDocs, onSnapshot, query, where, limit
+        } from 'https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js';
+
+        lucide.createIcons();
+
+        let currentUser = null;
+        let allChats = [];
+        let profileCache = new Map();
+        let unsubscribeChats = null;
+
+        const chatsList = document.getElementById('chats-list');
+        const chatCountLabel = document.getElementById('chat-count-label');
+        const searchInput = document.getElementById('chat-search');
+        const errorMessage = document.getElementById('inbox-error-message');
+
+        const newChatModal = document.getElementById('new-chat-modal');
+        const newChatButton = document.getElementById('new-chat-button');
+        const newChatModalClose = document.getElementById('new-chat-modal-close');
+        const userSearchInput = document.getElementById('user-search-input');
+        const contactsList = document.getElementById('contacts-list');
+
+        function escapeHtml(value) {
+            return String(value ?? '').replace(/[&<>"']/g, character => ({
+                '&': '&#38;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;'
+            })[character]);
+        }
+
+        function formatTime(timestamp) {
+            if (!timestamp) return '';
+            let date;
+            if (typeof timestamp.toDate === 'function') {
+                date = timestamp.toDate();
+            } else if (timestamp instanceof Date) {
+                date = timestamp;
+            } else if (typeof timestamp === 'number') {
+                date = new Date(timestamp);
+            } else {
+                return '';
+            }
+
+            const now = new Date();
+            const diffMs = now - date;
+            const diffSec = Math.floor(diffMs / 1000);
+            const diffMin = Math.floor(diffSec / 60);
+            const diffHour = Math.floor(diffMin / 60);
+            const diffDay = Math.floor(diffHour / 24);
+
+            if (diffSec < 60) return 'Just now';
+            if (diffMin < 60) return `${diffMin}m`;
+            if (diffHour < 24) return `${diffHour}h`;
+            if (diffDay === 1) return 'Yesterday';
+            if (diffDay < 7) return `${diffDay}d`;
+            return date.toLocaleDateString(undefined, { month: 'short', day: 'numeric' });
+        }
+
+        async function getContactProfile(uid, fallbackData = {}) {
+            if (profileCache.has(uid)) {
+                return { ...fallbackData, ...profileCache.get(uid) };
+            }
+            try {
+                const profileSnap = await getDoc(doc(db, 'profiles', uid));
+                if (profileSnap.exists()) {
+                    const data = { id: profileSnap.id, ...profileSnap.data() };
+                    profileCache.set(uid, data);
+                    return { ...fallbackData, ...data };
+                }
+            } catch (err) {
+                console.warn(`Could not fetch profile for ${uid}:`, err);
+            }
+            return fallbackData;
+        }
+
+        function renderChats(filterText = '') {
+            const query = filterText.trim().toLowerCase();
+            const filtered = allChats.filter(chat => {
+                if (!query) return true;
+                const contact = chat.contact || {};
+                const name = (contact.fullName || '').toLowerCase();
+                const username = (contact.username || '').toLowerCase();
+                const lastMsg = (chat.lastMessage || '').toLowerCase();
+                return name.includes(query) || username.includes(query) || lastMsg.includes(query);
+            });
+
+            chatCountLabel.textContent = `${allChats.length} conversation${allChats.length === 1 ? '' : 's'}`;
+
+            if (allChats.length === 0) {
+                chatsList.innerHTML = `
+                    <div class="py-16 text-center">
+                        <div class="mx-auto flex h-16 w-16 items-center justify-center rounded-full bg-zinc-100 text-zinc-400 mb-3">
+                            <i data-lucide="message-square" class="h-8 w-8 stroke-[1.8]"></i>
+                        </div>
+                        <h3 class="font-bold text-base text-zinc-900">No messages yet</h3>
+                        <p class="text-sm text-zinc-500 mt-1 max-w-xs mx-auto">Connect and chat directly with creators and friends on EarnTok.</p>
+                        <button id="empty-start-chat-btn" class="mt-4 inline-flex items-center gap-2 rounded-full bg-rose-500 px-5 py-2.5 text-sm font-bold text-white hover:bg-rose-600 transition shadow-sm">
+                            <i data-lucide="square-pen" class="h-4 w-4"></i> Start a chat
+                        </button>
+                    </div>
+                `;
+                document.getElementById('empty-start-chat-btn')?.addEventListener('click', openNewChatModal);
+                lucide.createIcons();
+                return;
+            }
+
+            if (filtered.length === 0) {
+                chatsList.innerHTML = `
+                    <div class="py-12 text-center text-zinc-500">
+                        <p class="text-sm">No chats matching "${escapeHtml(filterText)}"</p>
+                    </div>
+                `;
+                return;
+            }
+
+            chatsList.innerHTML = filtered.map(chat => {
+                const contact = chat.contact || {};
+                const contactUid = chat.contactUid;
+                const isYou = chat.lastSenderId === currentUser.uid;
+                const unread = Array.isArray(chat.unreadBy) && chat.unreadBy.includes(currentUser.uid);
+                const defaultAvatar = 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?auto=format&fit=crop&w=200&q=80';
+                const avatar = contact.profilePic || defaultAvatar;
+                const name = contact.fullName || 'EarnTok user';
+                const handle = contact.username ? `@${contact.username}` : '';
+                const verified = contact.verify === 'yes';
+                const timeLabel = formatTime(chat.updatedAt);
+
+                return `
+                    <a href="./message.html?uid=${encodeURIComponent(contactUid)}" class="chat-row flex items-center gap-3.5 py-3.5 px-2 hover:bg-zinc-50 rounded-2xl transition group" data-uid="${escapeHtml(contactUid)}">
+                        <div class="relative shrink-0 w-12 h-12">
+                            <img src="${escapeHtml(avatar)}" alt="${escapeHtml(name)}" class="h-12 w-12 min-w-[3rem] min-h-[3rem] max-w-[3rem] max-h-[3rem] rounded-full object-cover bg-zinc-200 border border-zinc-100 shrink-0" onerror="this.src='${defaultAvatar}'">
+                            ${unread ? '<span class="absolute -bottom-0.5 -right-0.5 h-3.5 w-3.5 rounded-full bg-rose-500 border-2 border-white"></span>' : ''}
+                        </div>
+                        <div class="min-w-0 flex-1">
+                            <div class="flex items-center justify-between mb-0.5">
+                                <div class="flex items-center gap-1 min-w-0">
+                                    <span class="font-bold text-sm text-zinc-900 truncate group-hover:text-rose-500 transition">${escapeHtml(name)}</span>
+                                    ${verified ? '<i data-lucide="badge-check" class="h-4 w-4 shrink-0 text-sky-400"></i>' : ''}
+                                    ${handle ? `<span class="text-xs text-zinc-400 truncate hidden sm:inline ml-1">${escapeHtml(handle)}</span>` : ''}
+                                </div>
+                                <span class="text-xs text-zinc-400 shrink-0 ml-2 font-medium">${escapeHtml(timeLabel)}</span>
+                            </div>
+                            <div class="flex items-center justify-between">
+                                <p class="text-xs truncate ${unread ? 'font-semibold text-zinc-900' : 'text-zinc-500'}">
+                                    ${isYou ? '<span class="text-zinc-400">You: </span>' : ''}${escapeHtml(chat.lastMessage || 'Sent a message')}
+                                </p>
+                                ${unread ? '<span class="ml-2 inline-flex h-2 w-2 rounded-full bg-rose-500 shrink-0"></span>' : ''}
+                            </div>
+                        </div>
+                    </a>
+                `;
+            }).join('');
+
+            lucide.createIcons();
+        }
+
+        async function subscribeToUserChats() {
+            if (!currentUser) return;
+            try {
+                const chatsQuery = query(
+                    collection(db, 'chats'),
+                    where('participants', 'array-contains', currentUser.uid)
+                );
+
+                unsubscribeChats = onSnapshot(chatsQuery, async snapshot => {
+                    const rawChats = [];
+                    const profilePromises = [];
+
+                    for (const docSnap of snapshot.docs) {
+                        const data = docSnap.data();
+                        const participants = Array.isArray(data.participants) ? data.participants : [];
+                        const contactUid = participants.find(id => id !== currentUser.uid);
+                        if (!contactUid) continue;
+
+                        const fallbackContact = (data.participantData && data.participantData[contactUid]) || {
+                            uid: contactUid,
+                            fullName: 'EarnTok user',
+                            username: '',
+                            profilePic: '',
+                            verify: 'no'
+                        };
+
+                        const chatItem = {
+                            id: docSnap.id,
+                            contactUid,
+                            contact: fallbackContact,
+                            lastMessage: data.lastMessage || '',
+                            lastSenderId: data.lastSenderId || '',
+                            updatedAt: data.updatedAt,
+                            unreadBy: data.unreadBy || []
+                        };
+                        rawChats.push(chatItem);
+
+                        // Queue fresh profile check in background
+                        profilePromises.push(
+                            getContactProfile(contactUid, fallbackContact).then(profile => {
+                                chatItem.contact = profile;
+                            })
+                        );
+                    }
+
+                    // Sort by updatedAt descending (safely in-memory)
+                    rawChats.sort((a, b) => {
+                        const timeA = a.updatedAt?.toMillis?.() || (a.updatedAt instanceof Date ? a.updatedAt.getTime() : 0);
+                        const timeB = b.updatedAt?.toMillis?.() || (b.updatedAt instanceof Date ? b.updatedAt.getTime() : 0);
+                        return timeB - timeA;
+                    });
+
+                    allChats = rawChats;
+                    renderChats(searchInput.value);
+
+                    // Re-render once fresh profiles are fetched
+                    if (profilePromises.length > 0) {
+                        await Promise.all(profilePromises);
+                        renderChats(searchInput.value);
+                    }
+                }, error => {
+                    console.error('Error listening to chats:', error);
+                    errorMessage.textContent = 'Could not load conversations. Please check your network and Firestore permissions.';
+                    errorMessage.classList.remove('hidden');
+                    chatsList.innerHTML = '<p class="py-12 text-center text-sm text-rose-500">Failed to load conversations.</p>';
+                    chatCountLabel.textContent = 'Error';
+                });
+            } catch (err) {
+                console.error('Failed to initialize chats listener:', err);
+            }
+        }
+
+        // New Chat Modal & User Discovery
+        async function openNewChatModal() {
+            newChatModal.classList.remove('hidden');
+            newChatModal.classList.add('flex');
+            userSearchInput.value = '';
+            loadSuggestedContacts();
+            lucide.createIcons();
+        }
+
+        function closeNewChatModal() {
+            newChatModal.classList.add('hidden');
+            newChatModal.classList.remove('flex');
+        }
+
+        let allowedContacts = [];
+
+        async function loadSuggestedContacts() {
+            contactsList.innerHTML = '<div class="py-12 text-center text-zinc-400"><i data-lucide="loader" class="h-8 w-8 animate-spin mx-auto text-rose-500 mb-2"></i><p class="text-sm">Loading your contacts…</p></div>';
+            lucide.createIcons();
+            try {
+                // Only show:
+                // 1. Users they follow
+                // 2. Users that follow them
+                // 3. Users who have messaged them or they have messaged
+                const [followingSnap, followersSnap, chatsSnap] = await Promise.all([
+                    getDocs(query(collection(db, 'follows'), where('followerId', '==', currentUser.uid))),
+                    getDocs(query(collection(db, 'follows'), where('followingId', '==', currentUser.uid))),
+                    getDocs(query(collection(db, 'chats'), where('participants', 'array-contains', currentUser.uid)))
+                ]);
+
+                const userIds = new Set();
+                const fallbackDataMap = new Map();
+
+                followingSnap.docs.forEach(d => {
+                    const id = d.data().followingId;
+                    if (id && id !== currentUser.uid) userIds.add(id);
+                });
+
+                followersSnap.docs.forEach(d => {
+                    const id = d.data().followerId;
+                    if (id && id !== currentUser.uid) userIds.add(id);
+                });
+
+                chatsSnap.docs.forEach(d => {
+                    const data = d.data();
+                    const parts = Array.isArray(data.participants) ? data.participants : [];
+                    parts.forEach(id => {
+                        if (id && id !== currentUser.uid) {
+                            userIds.add(id);
+                            if (data.participantData && data.participantData[id]) {
+                                fallbackDataMap.set(id, data.participantData[id]);
+                            }
+                        }
+                    });
+                });
+
+                if (userIds.size === 0) {
+                    allowedContacts = [];
+                    contactsList.innerHTML = '<p class="py-8 text-center text-sm text-zinc-500">No contacts yet. You can only message users you follow, your followers, or users you have messaged.</p>';
+                    return;
+                }
+
+                const idList = Array.from(userIds);
+                const contacts = [];
+                for (let i = 0; i < idList.length; i += 10) {
+                    const chunk = idList.slice(i, i + 10);
+                    const snap = await getDocs(query(collection(db, 'profiles'), where('__name__', 'in', chunk)));
+                    const found = new Set();
+                    snap.forEach(d => {
+                        found.add(d.id);
+                        contacts.push({ id: d.id, ...d.data() });
+                    });
+                    for (const id of chunk) {
+                        if (!found.has(id)) {
+                            if (fallbackDataMap.has(id)) {
+                                contacts.push({ id, ...fallbackDataMap.get(id) });
+                            } else {
+                                try {
+                                    const uSnap = await getDoc(doc(db, 'users', id));
+                                    if (uSnap.exists()) {
+                                        contacts.push({ id: uSnap.id, ...uSnap.data() });
+                                    }
+                                } catch (e) {
+                                    console.warn('Fallback fetch user failed:', e);
+                                }
+                            }
+                        }
+                    }
+                }
+
+                allowedContacts = contacts;
+                renderContactsList(allowedContacts);
+            } catch (err) {
+                console.error('Error loading contacts:', err);
+                contactsList.innerHTML = '<p class="py-8 text-center text-sm text-rose-500">Could not load contacts.</p>';
+            }
+        }
+
+        function renderContactsList(users) {
+            const defaultAvatar = 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?auto=format&fit=crop&w=200&q=80';
+            const validUsers = users.filter(u => u.id !== currentUser?.uid);
+
+            if (validUsers.length === 0) {
+                contactsList.innerHTML = '<p class="py-8 text-center text-sm text-zinc-500">No matching contacts found.</p>';
+                return;
+            }
+
+            contactsList.innerHTML = validUsers.map(user => `
+                <a href="./message.html?uid=${encodeURIComponent(user.id)}" class="flex items-center gap-3 py-3 px-2 hover:bg-zinc-50 rounded-xl transition group">
+                    <img src="${escapeHtml(user.profilePic || defaultAvatar)}" class="h-10 w-10 min-w-[2.5rem] min-h-[2.5rem] max-w-[2.5rem] max-h-[2.5rem] shrink-0 rounded-full bg-zinc-200 object-cover" onerror="this.src='${defaultAvatar}'">
+                    <div class="min-w-0 flex-1">
+                        <div class="flex items-center gap-1">
+                            <p class="truncate font-semibold text-sm text-zinc-900 group-hover:text-rose-500 transition">${escapeHtml(user.fullName || 'User')}</p>
+                            ${user.verify === 'yes' ? '<i data-lucide="badge-check" class="h-3.5 w-3.5 text-sky-400"></i>' : ''}
+                        </div>
+                        <p class="truncate text-xs text-zinc-500">${escapeHtml(user.username ? `@${user.username}` : '')}</p>
+                    </div>
+                    <i data-lucide="chevron-right" class="h-4 w-4 text-zinc-300 group-hover:text-zinc-600 transition"></i>
+                </a>
+            `).join('');
+
+            lucide.createIcons();
+        }
+
+        userSearchInput.addEventListener('input', () => {
+            const queryText = userSearchInput.value.trim().toLowerCase();
+            if (!queryText) {
+                renderContactsList(allowedContacts);
+                return;
+            }
+            const filtered = allowedContacts.filter(user => {
+                const name = (user.fullName || '').toLowerCase();
+                const username = (user.username || '').toLowerCase();
+                return name.includes(queryText) || username.includes(queryText);
+            });
+            renderContactsList(filtered);
+        });
+
+        newChatButton.addEventListener('click', openNewChatModal);
+        newChatModalClose.addEventListener('click', closeNewChatModal);
+        newChatModal.addEventListener('click', event => {
+            if (event.target === newChatModal) closeNewChatModal();
+        });
+
+        searchInput.addEventListener('input', () => {
+            renderChats(searchInput.value);
+        });
+
+        // Auth state handler
+        onAuthStateChanged(auth, user => {
+            if (!user) {
+                const returnTo = `${location.pathname}${location.search}`;
+                location.replace(`./oauth.html?returnTo=${encodeURIComponent(returnTo)}`);
+                return;
+            }
+            currentUser = user;
+            subscribeToUserChats();
+        });
+    </script>
+</body>
+</html>
+

@@ -1,10 +1,16 @@
 import { db } from './firebase.js';
 import {
-    collection, doc, getCountFromServer, getDoc, getDocs, query, runTransaction, serverTimestamp, where
+    collection, deleteDoc, doc, getCountFromServer, getDoc, getDocs, query, runTransaction, serverTimestamp, where
 } from 'https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js';
 
-function followDocumentId(followerId, followingId) {
+export function followDocumentId(followerId, followingId) {
     return `${encodeURIComponent(followerId)}:${encodeURIComponent(followingId)}`;
+}
+
+export async function removeUserFollow(followerId, followingId) {
+    if (!followerId || !followingId) return;
+    const followRef = doc(db, 'follows', followDocumentId(followerId, followingId));
+    await deleteDoc(followRef);
 }
 
 export async function toggleUserFollow(followerId, followingId, details = {}) {

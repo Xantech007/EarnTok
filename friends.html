@@ -1,0 +1,465 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="theme-color" content="#ffffff">
+    <title>EarnTok · Friends</title>
+    <link rel="icon" type="image/png" href="./earntok-logo.png">
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <style>
+        :root { color-scheme: light; }
+        body { min-height: 100vh; }
+        body.bg-zinc-950 { background: #fff !important; color: #161823 !important; }
+        .bg-zinc-950, .bg-zinc-950\/90, .bg-zinc-950\/95 { background-color: #fff !important; }
+        .bg-zinc-900, .bg-zinc-900\/90, .bg-zinc-900\/70, .bg-zinc-900\/50 { background-color: #f8f8fa !important; }
+        .bg-zinc-800 { background-color: #f1f1f2 !important; }
+        .text-zinc-100 { color: #161823 !important; }
+        .text-zinc-300 { color: #454550 !important; }
+        .text-zinc-400, .text-zinc-500, .text-zinc-600 { color: #777782 !important; }
+        .border-zinc-800, .border-zinc-700 { border-color: #e4e4e8 !important; }
+        .text-sky-400 { color: #0284c7 !important; }
+        img.rounded-full, .avatar-img {
+            object-fit: cover !important;
+            aspect-ratio: 1 / 1 !important;
+        }
+        .filter-pill.active {
+            background-color: #161823;
+            color: #ffffff;
+        }
+    </style>
+</head>
+<body class="bg-zinc-950 text-zinc-100 antialiased flex flex-col min-h-screen">
+    <!-- Header -->
+    <header class="sticky top-0 z-20 border-b border-zinc-200 bg-white/90 backdrop-blur">
+        <div class="mx-auto flex max-w-3xl items-center justify-between px-4 py-3">
+            <a href="./index.html" class="text-zinc-900 hover:opacity-80 p-1" aria-label="Back to feed">
+                <i data-lucide="arrow-left" class="h-6 w-6 stroke-[2.5]" aria-hidden="true"></i>
+            </a>
+            <div class="text-center">
+                <h1 class="text-lg font-bold text-zinc-900 tracking-tight">Friends</h1>
+            </div>
+            <a href="./inbox.html" class="p-1 text-zinc-900 hover:text-rose-500 transition" aria-label="Inbox" title="Inbox">
+                <i data-lucide="message-square" class="h-6 w-6 stroke-[2.2]" aria-hidden="true"></i>
+            </a>
+        </div>
+    </header>
+
+    <!-- Main Content -->
+    <main class="mx-auto w-full max-w-3xl flex-1 px-4 pb-24 pt-3">
+        <!-- Search Bar -->
+        <div class="relative my-2">
+            <i data-lucide="search" class="absolute left-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-zinc-400" aria-hidden="true"></i>
+            <input id="friends-search" type="search" placeholder="Search friends & connections…" class="w-full rounded-full bg-zinc-100 pl-10 pr-4 py-2.5 text-sm text-zinc-900 placeholder:text-zinc-400 outline-none border border-transparent focus:border-zinc-300 focus:bg-white transition">
+        </div>
+
+        <p id="friends-error-message" class="hidden my-3 rounded-xl border border-rose-200 bg-rose-50 p-3 text-sm text-rose-600" role="alert"></p>
+
+        <!-- Friends List -->
+        <div id="friends-list" class="divide-y divide-zinc-100 mt-2">
+            <div class="py-16 text-center text-zinc-400">
+                <i data-lucide="loader" class="h-8 w-8 animate-spin mx-auto text-rose-500 mb-2"></i>
+                <p class="text-sm">Loading your friends and connections…</p>
+            </div>
+        </div>
+    </main>
+
+    <!-- BOTTOM MOBILE NAVIGATION BAR -->
+    <nav class="fixed inset-x-0 bottom-0 z-30 flex items-center justify-around border-t border-zinc-200 bg-white px-3 pt-2 pb-[max(.5rem,env(safe-area-inset-bottom))] text-xs font-medium shadow-[0_-4px_16px_rgba(0,0,0,.06)]">
+        <a href="./index.html" class="flex flex-col items-center space-y-0.5 text-gray-400 hover:text-black" aria-label="Home">
+            <i data-lucide="home" class="h-6 w-6" aria-hidden="true"></i><span>Home</span>
+        </a>
+        <a href="friends.html" id="nav-friends" class="flex flex-col items-center text-rose-500 hover:text-black space-y-0.5">
+            <i data-lucide="users" class="w-6 h-6" aria-hidden="true"></i>
+            <span>Friends</span>
+        </a>
+        <!-- Create Button (+) with TikTok Dual-Glow Effect -->
+        <a href="./index.html?openCreate=1" class="group relative flex h-8 w-[54px] items-center justify-center active:scale-95 transition" aria-label="Create a video or photo">
+            <span class="absolute left-0 z-0 h-7 w-[45px] rounded-lg bg-cyan-400" style="background-color:#25f4ee"></span>
+            <span class="absolute right-0 z-0 h-7 w-[45px] rounded-lg bg-rose-500" style="background-color:#fe2c55"></span>
+            <span class="relative z-10 flex h-7 w-11 items-center justify-center rounded-lg bg-black text-white">
+                <i data-lucide="plus" class="w-5 h-5 stroke-[3]" aria-hidden="true"></i>
+            </span>
+        </a>
+        <a href="inbox.html" id="nav-inbox" class="flex flex-col items-center text-gray-400 hover:text-black space-y-0.5 relative">
+            <i data-lucide="message-square" class="w-6 h-6" aria-hidden="true"></i>
+            <span>Inbox</span>
+        </a>
+        <a href="./profile.html" id="nav-profile" class="flex flex-col items-center text-gray-400 hover:text-black space-y-0.5">
+            <i data-lucide="user" class="w-6 h-6" aria-hidden="true"></i>
+            <span>Profile</span>
+        </a>
+    </nav>
+
+    <script type="module">
+        import { auth, db } from './firebase.js';
+        import { toggleUserFollow, removeUserFollow } from './follows.js';
+        import { onAuthStateChanged } from 'https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js';
+        import {
+            collection, doc, getDoc, getDocs, query, where
+        } from 'https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js';
+
+        lucide.createIcons();
+
+        let currentUser = null;
+        let friendsData = [];
+
+        const friendsList = document.getElementById('friends-list');
+        const searchInput = document.getElementById('friends-search');
+        const errorMessage = document.getElementById('friends-error-message');
+
+        const defaultAvatar = 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?auto=format&fit=crop&w=200&q=80';
+
+        function escapeHtml(value) {
+            return String(value ?? '').replace(/[&<>"']/g, character => ({
+                '&': '&#38;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;'
+            })[character]);
+        }
+
+        function renderFriends() {
+            const searchText = searchInput.value.trim().toLowerCase();
+
+            const filtered = friendsData.filter(user => {
+                if (searchText) {
+                    const name = (user.fullName || '').toLowerCase();
+                    const username = (user.username || '').toLowerCase();
+                    return name.includes(searchText) || username.includes(searchText);
+                }
+                return true;
+            });
+
+            if (friendsData.length === 0) {
+                friendsList.innerHTML = `
+                    <div class="py-16 text-center">
+                        <div class="mx-auto flex h-16 w-16 items-center justify-center rounded-full bg-zinc-100 text-zinc-400 mb-3">
+                            <i data-lucide="users" class="h-8 w-8 stroke-[1.8]"></i>
+                        </div>
+                        <h3 class="font-bold text-base text-zinc-900">No friends or connections yet</h3>
+                        <p class="text-sm text-zinc-500 mt-1 max-w-xs mx-auto">Follow creators, gain followers, or send direct messages to see your friends list here.</p>
+                        <a href="./index.html" class="mt-4 inline-flex items-center gap-2 rounded-full bg-rose-500 px-5 py-2.5 text-sm font-bold text-white hover:bg-rose-600 transition shadow-sm">
+                            <i data-lucide="compass" class="h-4 w-4"></i> Explore feed
+                        </a>
+                    </div>
+                `;
+                lucide.createIcons();
+                return;
+            }
+
+            if (filtered.length === 0) {
+                friendsList.innerHTML = `
+                    <div class="py-12 text-center text-zinc-500">
+                        <p class="text-sm">No connections matching "${escapeHtml(searchText)}".</p>
+                    </div>
+                `;
+                return;
+            }
+
+            friendsList.innerHTML = filtered.map(user => {
+                const isMutual = user.isFollowing && user.isFollower;
+                const avatar = user.profilePic || defaultAvatar;
+                const name = user.fullName || 'EarnTok user';
+                const handle = user.username ? `@${user.username}` : '';
+                const verified = user.verify === 'yes';
+
+                // Relationship badge
+                let badgeHtml = '';
+                if (isMutual) {
+                    badgeHtml = '<span class="inline-flex items-center text-[10px] bg-rose-50 text-rose-600 font-semibold px-2 py-0.5 rounded-full border border-rose-200">Friends</span>';
+                } else if (user.isFollower) {
+                    badgeHtml = '<span class="inline-flex items-center text-[10px] bg-zinc-100 text-zinc-500 font-medium px-2 py-0.5 rounded-full">Follows you</span>';
+                } else if (user.isFollowing) {
+                    badgeHtml = '<span class="inline-flex items-center text-[10px] bg-zinc-100 text-zinc-500 font-medium px-2 py-0.5 rounded-full">Following</span>';
+                } else {
+                    badgeHtml = '<span class="inline-flex items-center text-[10px] bg-sky-50 text-sky-600 font-medium px-2 py-0.5 rounded-full">Direct message</span>';
+                }
+
+                // TikTok Action Buttons:
+                // If both users follow each other: ONLY show message button
+                // Else: show ONLY TWO buttons: Remove and Follow/Follow back
+                let actionsHtml = '';
+                if (isMutual) {
+                    actionsHtml = `
+                        <div class="flex items-center gap-2 shrink-0">
+                            <a href="./message.html?uid=${encodeURIComponent(user.id)}" class="inline-flex items-center justify-center rounded-lg bg-zinc-100 hover:bg-zinc-200 border border-zinc-200 px-5 py-1.5 text-xs font-semibold text-zinc-900 transition active:scale-95 shadow-sm">
+                                Message
+                            </a>
+                        </div>
+                    `;
+                } else {
+                    let followButtonHtml = '';
+                    if (user.isFollower) {
+                        followButtonHtml = `
+                            <button class="follow-toggle-btn inline-flex items-center justify-center rounded-lg bg-[#fe2c55] hover:bg-[#e0264c] text-white font-semibold px-4 py-1.5 text-xs transition shadow-sm active:scale-95" data-uid="${escapeHtml(user.id)}">
+                                Follow back
+                            </button>
+                        `;
+                    } else if (user.isFollowing) {
+                        followButtonHtml = `
+                            <button class="follow-toggle-btn inline-flex items-center justify-center rounded-lg bg-zinc-100 hover:bg-zinc-200 border border-zinc-200 text-zinc-800 font-semibold px-4 py-1.5 text-xs transition active:scale-95" data-uid="${escapeHtml(user.id)}">
+                                Following
+                            </button>
+                        `;
+                    } else {
+                        followButtonHtml = `
+                            <button class="follow-toggle-btn inline-flex items-center justify-center rounded-lg bg-[#fe2c55] hover:bg-[#e0264c] text-white font-semibold px-4 py-1.5 text-xs transition shadow-sm active:scale-95" data-uid="${escapeHtml(user.id)}">
+                                Follow
+                            </button>
+                        `;
+                    }
+
+                    actionsHtml = `
+                        <div class="flex items-center gap-2 shrink-0">
+                            <button class="remove-friend-btn inline-flex items-center justify-center rounded-lg border border-zinc-300 bg-white hover:bg-zinc-50 px-3.5 py-1.5 text-xs font-semibold text-zinc-700 transition active:scale-95" data-uid="${escapeHtml(user.id)}" data-name="${escapeHtml(name)}">
+                                Remove
+                            </button>
+                            ${followButtonHtml}
+                        </div>
+                    `;
+                }
+
+                return `
+                    <div class="friend-row flex items-center justify-between gap-3 py-3 px-2 rounded-2xl hover:bg-zinc-50 transition group" data-uid="${escapeHtml(user.id)}">
+                        <!-- Left: Avatar & Info -->
+                        <div class="flex items-center gap-3 min-w-0 flex-1">
+                            <a href="./view-profile.html?uid=${encodeURIComponent(user.id)}" class="shrink-0">
+                                <img src="${escapeHtml(avatar)}" alt="${escapeHtml(name)}" class="h-12 w-12 min-w-[3rem] min-h-[3rem] max-w-[3rem] max-h-[3rem] rounded-full object-cover bg-zinc-200 border border-zinc-100 shrink-0" onerror="this.src='${defaultAvatar}'">
+                            </a>
+                            <div class="min-w-0 flex-1">
+                                <a href="./view-profile.html?uid=${encodeURIComponent(user.id)}" class="group-hover:text-rose-500 transition block truncate">
+                                    <div class="flex items-center gap-1">
+                                        <span class="font-bold text-sm text-zinc-900 truncate">${escapeHtml(name)}</span>
+                                        ${verified ? '<i data-lucide="badge-check" class="h-3.5 w-3.5 shrink-0 text-sky-400"></i>' : ''}
+                                    </div>
+                                    <p class="truncate text-xs text-zinc-400">${escapeHtml(handle)}</p>
+                                </a>
+                                <div class="mt-0.5">
+                                    ${badgeHtml}
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Right: Actions -->
+                        ${actionsHtml}
+                    </div>
+                `;
+            }).join('');
+
+            lucide.createIcons();
+        }
+
+        async function loadFriends() {
+            if (!currentUser) return;
+            friendsList.innerHTML = `
+                <div class="py-16 text-center text-zinc-400">
+                    <i data-lucide="loader" class="h-8 w-8 animate-spin mx-auto text-rose-500 mb-2"></i>
+                    <p class="text-sm">Loading your connections…</p>
+                </div>
+            `;
+            lucide.createIcons();
+
+            try {
+                // Strictly show:
+                // 1. Users current user follows
+                // 2. Users that follow current user
+                // 3. Users who have messaged them or they have messaged
+                const [followingSnap, followersSnap, chatsSnap] = await Promise.all([
+                    getDocs(query(collection(db, 'follows'), where('followerId', '==', currentUser.uid))),
+                    getDocs(query(collection(db, 'follows'), where('followingId', '==', currentUser.uid))),
+                    getDocs(query(collection(db, 'chats'), where('participants', 'array-contains', currentUser.uid)))
+                ]);
+
+                const followingSet = new Set();
+                const followersSet = new Set();
+                const chatSet = new Set();
+                const allUserIds = new Set();
+                const fallbackDataMap = new Map();
+
+                followingSnap.docs.forEach(d => {
+                    const id = d.data().followingId;
+                    if (id && id !== currentUser.uid) {
+                        followingSet.add(id);
+                        allUserIds.add(id);
+                    }
+                });
+
+                followersSnap.docs.forEach(d => {
+                    const id = d.data().followerId;
+                    if (id && id !== currentUser.uid) {
+                        followersSet.add(id);
+                        allUserIds.add(id);
+                    }
+                });
+
+                chatsSnap.docs.forEach(d => {
+                    const data = d.data();
+                    const parts = Array.isArray(data.participants) ? data.participants : [];
+                    parts.forEach(id => {
+                        if (id && id !== currentUser.uid) {
+                            chatSet.add(id);
+                            allUserIds.add(id);
+                            if (data.participantData && data.participantData[id]) {
+                                fallbackDataMap.set(id, data.participantData[id]);
+                            }
+                        }
+                    });
+                });
+
+                if (allUserIds.size === 0) {
+                    friendsData = [];
+                    renderFriends();
+                    return;
+                }
+
+                const idList = Array.from(allUserIds);
+                const loadedUsers = [];
+
+                for (let i = 0; i < idList.length; i += 10) {
+                    const chunk = idList.slice(i, i + 10);
+                    const snap = await getDocs(query(collection(db, 'profiles'), where('__name__', 'in', chunk)));
+                    const found = new Set();
+                    snap.forEach(d => {
+                        found.add(d.id);
+                        const prof = d.data();
+                        loadedUsers.push({
+                            id: d.id,
+                            fullName: prof.fullName || 'EarnTok user',
+                            username: prof.username || '',
+                            profilePic: prof.profilePic || '',
+                            verify: prof.verify || 'no',
+                            isFollowing: followingSet.has(d.id),
+                            isFollower: followersSet.has(d.id),
+                            hasChat: chatSet.has(d.id)
+                        });
+                    });
+
+                    for (const id of chunk) {
+                        if (!found.has(id)) {
+                            if (fallbackDataMap.has(id)) {
+                                const fb = fallbackDataMap.get(id);
+                                loadedUsers.push({
+                                    id,
+                                    fullName: fb.fullName || 'EarnTok user',
+                                    username: fb.username || '',
+                                    profilePic: fb.profilePic || '',
+                                    verify: fb.verify || 'no',
+                                    isFollowing: followingSet.has(id),
+                                    isFollower: followersSet.has(id),
+                                    hasChat: chatSet.has(id)
+                                });
+                            } else {
+                                try {
+                                    const uSnap = await getDoc(doc(db, 'users', id));
+                                    const uData = uSnap.exists() ? uSnap.data() : {};
+                                    loadedUsers.push({
+                                        id,
+                                        fullName: uData.fullName || 'EarnTok user',
+                                        username: uData.username || '',
+                                        profilePic: uData.profilePic || '',
+                                        verify: uData.verify || 'no',
+                                        isFollowing: followingSet.has(id),
+                                        isFollower: followersSet.has(id),
+                                        hasChat: chatSet.has(id)
+                                    });
+                                } catch (e) {
+                                    console.warn('Fallback user fetch error:', e);
+                                }
+                            }
+                        }
+                    }
+                }
+
+                // Sort: Mutual friends first, then followers, then following
+                loadedUsers.sort((a, b) => {
+                    const scoreA = (a.isFollowing && a.isFollower ? 2 : a.isFollower ? 1 : 0);
+                    const scoreB = (b.isFollowing && b.isFollower ? 2 : b.isFollower ? 1 : 0);
+                    if (scoreB !== scoreA) return scoreB - scoreA;
+                    return (a.fullName || '').localeCompare(b.fullName || '');
+                });
+
+                friendsData = loadedUsers;
+                renderFriends();
+            } catch (err) {
+                console.error('Failed to load friends:', err);
+                errorMessage.textContent = 'Could not load your connections. Check your connection.';
+                errorMessage.classList.remove('hidden');
+                friendsList.innerHTML = '<p class="py-12 text-center text-sm text-rose-500">Failed to load friends.</p>';
+            }
+        }
+
+        // Handle Follow / Follow Back Toggle
+        async function handleFollowToggle(targetUserId, buttonEl) {
+            buttonEl.disabled = true;
+            try {
+                const isNowFollowing = await toggleUserFollow(currentUser.uid, targetUserId, { source: 'friends_page' });
+                const user = friendsData.find(u => u.id === targetUserId);
+                if (user) {
+                    user.isFollowing = isNowFollowing;
+                    renderFriends();
+                }
+            } catch (err) {
+                console.error('Error toggling follow:', err);
+                alert(err.message || 'Could not update follow status.');
+            } finally {
+                buttonEl.disabled = false;
+            }
+        }
+
+        // Handle Remove Connection (like TikTok)
+        async function handleRemoveConnection(targetUserId, targetUserName) {
+            const confirmed = window.confirm(`Remove ${targetUserName || 'this user'} from your connections?`);
+            if (!confirmed) return;
+
+            try {
+                // Remove follows in both directions
+                await Promise.all([
+                    removeUserFollow(currentUser.uid, targetUserId),
+                    removeUserFollow(targetUserId, currentUser.uid)
+                ]);
+
+                // Remove user from local state
+                friendsData = friendsData.filter(u => u.id !== targetUserId);
+                renderFriends();
+            } catch (err) {
+                console.error('Error removing connection:', err);
+                alert('Could not remove connection. Please try again.');
+            }
+        }
+
+        // Event delegation on friends list
+        friendsList.addEventListener('click', event => {
+            const followBtn = event.target.closest('.follow-toggle-btn');
+            if (followBtn) {
+                const uid = followBtn.dataset.uid;
+                if (uid) handleFollowToggle(uid, followBtn);
+                return;
+            }
+
+            const removeBtn = event.target.closest('.remove-friend-btn');
+            if (removeBtn) {
+                const uid = removeBtn.dataset.uid;
+                const name = removeBtn.dataset.name;
+                if (uid) handleRemoveConnection(uid, name);
+                return;
+            }
+        });
+
+        // Search input
+        searchInput.addEventListener('input', () => {
+            renderFriends();
+        });
+
+        // Auth state handler
+        onAuthStateChanged(auth, user => {
+            if (!user) {
+                const returnTo = `${location.pathname}${location.search}`;
+                location.replace(`./oauth.html?returnTo=${encodeURIComponent(returnTo)}`);
+                return;
+            }
+            currentUser = user;
+            loadFriends();
+        });
+    </script>
+</body>
+</html>
+

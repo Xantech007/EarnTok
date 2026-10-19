@@ -1,0 +1,454 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
+    <meta name="theme-color" content="#ffffff">
+    <title>EarnTok · Direct Message</title>
+    <link rel="icon" type="image/png" href="./earntok-logo.png">
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <style>
+        :root { color-scheme: light; }
+        html, body { height: 100%; height: 100dvh; overflow: hidden; }
+        body.bg-zinc-950 { background: #fff !important; color: #161823 !important; }
+        .bg-zinc-950, .bg-zinc-950\/90 { background-color: #fff !important; }
+        .bg-zinc-900, .bg-zinc-900\/90, .bg-zinc-900\/70, .bg-zinc-900\/50 { background-color: #f8f8fa !important; }
+        .bg-zinc-800 { background-color: #f1f1f2 !important; }
+        .text-zinc-100 { color: #161823 !important; }
+        .text-zinc-300 { color: #454550 !important; }
+        .text-zinc-400, .text-zinc-500, .text-zinc-600 { color: #777782 !important; }
+        .border-zinc-800, .border-zinc-700 { border-color: #e4e4e8 !important; }
+        .text-sky-400 { color: #0284c7 !important; }
+        img.rounded-full, .avatar-img {
+            object-fit: cover !important;
+            aspect-ratio: 1 / 1 !important;
+        }
+        .messages-scroll::-webkit-scrollbar { width: 5px; }
+        .messages-scroll::-webkit-scrollbar-track { background: transparent; }
+        .messages-scroll::-webkit-scrollbar-thumb { background: #e4e4e8; border-radius: 9999px; }
+    </style>
+</head>
+<body class="bg-zinc-950 text-zinc-100 antialiased flex flex-col h-full select-text">
+    <!-- Header -->
+    <header class="sticky top-0 z-30 shrink-0 border-b border-zinc-200 bg-white/95 backdrop-blur px-4 py-2.5">
+        <div class="mx-auto flex max-w-3xl items-center justify-between">
+            <div class="flex items-center gap-3 min-w-0">
+                <a href="./inbox.html" class="text-zinc-900 hover:opacity-80 p-1 shrink-0" aria-label="Back to inbox">
+                    <i data-lucide="arrow-left" class="h-6 w-6 stroke-[2.5]" aria-hidden="true"></i>
+                </a>
+                <a id="header-profile-link" href="#" class="flex items-center gap-2.5 min-w-0 hover:opacity-85 transition">
+                    <img id="header-avatar" class="h-9 w-9 min-w-[2.25rem] min-h-[2.25rem] max-w-[2.25rem] max-h-[2.25rem] rounded-full bg-zinc-200 object-cover shrink-0 border border-zinc-200" src="https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?auto=format&fit=crop&w=200&q=80" alt="Avatar">
+                    <div class="min-w-0">
+                        <div class="flex items-center gap-1">
+                            <span id="header-name" class="font-bold text-sm text-zinc-900 truncate">Loading…</span>
+                            <i id="header-verified" data-lucide="badge-check" class="hidden h-3.5 w-3.5 shrink-0 text-sky-400"></i>
+                        </div>
+                        <p id="header-username" class="text-xs text-zinc-400 truncate"></p>
+                    </div>
+                </a>
+            </div>
+            <a id="header-profile-btn" href="#" class="rounded-full p-2 text-zinc-600 hover:bg-zinc-100 transition shrink-0" title="View Profile" aria-label="View Profile">
+                <i data-lucide="user" class="h-5 w-5"></i>
+            </a>
+        </div>
+    </header>
+
+    <!-- Chat Error Banner -->
+    <div id="chat-error" class="hidden mx-auto max-w-3xl w-full px-4 pt-3">
+        <div class="rounded-xl border border-rose-200 bg-rose-50 p-3 text-sm text-rose-600 flex items-center justify-between">
+            <span id="chat-error-text">Unable to load messages.</span>
+            <a href="./inbox.html" class="underline font-semibold ml-2">Back to inbox</a>
+        </div>
+    </div>
+
+    <!-- Messages Container -->
+    <main id="messages-container" class="messages-scroll mx-auto w-full max-w-3xl flex-1 overflow-y-auto px-4 py-4 space-y-4">
+        <!-- Target Profile Summary Card (template-style from view-profile.html) -->
+        <section id="chat-profile-card" class="flex flex-col items-center py-6 border-b border-zinc-100 text-center">
+            <img id="card-pic" class="h-20 w-20 min-w-[5rem] min-h-[5rem] max-w-[5rem] max-h-[5rem] rounded-full bg-zinc-200 object-cover shadow-sm mb-3 shrink-0" alt="Profile picture">
+            <h2 id="card-name" class="font-bold text-xl text-zinc-900 flex items-center gap-1.5 justify-center">
+                <span>Loading…</span>
+                <i id="card-verified" data-lucide="badge-check" class="hidden h-4 w-4 text-sky-400"></i>
+            </h2>
+            <p id="card-username" class="text-sm text-zinc-400 mt-0.5"></p>
+            <p id="card-bio" class="text-xs text-zinc-600 max-w-md mt-2 whitespace-pre-wrap"></p>
+            <a id="card-profile-btn" href="#" class="mt-3.5 inline-flex items-center gap-1.5 rounded-full bg-zinc-100 px-4 py-1.5 text-xs font-bold text-zinc-800 hover:bg-zinc-200 border border-zinc-200 transition">
+                <i data-lucide="external-link" class="h-3.5 w-3.5"></i> View profile
+            </a>
+            <p class="text-[11px] text-zinc-400 mt-4 tracking-wide">Beginning of direct messages</p>
+        </section>
+
+        <!-- Message List -->
+        <div id="messages-list" class="space-y-3 pt-2">
+            <div id="messages-loading" class="py-16 text-center text-zinc-400">
+                <i data-lucide="loader" class="h-8 w-8 animate-spin mx-auto text-rose-500 mb-2"></i>
+                <p class="text-sm">Loading messages…</p>
+            </div>
+        </div>
+    </main>
+
+    <!-- Message Input Bar -->
+    <footer class="sticky bottom-0 z-30 shrink-0 border-t border-zinc-200 bg-white/95 backdrop-blur px-4 py-2.5 pb-[max(.65rem,env(safe-area-inset-bottom))]">
+        <form id="message-form" class="mx-auto flex max-w-3xl items-center gap-2" autocomplete="off">
+            <input
+                id="message-input"
+                type="text"
+                placeholder="Send a message…"
+                maxlength="2000"
+                class="flex-1 rounded-full bg-zinc-100 border border-zinc-200 px-4 py-2.5 text-sm text-zinc-900 placeholder:text-zinc-400 outline-none focus:border-rose-500 focus:bg-white transition"
+                disabled
+            >
+            <button
+                id="send-button"
+                type="submit"
+                class="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-rose-500 text-white hover:bg-rose-600 disabled:opacity-40 disabled:cursor-not-allowed transition shadow-sm"
+                disabled
+                aria-label="Send message"
+            >
+                <i data-lucide="send" class="h-4 w-4"></i>
+            </button>
+        </form>
+    </footer>
+
+    <script type="module">
+        import { auth, db } from './firebase.js';
+        import { onAuthStateChanged } from 'https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js';
+        import {
+            collection, doc, getDoc, setDoc, addDoc, updateDoc,
+            onSnapshot, serverTimestamp
+        } from 'https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js';
+
+        lucide.createIcons();
+
+        const params = new URLSearchParams(location.search);
+        const targetUid = params.get('uid');
+
+        const headerProfileLink = document.getElementById('header-profile-link');
+        const headerProfileBtn = document.getElementById('header-profile-btn');
+        const headerAvatar = document.getElementById('header-avatar');
+        const headerName = document.getElementById('header-name');
+        const headerVerified = document.getElementById('header-verified');
+        const headerUsername = document.getElementById('header-username');
+
+        const cardPic = document.getElementById('card-pic');
+        const cardName = document.getElementById('card-name');
+        const cardVerified = document.getElementById('card-verified');
+        const cardUsername = document.getElementById('card-username');
+        const cardBio = document.getElementById('card-bio');
+        const cardProfileBtn = document.getElementById('card-profile-btn');
+
+        const messagesContainer = document.getElementById('messages-container');
+        const messagesList = document.getElementById('messages-list');
+        const messagesLoading = document.getElementById('messages-loading');
+        const messageForm = document.getElementById('message-form');
+        const messageInput = document.getElementById('message-input');
+        const sendButton = document.getElementById('send-button');
+        const chatError = document.getElementById('chat-error');
+        const chatErrorText = document.getElementById('chat-error-text');
+
+        const defaultAvatar = 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?auto=format&fit=crop&w=200&q=80';
+
+        let currentUser = null;
+        let currentUserProfile = null;
+        let targetProfile = null;
+        let unsubscribeMessages = null;
+        let unsubscribeChatDoc = null;
+        let chatId = null;
+
+        function escapeHtml(value) {
+            return String(value ?? '').replace(/[&<>"']/g, character => ({
+                '&': '&#38;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;'
+            })[character]);
+        }
+
+        function formatMessageTime(timestamp) {
+            if (!timestamp) return 'Just now';
+            let date;
+            if (typeof timestamp.toDate === 'function') {
+                date = timestamp.toDate();
+            } else if (timestamp instanceof Date) {
+                date = timestamp;
+            } else if (typeof timestamp === 'number') {
+                date = new Date(timestamp);
+            } else {
+                return 'Just now';
+            }
+
+            const now = new Date();
+            const isToday = now.toDateString() === date.toDateString();
+            const timeStr = date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+
+            if (isToday) return timeStr;
+            return `${date.toLocaleDateString([], { month: 'short', day: 'numeric' })}, ${timeStr}`;
+        }
+
+        function scrollToBottom(smooth = false) {
+            requestAnimationFrame(() => {
+                messagesContainer.scrollTo({
+                    top: messagesContainer.scrollHeight,
+                    behavior: smooth ? 'smooth' : 'auto'
+                });
+            });
+        }
+
+        function showChatError(message) {
+            chatErrorText.textContent = message;
+            chatError.classList.remove('hidden');
+        }
+
+        async function loadProfiles() {
+            if (!targetUid) {
+                showChatError('No user specified for this chat.');
+                return false;
+            }
+
+            if (currentUser.uid === targetUid) {
+                showChatError('You cannot chat with yourself.');
+                messageInput.disabled = true;
+                sendButton.disabled = true;
+                return false;
+            }
+
+            try {
+                // Fetch current user's profile
+                const [myProfSnap, targetProfSnap] = await Promise.all([
+                    getDoc(doc(db, 'profiles', currentUser.uid)),
+                    getDoc(doc(db, 'profiles', targetUid))
+                ]);
+
+                currentUserProfile = myProfSnap.exists() ? myProfSnap.data() : {
+                    fullName: currentUser.displayName || 'EarnTok user',
+                    username: '',
+                    profilePic: currentUser.photoURL || '',
+                    verify: 'no'
+                };
+
+                if (targetProfSnap.exists()) {
+                    targetProfile = { id: targetProfSnap.id, ...targetProfSnap.data() };
+                } else {
+                    // Fallback to users collection
+                    const userSnap = await getDoc(doc(db, 'users', targetUid));
+                    if (userSnap.exists()) {
+                        targetProfile = { id: userSnap.id, ...userSnap.data() };
+                    } else {
+                        targetProfile = {
+                            id: targetUid,
+                            fullName: 'EarnTok user',
+                            username: '',
+                            profilePic: '',
+                            bio: '',
+                            verify: 'no'
+                        };
+                    }
+                }
+
+                // Populate Header
+                const targetName = targetProfile.fullName || 'EarnTok user';
+                const targetHandle = targetProfile.username ? `@${targetProfile.username}` : '';
+                const targetPic = targetProfile.profilePic || defaultAvatar;
+                const isVerified = targetProfile.verify === 'yes';
+
+                document.title = `EarnTok · Chat with ${targetName}`;
+                headerName.textContent = targetName;
+                headerUsername.textContent = targetHandle;
+                headerAvatar.src = targetPic;
+                headerAvatar.onerror = () => { headerAvatar.src = defaultAvatar; };
+                headerVerified.classList.toggle('hidden', !isVerified);
+
+                const profileUrl = `./view-profile.html?uid=${encodeURIComponent(targetUid)}`;
+                headerProfileLink.href = profileUrl;
+                headerProfileBtn.href = profileUrl;
+
+                // Populate Summary Card
+                cardName.querySelector('span').textContent = targetName;
+                cardUsername.textContent = targetHandle;
+                cardPic.src = targetPic;
+                cardPic.onerror = () => { cardPic.src = defaultAvatar; };
+                cardVerified.classList.toggle('hidden', !isVerified);
+                cardBio.textContent = targetProfile.bio || '';
+                cardProfileBtn.href = profileUrl;
+
+                lucide.createIcons();
+
+                // Enable input
+                messageInput.disabled = false;
+                messageInput.focus();
+
+                return true;
+            } catch (err) {
+                console.error('Failed to load profiles for chat:', err);
+                showChatError('Could not load user profile. Check your connection.');
+                return false;
+            }
+        }
+
+        async function markAsRead() {
+            if (!chatId || !currentUser) return;
+            try {
+                const chatRef = doc(db, 'chats', chatId);
+                const chatSnap = await getDoc(chatRef);
+                if (chatSnap.exists()) {
+                    const data = chatSnap.data();
+                    if (Array.isArray(data.unreadBy) && data.unreadBy.includes(currentUser.uid)) {
+                        const updatedUnread = data.unreadBy.filter(id => id !== currentUser.uid);
+                        await updateDoc(chatRef, { unreadBy: updatedUnread });
+                    }
+                }
+            } catch (err) {
+                console.warn('Could not mark chat as read:', err);
+            }
+        }
+
+        function renderMessages(messages) {
+            if (messages.length === 0) {
+                messagesList.innerHTML = `
+                    <div class="py-8 text-center text-zinc-400">
+                        <p class="text-xs">No messages yet. Say hello to ${escapeHtml(targetProfile.fullName || 'this creator')}! 👋</p>
+                    </div>
+                `;
+                return;
+            }
+
+            const targetPic = targetProfile.profilePic || defaultAvatar;
+
+            messagesList.innerHTML = messages.map(msg => {
+                const isMine = msg.senderId === currentUser.uid;
+                const timeStr = formatMessageTime(msg.createdAt);
+
+                if (isMine) {
+                    return `
+                        <div class="flex flex-col items-end mb-2.5">
+                            <div class="max-w-[78%] rounded-2xl rounded-br-sm bg-rose-500 px-4 py-2.5 text-white shadow-sm text-sm whitespace-pre-wrap break-words">
+                                ${escapeHtml(msg.text)}
+                            </div>
+                            <span class="text-[10px] text-zinc-400 mt-1 mr-1">${escapeHtml(timeStr)}</span>
+                        </div>
+                    `;
+                }
+
+                return `
+                    <div class="flex items-end gap-2 mb-2.5">
+                        <img src="${escapeHtml(targetPic)}" class="h-7 w-7 min-w-[1.75rem] min-h-[1.75rem] max-w-[1.75rem] max-h-[1.75rem] rounded-full object-cover shrink-0 mb-4 bg-zinc-200" onerror="this.src='${defaultAvatar}'" alt="">
+                        <div class="flex flex-col items-start max-w-[78%]">
+                            <div class="rounded-2xl rounded-bl-sm bg-zinc-100 border border-zinc-200 px-4 py-2.5 text-zinc-900 shadow-sm text-sm whitespace-pre-wrap break-words">
+                                ${escapeHtml(msg.text)}
+                            </div>
+                            <span class="text-[10px] text-zinc-400 mt-1 ml-1">${escapeHtml(timeStr)}</span>
+                        </div>
+                    </div>
+                `;
+            }).join('');
+        }
+
+        function subscribeToMessages() {
+            chatId = [currentUser.uid, targetUid].sort().join('_');
+
+            // Listen to messages subcollection
+            const messagesRef = collection(db, 'chats', chatId, 'messages');
+            unsubscribeMessages = onSnapshot(messagesRef, snapshot => {
+                messagesLoading?.remove();
+                const msgs = snapshot.docs.map(docSnap => ({
+                    id: docSnap.id,
+                    ...docSnap.data()
+                }));
+
+                // Safe client-side sorting by creation time
+                msgs.sort((a, b) => {
+                    const timeA = a.createdAt?.toMillis?.() || (a.createdAt instanceof Date ? a.createdAt.getTime() : 0);
+                    const timeB = b.createdAt?.toMillis?.() || (b.createdAt instanceof Date ? b.createdAt.getTime() : 0);
+                    return timeA - timeB;
+                });
+
+                renderMessages(msgs);
+                scrollToBottom(false);
+                markAsRead();
+            }, error => {
+                console.error('Error listening to messages:', error);
+                showChatError('Unable to sync messages in real-time.');
+            });
+        }
+
+        async function handleSendMessage(event) {
+            event.preventDefault();
+            const text = messageInput.value.trim();
+            if (!text || !currentUser || !targetUid) return;
+
+            messageInput.disabled = true;
+            sendButton.disabled = true;
+
+            try {
+                // 1. Add message document to chats/{chatId}/messages
+                const messagesRef = collection(db, 'chats', chatId, 'messages');
+                await addDoc(messagesRef, {
+                    chatId,
+                    senderId: currentUser.uid,
+                    receiverId: targetUid,
+                    text,
+                    createdAt: serverTimestamp(),
+                    read: false
+                });
+
+                // 2. Set/merge conversation in chats/{chatId}
+                const chatDocRef = doc(db, 'chats', chatId);
+                await setDoc(chatDocRef, {
+                    id: chatId,
+                    participants: [currentUser.uid, targetUid],
+                    lastMessage: text,
+                    lastSenderId: currentUser.uid,
+                    updatedAt: serverTimestamp(),
+                    unreadBy: [targetUid],
+                    participantData: {
+                        [currentUser.uid]: {
+                            uid: currentUser.uid,
+                            fullName: currentUserProfile.fullName || currentUser.displayName || 'EarnTok user',
+                            username: currentUserProfile.username || '',
+                            profilePic: currentUserProfile.profilePic || currentUser.photoURL || '',
+                            verify: currentUserProfile.verify || 'no'
+                        },
+                        [targetUid]: {
+                            uid: targetUid,
+                            fullName: targetProfile.fullName || 'EarnTok user',
+                            username: targetProfile.username || '',
+                            profilePic: targetProfile.profilePic || '',
+                            verify: targetProfile.verify || 'no'
+                        }
+                    }
+                }, { merge: true });
+
+                messageInput.value = '';
+                scrollToBottom(true);
+            } catch (err) {
+                console.error('Failed to send message:', err);
+                alert('Could not send message. Please check your connection and try again.');
+            } finally {
+                messageInput.disabled = false;
+                sendButton.disabled = false;
+                messageInput.focus();
+            }
+        }
+
+        messageInput.addEventListener('input', () => {
+            sendButton.disabled = !messageInput.value.trim();
+        });
+
+        messageForm.addEventListener('submit', handleSendMessage);
+
+        // Auth state handler
+        onAuthStateChanged(auth, async user => {
+            if (!user) {
+                const returnTo = `${location.pathname}${location.search}`;
+                location.replace(`./oauth.html?returnTo=${encodeURIComponent(returnTo)}`);
+                return;
+            }
+            currentUser = user;
+
+            const loaded = await loadProfiles();
+            if (loaded) {
+                subscribeToMessages();
+            }
+        });
+    </script>
+</body>
+</html>
+

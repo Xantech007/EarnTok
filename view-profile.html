@@ -24,20 +24,38 @@
         .tab-active { color: #161823; }
         .text-sky-400 { color: #0284c7 !important; }
         p.text-rose-300 { color: #be123c !important; }
+        img.rounded-full, #profile-pic, .avatar-img {
+            object-fit: cover !important;
+            aspect-ratio: 1 / 1 !important;
+        }
+        #profile-pic {
+            width: 7rem !important;
+            height: 7rem !important;
+            min-width: 7rem !important;
+            min-height: 7rem !important;
+            max-width: 7rem !important;
+            max-height: 7rem !important;
+            flex-shrink: 0 !important;
+        }
     </style>
 </head>
 <body class="bg-zinc-950 text-zinc-100 antialiased">
     <header class="sticky top-0 z-20 border-b border-zinc-800 bg-zinc-950/90 backdrop-blur">
         <div class="mx-auto flex max-w-5xl items-center justify-between px-4 py-3">
             <a href="./index.html" class="text-zinc-100 hover:opacity-80" aria-label="Back to feed">
-            <i data-lucide="arrow-left" class="h-6 w-6 stroke-[2.5]" aria-hidden="true"></i>
+                <i data-lucide="arrow-left" class="h-6 w-6 stroke-[2.5]" aria-hidden="true"></i>
             </a>
+            <div class="flex items-center gap-3">
+                <a href="./inbox.html" class="p-1 text-zinc-100 hover:opacity-80" aria-label="Inbox" title="Inbox">
+                    <i data-lucide="message-square" class="h-6 w-6 stroke-[2.2]" aria-hidden="true"></i>
+                </a>
+            </div>
         </div>
     </header>
     <main class="mx-auto max-w-5xl px-4 pb-16">
         <section class="border-b border-zinc-800 py-8 sm:py-10">
             <div class="flex flex-col gap-6 sm:flex-row sm:items-center">
-                <img id="profile-pic" class="h-28 w-28 self-center rounded-full bg-zinc-800 object-cover sm:self-auto" alt="Profile picture">
+                <img id="profile-pic" class="h-28 w-28 min-w-[7rem] min-h-[7rem] max-w-[7rem] max-h-[7rem] shrink-0 self-center rounded-full bg-zinc-800 object-cover sm:self-auto" alt="Profile picture">
                 <div class="min-w-0 flex-1 text-center sm:text-left">
                     <p class="text-sm text-zinc-500">EarnTok profile</p>
                     <h1 id="profile-name" class="mt-1 truncate text-3xl font-bold">Loading profile…</h1>
@@ -47,7 +65,10 @@
                         <button id="following-btn" class="hover:underline cursor-pointer"><strong id="following-count" class="text-zinc-950">0</strong> following</button>
                         <span><strong id="like-count" class="text-zinc-950">0</strong> likes</span>
                     </div>
-                    <button id="follow-button" class="mt-4 hidden inline-flex items-center justify-center rounded-full bg-rose-500 px-6 py-2 text-sm font-bold text-white hover:bg-rose-600 disabled:cursor-wait disabled:opacity-60" type="button"><i data-lucide="user-plus" class="mr-2 h-4 w-4" aria-hidden="true"></i>Follow</button>
+                    <div class="mt-4 flex flex-wrap items-center justify-center gap-3 sm:justify-start">
+                        <button id="follow-button" class="hidden inline-flex items-center justify-center rounded-full bg-rose-500 px-6 py-2 text-sm font-bold text-white hover:bg-rose-600 disabled:cursor-wait disabled:opacity-60" type="button"><i data-lucide="user-plus" class="mr-2 h-4 w-4" aria-hidden="true"></i>Follow</button>
+                        <a id="message-button" class="hidden inline-flex items-center justify-center rounded-full bg-zinc-800 px-6 py-2 text-sm font-bold text-zinc-900 hover:bg-zinc-200 border border-zinc-300 transition" href="#" aria-label="Send message"><i data-lucide="message-circle" class="mr-2 h-4 w-4" aria-hidden="true"></i>Message</a>
+                    </div>
                     <p id="follow-message" class="mt-2 hidden text-sm text-rose-300" role="status"></p>
                     <p id="profile-bio" class="mx-auto mt-4 max-w-xl whitespace-pre-wrap text-sm text-zinc-300 sm:mx-0"></p>
                 </div>
@@ -57,7 +78,10 @@
             <div class="border-b border-zinc-800 px-4 py-3 text-sm font-semibold">Posts</div>
             <p id="profile-load-message" class="hidden px-4 pt-4 text-sm text-rose-600" role="alert"></p>
             <div id="posts-grid" class="grid grid-cols-3 gap-[1px] bg-white py-4">
-                <p class="col-span-full py-12 text-center text-sm text-zinc-500 bg-white">Loading posts…</p>
+                <div class="col-span-full py-16 text-center text-zinc-400 bg-white">
+                    <i data-lucide="loader" class="h-8 w-8 animate-spin mx-auto text-rose-500 mb-2"></i>
+                    <p class="text-sm">Loading posts…</p>
+                </div>
             </div>
         </section>
     </main>
@@ -70,7 +94,10 @@
                 <button id="users-modal-close" class="rounded-lg p-1 text-zinc-500 hover:bg-zinc-100"><i data-lucide="x" class="h-5 w-5"></i></button>
             </div>
             <div id="users-modal-list" class="mt-4 divide-y divide-zinc-100 overflow-y-auto flex-1">
-                <p class="py-8 text-center text-sm text-zinc-500">Loading…</p>
+                <div class="py-12 text-center text-zinc-400">
+                    <i data-lucide="loader" class="h-8 w-8 animate-spin mx-auto text-rose-500 mb-2"></i>
+                    <p class="text-sm">Loading…</p>
+                </div>
             </div>
         </div>
     </div>
@@ -159,7 +186,8 @@
             const list = document.getElementById('users-modal-list');
             
             title.textContent = type === 'followers' ? 'Followers' : 'Following';
-            list.innerHTML = '<p class="py-8 text-center text-sm text-zinc-500">Loading…</p>';
+            list.innerHTML = '<div class="py-12 text-center text-zinc-400"><i data-lucide="loader" class="h-8 w-8 animate-spin mx-auto text-rose-500 mb-2"></i><p class="text-sm">Loading…</p></div>';
+            lucide.createIcons();
             modal.classList.remove('hidden');
             modal.classList.add('flex');
 
@@ -194,7 +222,7 @@
 
                 list.innerHTML = profiles.map(p => `
                     <a href="./view-profile.html?uid=${p.id}" class="flex items-center gap-3 py-3 hover:bg-zinc-50 px-2 rounded-lg">
-                        <img src="${escapeHtml(p.profilePic || '')}" class="h-10 w-10 rounded-full bg-zinc-200 object-cover" alt="">
+                        <img src="${escapeHtml(p.profilePic || 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?auto=format&fit=crop&w=200&q=80')}" class="h-10 w-10 min-w-[2.5rem] min-h-[2.5rem] max-w-[2.5rem] max-h-[2.5rem] shrink-0 rounded-full bg-zinc-200 object-cover" onerror="this.src='https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?auto=format&fit=crop&w=200&q=80'" alt="">
                         <div class="min-w-0 flex-1">
                             <p class="truncate font-semibold text-sm">${escapeHtml(p.fullName || 'User')}</p>
                             <p class="truncate text-xs text-zinc-500">${escapeHtml(p.username ? `@\${p.username}` : '')}</p>
@@ -277,8 +305,19 @@
 
             const followButton = document.getElementById('follow-button');
             const followMessage = document.getElementById('follow-message');
+            const messageButton = document.getElementById('message-button');
             if (authUser?.uid !== userId) {
                 followButton.classList.remove('hidden');
+                messageButton.classList.remove('hidden');
+                messageButton.href = `./message.html?uid=${encodeURIComponent(userId)}`;
+                messageButton.addEventListener('click', event => {
+                    if (!authUser) {
+                        event.preventDefault();
+                        const returnTo = `./message.html?uid=${encodeURIComponent(userId)}`;
+                        location.href = `./oauth.html?returnTo=${encodeURIComponent(returnTo)}`;
+                    }
+                });
+                lucide.createIcons();
                 if (authUser) {
                     try {
                         const isFollowing = await isUserFollowing(authUser.uid, userId);

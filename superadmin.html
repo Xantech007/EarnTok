@@ -622,7 +622,8 @@
         }
 
         async function loadVideos() {
-            videoList.innerHTML = '<p class="p-8 text-center text-sm text-zinc-400">Loading videos…</p>';
+            videoList.innerHTML = '<div class="p-8 text-center text-zinc-400"><i data-lucide="loader" class="h-8 w-8 animate-spin mx-auto text-rose-500 mb-2"></i><p class="text-sm">Loading videos…</p></div>';
+            lucide.createIcons();
             clearMessage(appMessage);
             try {
                 const snapshot = await getDocs(videosCollection);
@@ -639,7 +640,8 @@
 
         async function loadUsers() {
             const userList = document.getElementById('user-list');
-            userList.innerHTML = '<p class="p-8 text-center text-sm text-zinc-400">Loading users…</p>';
+            userList.innerHTML = '<div class="p-8 text-center text-zinc-400"><i data-lucide="loader" class="h-8 w-8 animate-spin mx-auto text-rose-500 mb-2"></i><p class="text-sm">Loading users…</p></div>';
+            lucide.createIcons();
             clearMessage(document.getElementById('users-message'));
             try {
                 const profilesQuery = userPage === 0
@@ -742,7 +744,8 @@
 
         async function loadActivity() {
             const activityList = document.getElementById('activity-list');
-            activityList.innerHTML = '<p class="p-8 text-center text-sm text-zinc-400">Loading activity…</p>';
+            activityList.innerHTML = '<div class="p-8 text-center text-zinc-400"><i data-lucide="loader" class="h-8 w-8 animate-spin mx-auto text-rose-500 mb-2"></i><p class="text-sm">Loading activity…</p></div>';
+            lucide.createIcons();
             try {
                 const snapshot = await getDocs(query(collection(db, 'activity'), orderBy('createdAt', 'desc'), limit(100)));
                 const activities = snapshot.docs.map(item => ({ id: item.id, ...item.data() }));

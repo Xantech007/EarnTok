@@ -113,11 +113,11 @@
 
         <!-- TOP HEADER NAVBAR -->
         <header class="absolute top-0 left-0 right-0 z-30 flex items-center justify-between px-4 pb-3 safe-top bg-gradient-to-b from-black/80 via-black/40 to-transparent pointer-events-auto">
-            <!-- LIVE Button -->
-            <button class="flex items-center space-x-1 text-white/90 hover:text-white transition group">
-                <i data-lucide="tv" class="w-6 h-6 text-white group-hover:scale-105 transition" aria-hidden="true"></i>
-                <span class="text-xs font-semibold uppercase tracking-wider hidden sm:inline">LIVE</span>
-            </button>
+            <!-- WALLET Button -->
+            <a href="wallet.html" class="flex items-center space-x-1 text-white/90 hover:text-white transition group">
+                <i data-lucide="wallet" class="w-6 h-6 text-white group-hover:scale-105 transition" aria-hidden="true"></i>
+                <span class="text-xs font-semibold uppercase tracking-wider hidden sm:inline"></span>
+            </a>
 
             <!-- Following vs For You Tabs -->
             <div class="flex items-center space-x-5 text-base font-bold">
@@ -133,7 +133,7 @@
             </div>
 
             <!-- Search Icon -->
-            <button onclick="requireUser().then(user => user && (trackPageActivity('search_opened'), showToast('Search feature opened'), window.location.href='search.html'))" class="text-white/90 hover:text-white transition group">
+            <button onclick="requireUser().then(user => user && (trackPageActivity('search_opened'), showToast('Search feature opened'), window.location.href='search.html'))" class="text-white hover:text-white transition group">
                 <i data-lucide="search" class="w-6 h-6 group-hover:scale-105 transition" aria-hidden="true"></i>
             </button>
         </header>
@@ -526,11 +526,11 @@
         const commentsData = Object.create(null);
         window.commentsData = commentsData;
         const feed = document.getElementById('video-feed');
-        feed.replaceChildren();
         const loadingMessage = document.createElement('div');
-        loadingMessage.className = 'absolute inset-0 flex items-center justify-center text-sm text-gray-300';
-        loadingMessage.textContent = 'Loading videos…';
+        loadingMessage.className = 'absolute inset-0 flex flex-col items-center justify-center text-zinc-300';
+        loadingMessage.innerHTML = '<i data-lucide="loader" class="h-8 w-8 animate-spin mx-auto text-rose-500 mb-2"></i><p class="text-sm">Loading videos…</p>';
         feed.append(loadingMessage);
+        lucide.createIcons();
 
         let currentActiveCard = null;
         let activeVideoId = '1';
@@ -1800,9 +1800,10 @@
         async function loadVideos() {
             videoFeed.replaceChildren();
             const loading = document.createElement('div');
-            loading.className = 'absolute inset-0 flex items-center justify-center text-sm text-gray-300';
-            loading.textContent = 'Loading videos…';
+            loading.className = 'absolute inset-0 flex flex-col items-center justify-center text-zinc-300';
+            loading.innerHTML = '<i data-lucide="loader" class="h-8 w-8 animate-spin mx-auto text-rose-500 mb-2"></i><p class="text-sm">Loading videos…</p>';
             videoFeed.append(loading);
+            lucide.createIcons();
 
             try {
                 const videosQuery = query(collection(db, 'videos'), where('admin', '==', 'yes'));

@@ -156,7 +156,8 @@
             event.preventDefault();
             const button = loginForm.querySelector('button[type="submit"]');
             button.disabled = true;
-            button.textContent = 'Signing in…';
+            button.innerHTML = '<i data-lucide="loader" class="mr-2 h-4 w-4 animate-spin inline-block"></i> Signing in…';
+            lucide.createIcons();
             try {
                 await setPersistence(auth, browserLocalPersistence);
                 const formData = new FormData(loginForm);
@@ -167,7 +168,8 @@
                 showMessage(authError(error));
             } finally {
                 button.disabled = false;
-                button.textContent = 'Log in';
+                button.innerHTML = '<i data-lucide="log-in" class="mr-2 h-4 w-4" aria-hidden="true"></i>Log in';
+                lucide.createIcons();
             }
         });
 
@@ -192,7 +194,8 @@
             }
 
             button.disabled = true;
-            button.textContent = 'Creating account…';
+            button.innerHTML = '<i data-lucide="loader" class="mr-2 h-4 w-4 animate-spin inline-block"></i> Creating account…';
+            lucide.createIcons();
             let createdUser = null;
             try {
                 await setPersistence(auth, browserLocalPersistence);
@@ -243,7 +246,8 @@
                 showMessage(authError(error));
             } finally {
                 button.disabled = false;
-                button.textContent = 'Create account';
+                button.innerHTML = '<i data-lucide="user-plus" class="mr-2 h-4 w-4" aria-hidden="true"></i>Create account';
+                lucide.createIcons();
             }
         });
     </script>
