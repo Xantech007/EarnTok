@@ -138,18 +138,22 @@
         }
 
         function mediaType(video) {
-            if (video.mediaType) return video.mediaType;
+            if (video.mediaType === 'image') return 'image';
+            if (video.mediaType === 'video') return 'video';
             return /\.(avif|gif|jpe?g|png|webp|bmp|heic)(?:\?|\$)/i.test(video.link || '') ? 'image' : 'video';
         }
 
-        function card(video, profile, pinned = false) {
-            const image = mediaType(video) === 'image'
-                ? `<img class="aspect-[3/4] w-full object-cover" src="${escapeHtml(video.link)}" alt="${escapeHtml(video.description || '')}" loading="lazy">`
-                : `<video class="aspect-[3/4] w-full object-cover" src="${escapeHtml(video.link)}" muted playsinline preload="metadata"></video>`;
-            const verified = profile.verify === 'yes'
-                ? '<span class="ml-1 inline-flex align-middle items-center"><i data-lucide="badge-check" class="h-3.5 w-3.5 text-sky-400" title="Verified creator" aria-label="Verified creator"></i></span>'
-                : '';
-            return `<article class="relative cursor-pointer overflow-hidden bg-zinc-900" data-video-id="${escapeHtml(video.id)}" tabindex="0" role="button" aria-label="Watch ${escapeHtml(video.description || 'post')}">${image}<div class="absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/90 to-transparent p-3 pt-10 text-white"><p class="mb-1 text-xs font-semibold">${escapeHtml(profile.username ? `@\${profile.username}` : profile.fullName || 'Creator')}${verified}</p><p class="line-clamp-2 text-xs">${escapeHtml(video.description || '')}</p>${pinned ? '<span class="mt-2 inline-block rounded-full bg-rose-500 px-2 py-1 text-[10px] font-semibold">Pinned</span>' : ''}</div></article>`;
+        function mediaMarkup(video, pinned = false) {
+            const src = escapeHtml(video.link);
+            const media = mediaType(video) === 'image'
+                ? `<img class="aspect-[3/4] w-full object-cover" src="${src}" alt="${escapeHtml(video.description || '')}" loading="lazy">`
+                : `<video class="aspect-[3/4] w-full object-cover" src="${src}" muted playsinline preload="metadata"></video>`;
+            const pinIconHtml = pinned ? `<span class="absolute top-2 right-2 z-10 flex h-7 w-7 items-center justify-center rounded-full bg-rose-500 text-white shadow-md" title="Pinned post" aria-label="Pinned post"><i data-lucide="pin" class="h-3.5 w-3.5 fill-current"></i></span>` : '';
+
+            return `<article class="group relative overflow-hidden bg-zinc-900 cursor-pointer" data-profile-video-id="${escapeHtml(video.id)}" tabindex="0" role="button" aria-label="Watch ${escapeHtml(video.description || 'post')}">
+                ${media}
+                ${pinIconHtml}
+            </article>`;
         }
 
         function firestoreReadError(stage, error) {
@@ -205,14 +209,40 @@
                     return;
                 }
 
-                // Fetch profiles for these userIds (Firestore 'in' query supports up to 10 items, handle chunks if needed or fetch individually)
                 const profiles = [];
                 for (let i = 0; i < userIds.length; i += 10) {
                     const chunk = userIds.slice(i, i + 10);
                     const profilesSnap = await getDocs(query(collection(db, 'profiles'), where('__name__', 'in', chunk)));
+                    const found = new Set();
                     profilesSnap.forEach(docSnap => {
+                        found.add(docSnap.id);
                         profiles.push({ id: docSnap.id, ...docSnap.data() });
                     });
+                    for (const id of chunk) {
+                        if (!found.has(id)) {
+                            try {
+                                const uSnap = await getDoc(doc(db, 'users', id));
+                                if (uSnap.exists()) {
+                                    const uData = uSnap.data();
+                                    profiles.push({
+                                        id,
+                                        fullName: uData.fullName || uData.displayName || 'EarnTok user',
+                                        username: uData.username || (uData.email ? uData.email.split('@')[0] : ''),
+                                        profilePic: uData.profilePic || uData.photoURL || ''
+                                    });
+                                } else {
+                                    profiles.push({
+                                        id,
+                                        fullName: 'EarnTok user',
+                                        username: '',
+                                        profilePic: ''
+                                    });
+                                }
+                            } catch (e) {
+                                console.error('Fallback fetch error:', e);
+                            }
+                        }
+                    }
                 }
 
                 if (profiles.length === 0) {
@@ -220,15 +250,20 @@
                     return;
                 }
 
-                list.innerHTML = profiles.map(p => `
-                    <a href="./view-profile.html?uid=${p.id}" class="flex items-center gap-3 py-3 hover:bg-zinc-50 px-2 rounded-lg">
-                        <img src="${escapeHtml(p.profilePic || 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?auto=format&fit=crop&w=200&q=80')}" class="h-10 w-10 min-w-[2.5rem] min-h-[2.5rem] max-w-[2.5rem] max-h-[2.5rem] shrink-0 rounded-full bg-zinc-200 object-cover" onerror="this.src='https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?auto=format&fit=crop&w=200&q=80'" alt="">
-                        <div class="min-w-0 flex-1">
-                            <p class="truncate font-semibold text-sm">${escapeHtml(p.fullName || 'User')}</p>
-                            <p class="truncate text-xs text-zinc-500">${escapeHtml(p.username ? `@\${p.username}` : '')}</p>
-                        </div>
-                    </a>
-                `).join('');
+                list.innerHTML = profiles.map(p => {
+                    const handle = p.username ? `@${p.username}` : (p.email ? `@${p.email.split('@')[0]}` : `@user_${p.id.slice(0, 5)}`);
+                    const name = p.fullName || 'EarnTok user';
+                    const pic = p.profilePic || 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?auto=format&fit=crop&w=200&q=80';
+                    return `
+                        <a href="./view-profile.html?uid=${encodeURIComponent(p.id)}" class="flex items-center gap-3 py-3 hover:bg-zinc-50 px-2 rounded-lg transition">
+                            <img src="${escapeHtml(pic)}" class="h-10 w-10 min-w-[2.5rem] min-h-[2.5rem] max-w-[2.5rem] max-h-[2.5rem] shrink-0 rounded-full bg-zinc-200 object-cover" onerror="this.src='https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?auto=format&fit=crop&w=200&q=80'" alt="">
+                            <div class="min-w-0 flex-1">
+                                <p class="truncate font-semibold text-sm text-zinc-900">${escapeHtml(name)}</p>
+                                <p class="truncate text-xs text-zinc-500">${escapeHtml(handle)}</p>
+                            </div>
+                        </a>
+                    `;
+                }).join('');
             } catch (err) {
                 console.error(`Error loading ${type}:`, err);
                 list.innerHTML = `<p class="py-8 text-center text-sm text-rose-500">Failed to load ${type}.</p>`;
@@ -281,7 +316,6 @@
             const pinnedIds = Array.isArray(profile.pinnedVideos) ? profile.pinnedVideos : [];
             const pinned = pinnedIds.map(id => posts.find(post => post.id === id)).filter(Boolean);
             
-            // Combine pinned and remaining posts, avoiding duplicates, pinned at the top
             const pinnedSet = new Set(pinned.map(p => p.id));
             const unpinnedPosts = posts.filter(post => !pinnedSet.has(post.id));
             const combinedPosts = [...pinned, ...unpinnedPosts];
@@ -361,26 +395,27 @@
             avatar.onerror = () => avatar.removeAttribute('src');
 
             document.getElementById('posts-grid').innerHTML = combinedPosts.length
-                ? combinedPosts.map(post => card(post, profile, pinnedSet.has(post.id))).join('')
+                ? combinedPosts.map(post => mediaMarkup(post, pinnedSet.has(post.id))).join('')
                 : '<p class="col-span-full py-12 text-center text-sm text-zinc-500 bg-white">No published posts yet.</p>';
             lucide.createIcons();
             
-            const openVideo = event => {
-                const item = event.target.closest('[data-video-id]');
-                if (!item) return;
-                videoViewer.open(combinedPosts.map(post => ({
-                    ...post,
+            const openProfileVideo = event => {
+                const button = event.target.closest('[data-profile-video-id]');
+                if (!button) return;
+                const videoId = button.dataset.profileVideoId;
+                videoViewer.open(combinedPosts.map(video => ({
+                    ...video,
                     creatorUsername: profile.username ? `@${profile.username}` : profile.fullName,
                     creatorVerified: profile.verify === 'yes'
-                })), item.dataset.videoId);
+                })), videoId);
             };
 
             const postsGrid = document.getElementById('posts-grid');
-            postsGrid.addEventListener('click', openVideo);
+            postsGrid.addEventListener('click', openProfileVideo);
             postsGrid.addEventListener('keydown', event => {
                 if (event.key !== 'Enter' && event.key !== ' ') return;
                 event.preventDefault();
-                openVideo(event);
+                openProfileVideo(event);
             });
 
             if (authUser?.uid !== userId) {
