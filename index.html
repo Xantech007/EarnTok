@@ -133,7 +133,7 @@
             </div>
 
             <!-- Search Icon -->
-            <button onclick="requireUser().then(user => user && (trackPageActivity('search_opened'), showToast('Search feature opened'), window.location.href='search.html'))" class="text-white hover:text-white transition group">
+            <button onclick="window.location.href='./search.html'" class="text-white hover:text-white transition group" aria-label="Search">
                 <i data-lucide="search" class="w-6 h-6 group-hover:scale-105 transition" aria-hidden="true"></i>
             </button>
         </header>
@@ -398,7 +398,7 @@
             </button>
             <a href="inbox.html" id="nav-inbox" class="flex flex-col items-center text-gray-400 hover:text-white space-y-0.5 relative">
                 <i data-lucide="message-square" class="w-6 h-6" aria-hidden="true"></i>
-                <span class="absolute top-0 right-3 w-2 h-2 bg-tiktok-red rounded-full"></span>
+                <span data-unread-message-badge class="absolute top-0 right-2 hidden min-w-4 h-4 items-center justify-center rounded-full bg-tiktok-red px-1 text-[10px] font-bold leading-none text-white" aria-hidden="true"></span>
                 <span>Inbox</span>
             </a>
             <a href="./profile.html" id="nav-profile" class="flex flex-col items-center text-gray-400 hover:text-white space-y-0.5">
@@ -957,7 +957,7 @@
             tabs.forEach(t => {
                 const el = document.getElementById(`nav-${t}`);
                 if (t === tab) {
-                    el.className = 'flex flex-col items-center font-semibold text-white space-y-0.5';
+                    el.className = `flex flex-col items-center font-semibold text-white space-y-0.5${t === 'inbox' ? ' relative' : ''}`;
                     el.setAttribute('aria-current', 'page');
                 } else {
                     el.className = 'flex flex-col items-center text-gray-400 hover:text-white space-y-0.5';
@@ -1100,6 +1100,7 @@
     <script type="module">
         import { auth, db } from './firebase.js';
         import { getFollowingUserIds, toggleUserFollow } from './follows.js';
+        import { subscribeToUnreadMessages } from './unread-messages.js';
         import { onAuthStateChanged } from 'https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js';
         import {
             addDoc, collection, doc, getDoc, getDocs, query, runTransaction,
@@ -1122,6 +1123,7 @@
         let authReadyResolve;
         const authReady = new Promise(resolve => { authReadyResolve = resolve; });
         let currentUser = auth.currentUser;
+        let unsubscribeUnreadMessages = null;
         let selectedMedia = null;
         let cameraStream = null;
         let mediaRecorder = null;
@@ -1131,6 +1133,8 @@
 
         onAuthStateChanged(auth, user => {
             currentUser = user;
+            unsubscribeUnreadMessages?.();
+            unsubscribeUnreadMessages = subscribeToUnreadMessages(db, user?.uid);
             if (window.commentAuthorProfileCache?.uid !== user?.uid) {
                 window.commentAuthorProfileCache = null;
             }

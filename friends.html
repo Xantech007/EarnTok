@@ -40,8 +40,9 @@
             <div class="text-center">
                 <h1 class="text-lg font-bold text-zinc-900 tracking-tight">Friends</h1>
             </div>
-            <a href="./inbox.html" class="p-1 text-zinc-900 hover:text-rose-500 transition" aria-label="Inbox" title="Inbox">
+            <a href="./inbox.html" class="relative p-1 text-zinc-900 hover:text-rose-500 transition" aria-label="Inbox" title="Inbox">
                 <i data-lucide="message-square" class="h-6 w-6 stroke-[2.2]" aria-hidden="true"></i>
+                <span data-unread-message-badge class="absolute -right-1 -top-1 hidden min-w-4 h-4 items-center justify-center rounded-full bg-rose-500 px-1 text-[10px] font-bold leading-none text-white" aria-hidden="true"></span>
             </a>
         </div>
     </header>
@@ -84,6 +85,7 @@
         </a>
         <a href="inbox.html" id="nav-inbox" class="flex flex-col items-center text-gray-400 hover:text-black space-y-0.5 relative">
             <i data-lucide="message-square" class="w-6 h-6" aria-hidden="true"></i>
+            <span data-unread-message-badge class="absolute top-0 right-2 hidden min-w-4 h-4 items-center justify-center rounded-full bg-rose-500 px-1 text-[10px] font-bold leading-none text-white" aria-hidden="true"></span>
             <span>Inbox</span>
         </a>
         <a href="./profile.html" id="nav-profile" class="flex flex-col items-center text-gray-400 hover:text-black space-y-0.5">
@@ -95,6 +97,7 @@
     <script type="module">
         import { auth, db } from './firebase.js';
         import { toggleUserFollow, removeUserFollow } from './follows.js';
+        import { subscribeToUnreadMessages } from './unread-messages.js';
         import { onAuthStateChanged } from 'https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js';
         import {
             collection, doc, getDoc, getDocs, query, where
@@ -103,6 +106,7 @@
         lucide.createIcons();
 
         let currentUser = null;
+        let unsubscribeUnreadMessages = null;
         let friendsData = [];
 
         const friendsList = document.getElementById('friends-list');
@@ -181,8 +185,8 @@
                 if (isMutual) {
                     actionsHtml = `
                         <div class="flex items-center gap-2 shrink-0">
-                            <a href="./message.html?uid=${encodeURIComponent(user.id)}" class="inline-flex items-center justify-center rounded-lg bg-zinc-100 hover:bg-zinc-200 border border-zinc-200 px-5 py-1.5 text-xs font-semibold text-zinc-900 transition active:scale-95 shadow-sm">
-                                Message
+                            <a href="./message.html?uid=${encodeURIComponent(user.id)}" class="inline-flex items-center justify-center gap-1.5 rounded-md bg-zinc-100 hover:bg-zinc-200 px-5 py-2 text-sm font-semibold text-zinc-900 transition active:scale-95">
+                                <i data-lucide="message-circle" class="h-4 w-4" aria-hidden="true"></i>Message
                             </a>
                         </div>
                     `;
@@ -451,6 +455,8 @@
 
         // Auth state handler
         onAuthStateChanged(auth, user => {
+            unsubscribeUnreadMessages?.();
+            unsubscribeUnreadMessages = subscribeToUnreadMessages(db, user?.uid);
             if (!user) {
                 const returnTo = `${location.pathname}${location.search}`;
                 location.replace(`./oauth.html?returnTo=${encodeURIComponent(returnTo)}`);
@@ -462,4 +468,3 @@
     </script>
 </body>
 </html>
-

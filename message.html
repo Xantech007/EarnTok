@@ -27,6 +27,9 @@
         .messages-scroll::-webkit-scrollbar { width: 5px; }
         .messages-scroll::-webkit-scrollbar-track { background: transparent; }
         .messages-scroll::-webkit-scrollbar-thumb { background: #e4e4e8; border-radius: 9999px; }
+        #message-actions-modal::backdrop { background: rgba(0, 0, 0, .38); }
+        .message-bubble { width: fit-content; max-width: min(78vw, 34rem); overflow-wrap: anywhere; }
+        .message-reactions { width: fit-content; }
     </style>
 </head>
 <body class="bg-zinc-950 text-zinc-100 antialiased flex flex-col h-full select-text">
@@ -34,8 +37,9 @@
     <header class="sticky top-0 z-30 shrink-0 border-b border-zinc-200 bg-white/95 backdrop-blur px-4 py-2.5">
         <div class="mx-auto flex max-w-3xl items-center justify-between">
             <div class="flex items-center gap-3 min-w-0">
-                <a href="./inbox.html" class="text-zinc-900 hover:opacity-80 p-1 shrink-0" aria-label="Back to inbox">
+                <a href="./inbox.html" id="message-inbox-link" class="relative text-zinc-900 hover:opacity-80 p-1 shrink-0" aria-label="Back to inbox">
                     <i data-lucide="arrow-left" class="h-6 w-6 stroke-[2.5]" aria-hidden="true"></i>
+                    <span data-unread-message-badge class="absolute -right-1 -top-1 hidden min-w-4 h-4 items-center justify-center rounded-full bg-rose-500 px-1 text-[10px] font-bold leading-none text-white" aria-hidden="true"></span>
                 </a>
                 <a id="header-profile-link" href="#" class="flex items-center gap-2.5 min-w-0 hover:opacity-85 transition">
                     <img id="header-avatar" class="h-9 w-9 min-w-[2.25rem] min-h-[2.25rem] max-w-[2.25rem] max-h-[2.25rem] rounded-full bg-zinc-200 object-cover shrink-0 border border-zinc-200" src="https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?auto=format&fit=crop&w=200&q=80" alt="Avatar">
@@ -111,12 +115,17 @@
         </form>
     </footer>
 
+    <dialog id="message-actions-modal" aria-label="Message actions" class="m-auto w-[min(22rem,calc(100vw-2rem))] overflow-visible rounded-2xl border-0 bg-white p-0 text-zinc-900 shadow-2xl">
+        <div id="message-actions-content" class="p-4"></div>
+    </dialog>
+
     <script type="module">
         import { auth, db } from './firebase.js';
+        import { subscribeToUnreadMessages } from './unread-messages.js';
         import { onAuthStateChanged } from 'https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js';
         import {
             collection, doc, getDoc, setDoc, addDoc, updateDoc,
-            onSnapshot, serverTimestamp
+            onSnapshot, serverTimestamp, runTransaction
         } from 'https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js';
 
         lucide.createIcons();
@@ -146,6 +155,8 @@
         const sendButton = document.getElementById('send-button');
         const chatError = document.getElementById('chat-error');
         const chatErrorText = document.getElementById('chat-error-text');
+        const messageActionsModal = document.getElementById('message-actions-modal');
+        const messageActionsContent = document.getElementById('message-actions-content');
 
         const defaultAvatar = 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?auto=format&fit=crop&w=200&q=80';
 
@@ -154,7 +165,13 @@
         let targetProfile = null;
         let unsubscribeMessages = null;
         let unsubscribeChatDoc = null;
+        let unsubscribeUnreadMessages = null;
         let chatId = null;
+        let currentMessages = [];
+        let selectedMessage = null;
+        let pressTimer = null;
+        let pressStart = null;
+        let suppressNextMessageClick = false;
 
         function escapeHtml(value) {
             return String(value ?? '').replace(/[&<>"']/g, character => ({
@@ -301,6 +318,7 @@
         }
 
         function renderMessages(messages) {
+            currentMessages = messages;
             if (messages.length === 0) {
                 messagesList.innerHTML = `
                     <div class="py-8 text-center text-zinc-400">
@@ -315,26 +333,26 @@
             messagesList.innerHTML = messages.map(msg => {
                 const isMine = msg.senderId === currentUser.uid;
                 const timeStr = formatMessageTime(msg.createdAt);
+                const bubbleClasses = `message-bubble rounded-2xl px-3.5 py-2 text-sm leading-5 whitespace-pre-wrap break-words select-text ${isMine ? 'rounded-br-sm bg-rose-500 text-white' : 'rounded-bl-sm border border-zinc-200 bg-zinc-100 text-zinc-900'}`;
+                const reactionSummary = renderReactionSummary(msg.reactions, currentUser.uid);
 
                 if (isMine) {
                     return `
-                        <div class="flex flex-col items-end mb-2.5">
-                            <div class="max-w-[78%] rounded-2xl rounded-br-sm bg-rose-500 px-4 py-2.5 text-white shadow-sm text-sm whitespace-pre-wrap break-words">
-                                ${escapeHtml(msg.text)}
-                            </div>
-                            <span class="text-[10px] text-zinc-400 mt-1 mr-1">${escapeHtml(timeStr)}</span>
+                        <div class="message-row mb-2.5 flex flex-col items-end" data-message-id="${escapeHtml(msg.id)}">
+                            <button type="button" class="${bubbleClasses} message-bubble-button text-left shadow-sm" data-message-id="${escapeHtml(msg.id)}" aria-label="Message: ${escapeHtml(msg.text)}. Hold for message options.">${escapeHtml(msg.text)}</button>
+                            ${reactionSummary}
+                            <span class="mr-1 mt-1 text-[10px] text-zinc-400">${escapeHtml(timeStr)}${msg.edited ? ' · edited' : ''}</span>
                         </div>
                     `;
                 }
 
                 return `
-                    <div class="flex items-end gap-2 mb-2.5">
-                        <img src="${escapeHtml(targetPic)}" class="h-7 w-7 min-w-[1.75rem] min-h-[1.75rem] max-w-[1.75rem] max-h-[1.75rem] rounded-full object-cover shrink-0 mb-4 bg-zinc-200" onerror="this.src='${defaultAvatar}'" alt="">
-                        <div class="flex flex-col items-start max-w-[78%]">
-                            <div class="rounded-2xl rounded-bl-sm bg-zinc-100 border border-zinc-200 px-4 py-2.5 text-zinc-900 shadow-sm text-sm whitespace-pre-wrap break-words">
-                                ${escapeHtml(msg.text)}
-                            </div>
-                            <span class="text-[10px] text-zinc-400 mt-1 ml-1">${escapeHtml(timeStr)}</span>
+                    <div class="message-row mb-2.5 flex items-end gap-2" data-message-id="${escapeHtml(msg.id)}">
+                        <img src="${escapeHtml(targetPic)}" class="mb-4 h-7 w-7 min-w-[1.75rem] min-h-[1.75rem] max-w-[1.75rem] max-h-[1.75rem] shrink-0 rounded-full bg-zinc-200 object-cover" onerror="this.src='${defaultAvatar}'" alt="">
+                        <div class="flex max-w-[78%] flex-col items-start">
+                            <button type="button" class="${bubbleClasses} message-bubble-button text-left shadow-sm" data-message-id="${escapeHtml(msg.id)}" aria-label="Message: ${escapeHtml(msg.text)}. Hold for message options.">${escapeHtml(msg.text)}</button>
+                            ${reactionSummary}
+                            <span class="ml-1 mt-1 text-[10px] text-zinc-400">${escapeHtml(timeStr)}${msg.edited ? ' · edited' : ''}</span>
                         </div>
                     </div>
                 `;
@@ -380,7 +398,7 @@
             try {
                 // 1. Add message document to chats/{chatId}/messages
                 const messagesRef = collection(db, 'chats', chatId, 'messages');
-                await addDoc(messagesRef, {
+                const newMessageRef = await addDoc(messagesRef, {
                     chatId,
                     senderId: currentUser.uid,
                     receiverId: targetUid,
@@ -395,6 +413,7 @@
                     id: chatId,
                     participants: [currentUser.uid, targetUid],
                     lastMessage: text,
+                    lastMessageId: newMessageRef.id,
                     lastSenderId: currentUser.uid,
                     updatedAt: serverTimestamp(),
                     unreadBy: [targetUid],
@@ -434,6 +453,230 @@
 
         messageForm.addEventListener('submit', handleSendMessage);
 
+        function renderReactionSummary(reactions = {}, uid) {
+            if (!reactions || typeof reactions !== 'object') return '';
+            const grouped = new Map();
+            for (const [reactorId, emoji] of Object.entries(reactions)) {
+                if (typeof emoji !== 'string' || !emoji) continue;
+                const group = grouped.get(emoji) || { count: 0, mine: false };
+                group.count += 1;
+                group.mine ||= reactorId === uid;
+                grouped.set(emoji, group);
+            }
+            if (!grouped.size) return '';
+            return `<span class="message-reactions -mt-1 inline-flex flex-wrap gap-1 rounded-full border border-zinc-200 bg-white px-1.5 py-0.5 shadow-sm">${[...grouped].map(([emoji, group]) =>
+                `<span class="text-xs ${group.mine ? 'font-bold text-rose-600' : 'text-zinc-700'}" aria-label="${group.count} ${emoji} reaction${group.count === 1 ? '' : 's'}">${escapeHtml(emoji)}${group.count > 1 ? ` ${group.count}` : ''}</span>`
+            ).join('')}</span>`;
+        }
+
+        function stopLongPress() {
+            clearTimeout(pressTimer);
+            pressTimer = null;
+            pressStart = null;
+        }
+
+        function openMessageActions(messageId) {
+            selectedMessage = currentMessages.find(message => message.id === messageId);
+            if (!selectedMessage) return;
+            renderMessageActions();
+            lucide.createIcons();
+            if (!messageActionsModal.open) messageActionsModal.showModal();
+        }
+
+        function renderMessageActions() {
+            const ownerActions = selectedMessage?.senderId === currentUser.uid
+                ? `<div class="mt-3 border-t border-zinc-100 pt-2">
+                    <button type="button" data-message-action="edit" class="flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-left text-sm font-medium hover:bg-zinc-50">
+                        <i data-lucide="pencil" class="h-4 w-4 text-zinc-500" aria-hidden="true"></i>Edit message
+                    </button>
+                    <button type="button" data-message-action="delete" class="flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-left text-sm font-medium text-rose-600 hover:bg-rose-50">
+                        <i data-lucide="trash-2" class="h-4 w-4" aria-hidden="true"></i>Delete message
+                    </button>
+                </div>`
+                : '';
+            messageActionsContent.innerHTML = `
+                <p class="mb-3 text-center text-xs font-semibold uppercase tracking-wide text-zinc-400">React to message</p>
+                <div class="flex items-center justify-center gap-1.5">
+                    <button type="button" class="reaction-choice rounded-full p-2 text-2xl transition hover:bg-zinc-100 active:scale-90" data-reaction="❤️" aria-label="React with heart">❤️</button>
+                    <button type="button" class="reaction-choice rounded-full p-2 text-2xl transition hover:bg-zinc-100 active:scale-90" data-reaction="😂" aria-label="React with laughter">😂</button>
+                    <button type="button" class="reaction-choice rounded-full p-2 text-2xl transition hover:bg-zinc-100 active:scale-90" data-reaction="😍" aria-label="React with love">😍</button>
+                    <button type="button" class="reaction-choice rounded-full p-2 text-2xl transition hover:bg-zinc-100 active:scale-90" data-reaction="😮" aria-label="React with surprise">😮</button>
+                    <button type="button" class="reaction-choice rounded-full p-2 text-2xl transition hover:bg-zinc-100 active:scale-90" data-reaction="😢" aria-label="React with sadness">😢</button>
+                    <button type="button" class="reaction-choice rounded-full p-2 text-2xl transition hover:bg-zinc-100 active:scale-90" data-reaction="👍" aria-label="React with thumbs up">👍</button>
+                </div>
+                ${ownerActions}`;
+        }
+
+        messagesList.addEventListener('pointerdown', event => {
+            const bubble = event.target.closest('.message-bubble-button');
+            if (!bubble || event.button !== 0) return;
+            stopLongPress();
+            pressStart = { x: event.clientX, y: event.clientY, id: bubble.dataset.messageId };
+            pressTimer = setTimeout(() => {
+                suppressNextMessageClick = true;
+                openMessageActions(pressStart?.id);
+                setTimeout(() => { suppressNextMessageClick = false; }, 1000);
+                stopLongPress();
+            }, 700);
+        });
+
+        messagesList.addEventListener('pointermove', event => {
+            if (!pressStart) return;
+            if (Math.hypot(event.clientX - pressStart.x, event.clientY - pressStart.y) > 12) {
+                stopLongPress();
+            }
+        });
+
+        messagesList.addEventListener('pointerup', stopLongPress);
+        messagesList.addEventListener('pointercancel', stopLongPress);
+        messagesList.addEventListener('pointerleave', stopLongPress);
+        messagesList.addEventListener('contextmenu', event => {
+            const bubble = event.target.closest('.message-bubble-button');
+            if (!bubble) return;
+            event.preventDefault();
+            suppressNextMessageClick = true;
+            setTimeout(() => { suppressNextMessageClick = false; }, 1000);
+            openMessageActions(bubble.dataset.messageId);
+        });
+        messagesList.addEventListener('click', event => {
+            const bubble = event.target.closest('.message-bubble-button');
+            if (!bubble || !suppressNextMessageClick) return;
+            event.preventDefault();
+            suppressNextMessageClick = false;
+        });
+
+        messageActionsModal.addEventListener('click', event => {
+            if (event.target === messageActionsModal) messageActionsModal.close();
+        });
+
+        messageActionsContent.addEventListener('click', async event => {
+            const choice = event.target.closest('.reaction-choice');
+            if (choice && selectedMessage && currentUser) {
+                const messageRef = doc(db, 'chats', chatId, 'messages', selectedMessage.id);
+                try {
+                    await runTransaction(db, async transaction => {
+                        const snapshot = await transaction.get(messageRef);
+                        if (!snapshot.exists()) throw new Error('This message is no longer available.');
+                        const data = snapshot.data();
+                        const reactions = data.reactions && typeof data.reactions === 'object' ? { ...data.reactions } : {};
+                        if (reactions[currentUser.uid] === choice.dataset.reaction) {
+                            delete reactions[currentUser.uid];
+                        } else {
+                            reactions[currentUser.uid] = choice.dataset.reaction;
+                        }
+                        transaction.update(messageRef, { reactions });
+                    });
+                    messageActionsModal.close();
+                } catch (error) {
+                    console.error('Could not react to message:', error);
+                    alert(error.message || 'Could not add your reaction. Please try again.');
+                }
+                return;
+            }
+
+            const action = event.target.closest('[data-message-action]')?.dataset.messageAction;
+            if (action === 'edit' && selectedMessage?.senderId === currentUser.uid) {
+                messageActionsContent.innerHTML = `
+                    <form id="edit-message-form" class="space-y-3">
+                    <label for="edit-message-input" class="block text-sm font-semibold text-zinc-900">Edit message</label>
+                    <textarea id="edit-message-input" maxlength="2000" rows="3" class="w-full resize-none rounded-xl border border-zinc-200 bg-zinc-50 p-3 text-sm text-zinc-900 outline-none focus:border-rose-400 focus:bg-white"></textarea>
+                    <div class="flex justify-end gap-2">
+                        <button type="button" id="cancel-edit-message" class="rounded-full px-4 py-2 text-sm font-semibold text-zinc-600 hover:bg-zinc-100">Cancel</button>
+                        <button type="submit" class="rounded-full bg-rose-500 px-4 py-2 text-sm font-semibold text-white hover:bg-rose-600">Save</button>
+                    </div>
+                </form>`;
+                const input = document.getElementById('edit-message-input');
+                input.value = selectedMessage.text || '';
+                input.focus();
+                input.setSelectionRange(input.value.length, input.value.length);
+            } else if (event.target.closest('#cancel-edit-message') || event.target.closest('#cancel-delete-message')) {
+                renderMessageActions();
+                lucide.createIcons();
+            } else if (action === 'delete' && selectedMessage?.senderId === currentUser.uid) {
+                messageActionsContent.innerHTML = `
+                    <div class="space-y-3 text-center">
+                        <h2 class="text-base font-bold text-zinc-900">Delete this message?</h2>
+                        <p class="text-sm text-zinc-500">This message will be removed from the conversation.</p>
+                        <div class="flex justify-center gap-2 pt-1">
+                            <button id="cancel-delete-message" type="button" class="rounded-full px-4 py-2 text-sm font-semibold text-zinc-600 hover:bg-zinc-100">Cancel</button>
+                            <button type="button" data-confirm-delete class="rounded-full bg-rose-500 px-4 py-2 text-sm font-semibold text-white hover:bg-rose-600">Delete</button>
+                        </div>
+                    </div>`;
+            } else if (event.target.closest('[data-confirm-delete]')) {
+                await deleteSelectedMessage();
+            }
+        });
+
+        messageActionsContent.addEventListener('submit', async event => {
+            if (event.target.id !== 'edit-message-form') return;
+            event.preventDefault();
+            const text = document.getElementById('edit-message-input').value.trim();
+            if (!text || !selectedMessage || selectedMessage.senderId !== currentUser.uid) return;
+            const messageRef = doc(db, 'chats', chatId, 'messages', selectedMessage.id);
+            const chatRef = doc(db, 'chats', chatId);
+            try {
+                await runTransaction(db, async transaction => {
+                    const [messageSnapshot, chatSnapshot] = await Promise.all([
+                        transaction.get(messageRef),
+                        transaction.get(chatRef)
+                    ]);
+                    if (!messageSnapshot.exists()) throw new Error('This message is no longer available.');
+                    transaction.update(messageRef, { text, edited: true, editedAt: serverTimestamp() });
+                    const chatData = chatSnapshot.exists() ? chatSnapshot.data() : {};
+                    const isLastMessage = chatData.lastMessageId
+                        ? chatData.lastMessageId === selectedMessage.id
+                        : currentMessages.at(-1)?.id === selectedMessage.id &&
+                          chatData.lastMessage === messageSnapshot.data().text && chatData.lastSenderId === currentUser.uid;
+                    if (chatSnapshot.exists() && isLastMessage) {
+                        transaction.update(chatRef, { lastMessage: text, updatedAt: serverTimestamp() });
+                    }
+                });
+                messageActionsModal.close();
+            } catch (error) {
+                console.error('Could not edit message:', error);
+                alert(error.message || 'Could not edit this message. Please try again.');
+            }
+        });
+
+        async function deleteSelectedMessage() {
+            if (!selectedMessage || selectedMessage.senderId !== currentUser.uid) return;
+            const message = selectedMessage;
+            const messageRef = doc(db, 'chats', chatId, 'messages', message.id);
+            const chatRef = doc(db, 'chats', chatId);
+            try {
+                await runTransaction(db, async transaction => {
+                    const [messageSnapshot, chatSnapshot] = await Promise.all([
+                        transaction.get(messageRef),
+                        transaction.get(chatRef)
+                    ]);
+                    if (!messageSnapshot.exists()) return;
+                    transaction.delete(messageRef);
+                    const chatData = chatSnapshot.exists() ? chatSnapshot.data() : {};
+                    const isLastMessage = chatData.lastMessageId
+                        ? chatData.lastMessageId === message.id
+                        : currentMessages.at(-1)?.id === message.id &&
+                          chatData.lastMessage === messageSnapshot.data().text && chatData.lastSenderId === currentUser.uid;
+                    if (chatSnapshot.exists() && isLastMessage) {
+                        const previousMessage = [...currentMessages].reverse().find(item => item.id !== message.id);
+                        transaction.update(chatRef, {
+                            lastMessage: previousMessage?.text || '',
+                            lastSenderId: previousMessage?.senderId || '',
+                            lastMessageId: previousMessage?.id || null,
+                            updatedAt: serverTimestamp()
+                        });
+                    }
+                });
+                messageActionsModal.close();
+            } catch (error) {
+                console.error('Could not delete message:', error);
+                alert(error.message || 'Could not delete this message. Please try again.');
+            }
+        }
+
+        messageActionsModal.addEventListener('close', () => {
+            selectedMessage = null;
+        });
+
         // Auth state handler
         onAuthStateChanged(auth, async user => {
             if (!user) {
@@ -442,6 +685,8 @@
                 return;
             }
             currentUser = user;
+            unsubscribeUnreadMessages?.();
+            unsubscribeUnreadMessages = subscribeToUnreadMessages(db, user.uid);
 
             const loaded = await loadProfiles();
             if (loaded) {
@@ -451,4 +696,3 @@
     </script>
 </body>
 </html>
-

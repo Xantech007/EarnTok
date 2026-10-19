@@ -52,6 +52,21 @@
             <input id="chat-search" type="search" placeholder="Search direct messages…" class="w-full rounded-full bg-zinc-100 pl-10 pr-4 py-2.5 text-sm text-zinc-900 placeholder:text-zinc-400 outline-none border border-transparent focus:border-zinc-300 focus:bg-white transition">
         </div>
 
+        <button id="activity-button" type="button" class="flex w-full items-center gap-3 rounded-xl px-2 py-3 text-left transition hover:bg-zinc-50" aria-label="Open activity and new followers">
+            <span class="relative flex h-12 w-12 shrink-0 items-center justify-center overflow-hidden rounded-full bg-zinc-100 text-zinc-500">
+                <img id="activity-preview-avatar" class="hidden h-full w-full object-cover" alt="">
+                <i id="activity-preview-icon" data-lucide="bell" class="h-5 w-5" aria-hidden="true"></i>
+            </span>
+            <span class="min-w-0 flex-1">
+                <span class="flex items-center justify-between gap-2">
+                    <span class="truncate text-sm font-bold text-zinc-900">Activity &amp; new followers</span>
+                    <span id="activity-preview-time" class="shrink-0 text-xs text-zinc-400"></span>
+                </span>
+                <span id="activity-preview-message" class="mt-0.5 block truncate text-xs text-zinc-500">Likes, comments, profile views and new followers</span>
+            </span>
+            <i data-lucide="chevron-right" class="h-4 w-4 shrink-0 text-zinc-300" aria-hidden="true"></i>
+        </button>
+
         <!-- Section Header -->
         <div class="flex items-center justify-between pt-3 pb-2 border-b border-zinc-100">
             <h2 class="text-xs font-bold uppercase tracking-wider text-zinc-400">Direct Messages</h2>
@@ -68,6 +83,29 @@
             </div>
         </div>
     </main>
+
+    <!-- Activity & New Followers Modal -->
+    <div id="activity-modal" class="fixed inset-0 z-50 hidden items-center justify-center bg-black/50 p-4" aria-hidden="true">
+        <section class="relative flex max-h-[85vh] w-full max-w-lg flex-col overflow-hidden rounded-2xl bg-white shadow-2xl" role="dialog" aria-modal="true" aria-labelledby="activity-modal-title">
+            <div class="flex items-center justify-between border-b border-zinc-100 px-5 py-4">
+                <h2 id="activity-modal-title" class="text-lg font-bold text-zinc-900">Activity &amp; new followers</h2>
+                <button id="activity-modal-close" class="rounded-lg p-1 text-zinc-500 hover:bg-zinc-100 transition" aria-label="Close activity">
+                    <i data-lucide="x" class="h-5 w-5" aria-hidden="true"></i>
+                </button>
+            </div>
+            <div class="grid grid-cols-2 border-b border-zinc-100 px-5" role="tablist" aria-label="Activity categories">
+                <button id="activity-tab-button" class="border-b-2 border-rose-500 py-3 text-sm font-bold text-zinc-900" type="button" role="tab" aria-selected="true" aria-controls="activity-tab-panel">Activity</button>
+                <button id="followers-tab-button" class="border-b-2 border-transparent py-3 text-sm font-semibold text-zinc-500" type="button" role="tab" aria-selected="false" aria-controls="followers-tab-panel">New followers</button>
+            </div>
+            <p id="activity-modal-error" class="hidden mx-5 mt-3 rounded-lg border border-rose-200 bg-rose-50 p-3 text-sm text-rose-600" role="alert"></p>
+            <div id="activity-tab-panel" class="min-h-48 flex-1 overflow-y-auto px-5 py-2" role="tabpanel" aria-labelledby="activity-tab-button">
+                <div id="activity-list" class="divide-y divide-zinc-100"></div>
+            </div>
+            <div id="followers-tab-panel" class="hidden min-h-48 flex-1 overflow-y-auto px-5 py-2" role="tabpanel" aria-labelledby="followers-tab-button" aria-hidden="true">
+                <div id="followers-list" class="divide-y divide-zinc-100"></div>
+            </div>
+        </section>
+    </div>
 
     <!-- New Chat Modal -->
     <div id="new-chat-modal" class="fixed inset-0 z-50 hidden items-center justify-center bg-black/50 p-4">
@@ -114,6 +152,7 @@
         </a>
         <a href="inbox.html" id="nav-inbox" class="flex flex-col items-center text-rose-500 hover:text-black space-y-0.5 relative">
             <i data-lucide="message-square" class="w-6 h-6" aria-hidden="true"></i>
+            <span data-unread-message-badge class="absolute top-0 right-2 hidden min-w-4 h-4 items-center justify-center rounded-full bg-rose-500 px-1 text-[10px] font-bold leading-none text-white" aria-hidden="true"></span>
             <span>Inbox</span>
         </a>
         <a href="./profile.html" id="nav-profile" class="flex flex-col items-center text-gray-400 hover:text-black space-y-0.5">
@@ -124,10 +163,12 @@
 
     <script type="module">
         import { auth, db } from './firebase.js';
+        import { renderUnreadMessageCount } from './unread-messages.js';
         import { onAuthStateChanged } from 'https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js';
         import {
-            collection, doc, getDoc, getDocs, onSnapshot, query, where, limit
+            collection, doc, getDoc, getDocs, onSnapshot, query, where
         } from 'https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js';
+        import { toggleUserFollow } from './follows.js';
 
         lucide.createIcons();
 
@@ -146,6 +187,20 @@
         const newChatModalClose = document.getElementById('new-chat-modal-close');
         const userSearchInput = document.getElementById('user-search-input');
         const contactsList = document.getElementById('contacts-list');
+        const activityModal = document.getElementById('activity-modal');
+        const activityList = document.getElementById('activity-list');
+        const followersList = document.getElementById('followers-list');
+        const activityModalError = document.getElementById('activity-modal-error');
+        const activityTabPanel = document.getElementById('activity-tab-panel');
+        const followersTabPanel = document.getElementById('followers-tab-panel');
+        const activityTabButton = document.getElementById('activity-tab-button');
+        const followersTabButton = document.getElementById('followers-tab-button');
+        const activityPreviewMessage = document.getElementById('activity-preview-message');
+        const activityPreviewTime = document.getElementById('activity-preview-time');
+        const activityPreviewAvatar = document.getElementById('activity-preview-avatar');
+        const activityPreviewIcon = document.getElementById('activity-preview-icon');
+        const defaultAvatar = 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?auto=format&fit=crop&w=200&q=80';
+        let followerIds = new Set();
 
         function escapeHtml(value) {
             return String(value ?? '').replace(/[&<>"']/g, character => ({
@@ -196,6 +251,244 @@
                 console.warn(`Could not fetch profile for ${uid}:`, err);
             }
             return fallbackData;
+        }
+
+        function showActivityTab(tab) {
+            const showingActivity = tab === 'activity';
+            activityTabPanel.classList.toggle('hidden', !showingActivity);
+            activityTabPanel.setAttribute('aria-hidden', String(!showingActivity));
+            followersTabPanel.classList.toggle('hidden', showingActivity);
+            followersTabPanel.setAttribute('aria-hidden', String(showingActivity));
+            activityTabButton.setAttribute('aria-selected', String(showingActivity));
+            followersTabButton.setAttribute('aria-selected', String(!showingActivity));
+            activityTabButton.classList.toggle('border-rose-500', showingActivity);
+            activityTabButton.classList.toggle('border-transparent', !showingActivity);
+            activityTabButton.classList.toggle('text-zinc-900', showingActivity);
+            activityTabButton.classList.toggle('font-bold', showingActivity);
+            activityTabButton.classList.toggle('text-zinc-500', !showingActivity);
+            activityTabButton.classList.toggle('font-semibold', !showingActivity);
+            followersTabButton.classList.toggle('border-rose-500', !showingActivity);
+            followersTabButton.classList.toggle('border-transparent', showingActivity);
+            followersTabButton.classList.toggle('text-zinc-900', !showingActivity);
+            followersTabButton.classList.toggle('font-bold', !showingActivity);
+            followersTabButton.classList.toggle('text-zinc-500', showingActivity);
+            followersTabButton.classList.toggle('font-semibold', showingActivity);
+        }
+
+        function activityDate(timestamp) {
+            if (timestamp && typeof timestamp.toDate === 'function') return timestamp.toDate();
+            if (timestamp instanceof Date) return timestamp;
+            if (typeof timestamp === 'number' || typeof timestamp === 'string') {
+                const date = new Date(timestamp);
+                return Number.isNaN(date.getTime()) ? null : date;
+            }
+            return null;
+        }
+
+        function activityMessage(activity) {
+            switch (activity.action) {
+                case 'follow_creator': return 'started following you';
+                case 'profile_view': return 'viewed your profile';
+                case 'like': return 'liked your video';
+                case 'comment': return 'commented on your video';
+                case 'share': return 'shared your video';
+                case 'save': return 'saved your video';
+                case 'comment_like': return 'liked your comment';
+                default: return 'interacted with your video';
+            }
+        }
+
+        function activityLoadingMarkup() {
+            return '<div class="py-12 text-center text-sm text-zinc-400"><i data-lucide="loader" class="mx-auto mb-2 h-7 w-7 animate-spin text-rose-500"></i>Loading…</div>';
+        }
+
+        function renderEmptyActivity(container, message) {
+            container.innerHTML = `<p class="py-12 text-center text-sm text-zinc-500">${escapeHtml(message)}</p>`;
+        }
+
+        async function queryUserActivities() {
+            const videoSnapshot = await getDocs(query(
+                collection(db, 'videos'),
+                where('userId', '==', currentUser.uid)
+            ));
+            const videoIds = videoSnapshot.docs
+                .filter(video => video.data().admin === 'yes')
+                .map(video => video.id);
+            const sources = ['activities', 'activity'];
+            const reads = [];
+            for (const source of sources) {
+                reads.push(
+                    getDocs(query(collection(db, source), where('profileId', '==', currentUser.uid))),
+                    getDocs(query(collection(db, source), where('details.followingId', '==', currentUser.uid)))
+                );
+                for (let index = 0; index < videoIds.length; index += 10) {
+                    reads.push(getDocs(query(
+                        collection(db, source),
+                        where('videoId', 'in', videoIds.slice(index, index + 10))
+                    )));
+                }
+            }
+
+            const settled = await Promise.allSettled(reads);
+            const records = new Map();
+            const errors = settled.filter(result => result.status === 'rejected');
+            errors.forEach(result => console.error('Unable to read some activity records:', result.reason));
+            settled.forEach(result => {
+                if (result.status !== 'fulfilled') return;
+                result.value.docs.forEach(item => records.set(`${item.ref.parent.id}:${item.id}`, {
+                    id: item.id,
+                    ...item.data()
+                }));
+            });
+            if (records.size === 0 && errors.length === reads.length) {
+                throw errors[0].reason;
+            }
+            return { records: [...records.values()], hasReadErrors: errors.length > 0 };
+        }
+
+        async function renderActivity() {
+            activityList.innerHTML = activityLoadingMarkup();
+            lucide.createIcons();
+            try {
+                const { records, hasReadErrors } = await queryUserActivities();
+                const activities = records
+                    .filter(item => item.userId !== currentUser.uid)
+                    .filter(item => ['follow_creator', 'profile_view', 'like', 'comment', 'share', 'save', 'comment_like'].includes(item.action))
+                    .sort((left, right) => (activityDate(right.createdAt)?.getTime() || 0) - (activityDate(left.createdAt)?.getTime() || 0));
+                if (!activities.length) {
+                    renderEmptyActivity(activityList, 'No activity yet.');
+                } else {
+                    const profiles = await Promise.all(activities.map(item => {
+                        if (!item.userId || item.userId.startsWith('guest-')) return Promise.resolve(null);
+                        return getContactProfile(item.userId, { id: item.userId });
+                    }));
+                    activityList.innerHTML = activities.map((item, index) => {
+                        const profile = profiles[index] || {};
+                        const guest = item.userId?.startsWith('guest-');
+                        const name = guest ? 'Anonymous visitor' : (profile.fullName || 'EarnTok user');
+                        const username = profile.username ? `@${profile.username}` : '';
+                        const date = activityDate(item.createdAt);
+                        const time = date ? formatTime(date) : '';
+                        const detail = item.action === 'comment' && item.details?.text
+                            ? `<p class="mt-1 truncate text-xs text-zinc-500">“${escapeHtml(item.details.text)}”</p>`
+                            : '';
+                        const row = `<div class="flex items-center gap-3 py-3">
+                            <img src="${escapeHtml(profile.profilePic || defaultAvatar)}" alt="" class="h-11 w-11 shrink-0 rounded-full bg-zinc-200 object-cover" onerror="this.src='${defaultAvatar}'">
+                            <div class="min-w-0 flex-1">
+                                <p class="text-sm text-zinc-900"><span class="font-bold">${escapeHtml(name)}</span> ${escapeHtml(activityMessage(item))}</p>
+                                ${username ? `<p class="truncate text-xs text-zinc-500">${escapeHtml(username)}</p>` : ''}
+                                ${detail}
+                            </div>
+                            <span class="shrink-0 text-xs text-zinc-400">${escapeHtml(time)}</span>
+                        </div>`;
+                        return !guest && item.userId
+                            ? `<a href="./view-profile.html?uid=${encodeURIComponent(item.userId)}" class="block hover:bg-zinc-50">${row}</a>`
+                            : row;
+                    }).join('');
+                }
+                if (hasReadErrors) {
+                    activityModalError.textContent = 'Some activity could not be loaded. Check Firestore permissions and try again.';
+                    activityModalError.classList.remove('hidden');
+                }
+            } catch (error) {
+                console.error('Unable to load user activity:', error);
+                renderEmptyActivity(activityList, 'Could not load activity. Check Firestore permissions and try again.');
+            }
+            lucide.createIcons();
+        }
+
+        async function renderActivityPreview() {
+            try {
+                const { records, hasReadErrors } = await queryUserActivities();
+                const latest = records
+                    .filter(item => item.userId !== currentUser.uid)
+                    .filter(item => ['follow_creator', 'profile_view', 'like', 'comment', 'share', 'save', 'comment_like'].includes(item.action))
+                    .sort((left, right) => (activityDate(right.createdAt)?.getTime() || 0) - (activityDate(left.createdAt)?.getTime() || 0))[0];
+                if (!latest) {
+                    if (hasReadErrors) {
+                        activityPreviewMessage.textContent = 'Could not load the latest activity. Open to retry.';
+                    }
+                    return;
+                }
+                const guest = latest.userId?.startsWith('guest-');
+                const profile = !guest && latest.userId
+                    ? await getContactProfile(latest.userId, { id: latest.userId })
+                    : {};
+                const actor = guest ? 'Someone' : (profile.fullName || 'Someone');
+                activityPreviewMessage.textContent = `${actor} ${activityMessage(latest)}`;
+                const date = activityDate(latest.createdAt);
+                activityPreviewTime.textContent = date ? formatTime(date) : '';
+                if (profile.profilePic) {
+                    activityPreviewAvatar.src = profile.profilePic;
+                    activityPreviewAvatar.classList.remove('hidden');
+                    activityPreviewIcon.classList.add('hidden');
+                }
+                if (hasReadErrors) console.warn('Some activity sources could not be loaded for the inbox preview.');
+            } catch (error) {
+                console.error('Unable to load inbox activity preview:', error);
+                activityPreviewMessage.textContent = 'Could not load the latest activity. Open to retry.';
+            }
+        }
+
+        async function renderNewFollowers() {
+            followersList.innerHTML = activityLoadingMarkup();
+            lucide.createIcons();
+            try {
+                const [followersSnapshot, followingSnapshot] = await Promise.all([
+                    getDocs(query(collection(db, 'follows'), where('followingId', '==', currentUser.uid))),
+                    getDocs(query(collection(db, 'follows'), where('followerId', '==', currentUser.uid)))
+                ]);
+                followerIds = new Set(followingSnapshot.docs.map(item => item.data().followingId).filter(Boolean));
+                const followers = followersSnapshot.docs
+                    .map(item => ({ id: item.data().followerId, createdAt: item.data().createdAt }))
+                    .filter(item => item.id && item.id !== currentUser.uid)
+                    .sort((left, right) => (activityDate(right.createdAt)?.getTime() || 0) - (activityDate(left.createdAt)?.getTime() || 0));
+                if (!followers.length) {
+                    renderEmptyActivity(followersList, 'No new followers yet.');
+                    return;
+                }
+
+                const profiles = await Promise.all(followers.map(follower =>
+                    getContactProfile(follower.id, { id: follower.id })
+                ));
+                followersList.innerHTML = followers.map((follower, index) => {
+                    const uid = follower.id;
+                    const profile = profiles[index] || {};
+                    const name = profile.fullName || 'EarnTok user';
+                    const username = profile.username ? `@${profile.username}` : '';
+                    const isFollowing = followerIds.has(uid);
+                    return `<div class="flex items-center gap-3 py-3">
+                        <a href="./view-profile.html?uid=${encodeURIComponent(uid)}" class="shrink-0">
+                            <img src="${escapeHtml(profile.profilePic || defaultAvatar)}" alt="" class="h-11 w-11 rounded-full bg-zinc-200 object-cover" onerror="this.src='${defaultAvatar}'">
+                        </a>
+                        <a href="./view-profile.html?uid=${encodeURIComponent(uid)}" class="min-w-0 flex-1">
+                            <p class="truncate text-sm font-bold text-zinc-900">${escapeHtml(name)}</p>
+                            <p class="truncate text-xs text-zinc-500">${escapeHtml(username)}</p>
+                        </a>
+                        <button type="button" data-follow-user-id="${escapeHtml(uid)}" class="shrink-0 rounded-lg px-4 py-2 text-xs font-bold transition ${isFollowing ? 'bg-zinc-100 text-zinc-700' : 'bg-rose-500 text-white hover:bg-rose-600'}">${isFollowing ? 'Following' : 'Follow'}</button>
+                    </div>`;
+                }).join('');
+            } catch (error) {
+                console.error('Unable to load new followers:', error);
+                renderEmptyActivity(followersList, 'Could not load followers. Check Firestore permissions and try again.');
+            }
+            lucide.createIcons();
+        }
+
+        async function openActivityModal() {
+            activityModal.classList.remove('hidden');
+            activityModal.classList.add('flex');
+            activityModal.setAttribute('aria-hidden', 'false');
+            activityModalError.classList.add('hidden');
+            activityModalError.textContent = '';
+            showActivityTab('activity');
+            await Promise.all([renderActivity(), renderNewFollowers()]);
+        }
+
+        function closeActivityModal() {
+            activityModal.classList.add('hidden');
+            activityModal.classList.remove('flex');
+            activityModal.setAttribute('aria-hidden', 'true');
         }
 
         function renderChats(filterText = '') {
@@ -288,6 +581,10 @@
                 );
 
                 unsubscribeChats = onSnapshot(chatsQuery, async snapshot => {
+                    renderUnreadMessageCount(snapshot.docs.reduce((count, chat) => {
+                        const unreadBy = chat.data().unreadBy;
+                        return count + (Array.isArray(unreadBy) && unreadBy.includes(currentUser.uid) ? 1 : 0);
+                    }, 0));
                     const rawChats = [];
                     const profilePromises = [];
 
@@ -350,6 +647,43 @@
                 console.error('Failed to initialize chats listener:', err);
             }
         }
+
+        document.getElementById('activity-button').addEventListener('click', openActivityModal);
+        document.getElementById('activity-modal-close').addEventListener('click', closeActivityModal);
+        activityTabButton.addEventListener('click', () => showActivityTab('activity'));
+        followersTabButton.addEventListener('click', () => showActivityTab('followers'));
+        activityModal.addEventListener('click', event => {
+            if (event.target === activityModal) closeActivityModal();
+        });
+        document.addEventListener('keydown', event => {
+            if (event.key === 'Escape' && !activityModal.classList.contains('hidden')) closeActivityModal();
+        });
+        followersList.addEventListener('click', async event => {
+            const button = event.target.closest('[data-follow-user-id]');
+            if (!button || button.disabled) return;
+            const uid = button.dataset.followUserId;
+            button.disabled = true;
+            try {
+                const following = await toggleUserFollow(currentUser.uid, uid, { source: 'inbox' });
+                if (following) {
+                    followerIds.add(uid);
+                } else {
+                    followerIds.delete(uid);
+                }
+                button.textContent = following ? 'Following' : 'Follow';
+                button.classList.toggle('bg-zinc-100', following);
+                button.classList.toggle('text-zinc-700', following);
+                button.classList.toggle('bg-rose-500', !following);
+                button.classList.toggle('text-white', !following);
+                button.classList.toggle('hover:bg-rose-600', !following);
+            } catch (error) {
+                console.error('Unable to follow this user:', error);
+                activityModalError.textContent = error.message || 'Could not update follow status. Please try again.';
+                activityModalError.classList.remove('hidden');
+            } finally {
+                button.disabled = false;
+            }
+        });
 
         // New Chat Modal & User Discovery
         async function openNewChatModal() {
@@ -507,9 +841,9 @@
                 return;
             }
             currentUser = user;
+            renderActivityPreview();
             subscribeToUserChats();
         });
     </script>
 </body>
 </html>
-

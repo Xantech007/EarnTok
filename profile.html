@@ -88,7 +88,7 @@
         </a>
         <a href="inbox.html" id="nav-inbox" class="flex flex-col items-center text-gray-400 hover:text-black space-y-0.5 relative">
             <i data-lucide="message-square" class="w-6 h-6" aria-hidden="true"></i>
-            <span class="absolute top-0 right-3 w-2 h-2 bg-tiktok-red rounded-full"></span>
+            <span data-unread-message-badge class="absolute top-0 right-2 hidden min-w-4 h-4 items-center justify-center rounded-full bg-rose-500 px-1 text-[10px] font-bold leading-none text-white" aria-hidden="true"></span>
             <span>Inbox</span>
         </a>
         <a href="./profile.html" id="nav-profile" class="flex flex-col items-center text-rose-500 hover:text-black space-y-0.5">
@@ -171,6 +171,7 @@
         import { auth, db } from './firebase.js';
         import { getUserFollowStats } from './follows.js';
         import { createProfileVideoViewer } from './profile-video-viewer.js';
+        import { subscribeToUnreadMessages } from './unread-messages.js';
         import { onAuthStateChanged, updateProfile } from 'https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js';
         import {
             collection, deleteDoc, doc, getDoc, getDocs, query, serverTimestamp,
@@ -182,7 +183,7 @@
         const UPLOAD_PRESET = 'user_uploads';
         const contentGrid = document.getElementById('content-grid');
         const editDialog = document.getElementById('edit-dialog');
-        const videoViewer = createProfileVideoViewer();
+        const videoViewer = createProfileVideoViewer({ auth, db });
         let user = null;
         let profile = {};
         let uploads = [];
@@ -193,6 +194,8 @@
         let activeFilter = 'all';
         let viewerActivities = [];
         let viewerLoadFailed = false;
+        let unsubscribeUnreadMessages = null;
+        let renderedItems = [];
 
         function escapeHtml(value) {
             return String(value ?? '').replace(/[&<>"']/g, character => ({
@@ -391,6 +394,7 @@
                 items = [...pinnedItems, ...unpinnedItems];
             }
 
+            renderedItems = [...items];
             contentGrid.innerHTML = items.length ? items.map(video => mediaMarkup(video, pinnedVideos.includes(video.id), activeTab === 'uploads')).join('')
                 : `<p class="col-span-full py-12 text-center text-sm text-zinc-500 bg-white">${activeTab === 'uploads' ? activeFilter === 'draft' ? 'No drafts yet.' : 'No uploads yet.' : activeTab === 'liked' ? 'Videos you like will appear here.' : 'Videos you save will appear here.'}</p>`;
             lucide.createIcons();
@@ -516,14 +520,33 @@
             const button = event.target.closest('.open-profile-video');
             if (!button) return;
             const videoId = button.dataset.id;
-            const publishedVideos = uploads.filter(video => video.admin === 'yes');
-            videoViewer.open(publishedVideos.map(video => ({
+            const selectedVideo = renderedItems.find(video => video.id === videoId);
+            if (!selectedVideo) return;
+            const creatorVideos = selectedVideo.userId === user.uid
+                ? uploads.filter(video => video.admin === 'yes')
+                : renderedItems.filter(video => video.userId === selectedVideo.userId);
+            videoViewer.open(creatorVideos.map(video => ({
                 ...video,
-                creatorUsername: profile.username ? `@${profile.username}` : user.displayName,
-                creatorVerified: profile.verify === 'yes'
+                creatorUsername: video.userId === user.uid
+                    ? (profile.username ? `@${profile.username}` : profile.fullName || user.displayName)
+                    : video.username ? `@${String(video.username).replace(/^@/, '')}` : video.uploadedBy || 'Creator',
+                creatorVerified: video.userId === user.uid
+                    ? profile.verify === 'yes'
+                    : video.verify === 'yes' || video.creatorVerified === true,
+                creatorAvatar: video.userId === user.uid
+                    ? profile.profilePic || user.photoURL || ''
+                    : video.profilePic || video.creatorAvatar || '',
+                creatorProfileHref: video.userId
+                    ? `./view-profile.html?uid=${encodeURIComponent(video.userId)}`
+                    : ''
             })), videoId);
         }
         document.getElementById('content-grid').addEventListener('click', openProfileVideo);
+        document.getElementById('content-grid').addEventListener('keydown', event => {
+            if (event.key !== 'Enter' && event.key !== ' ') return;
+            event.preventDefault();
+            openProfileVideo(event);
+        });
 
         document.querySelectorAll('.content-tab').forEach(button => button.addEventListener('click', () => {
             activeTab = button.dataset.tab;
@@ -628,6 +651,8 @@
         });
 
         onAuthStateChanged(auth, async currentUser => {
+            unsubscribeUnreadMessages?.();
+            unsubscribeUnreadMessages = subscribeToUnreadMessages(db, currentUser?.uid);
             if (!currentUser) {
                 const returnTo = `${location.pathname}${location.search}`;
                 location.replace(`./oauth.html?returnTo=${encodeURIComponent(returnTo)}`);

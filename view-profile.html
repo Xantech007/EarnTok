@@ -46,8 +46,9 @@
                 <i data-lucide="arrow-left" class="h-6 w-6 stroke-[2.5]" aria-hidden="true"></i>
             </a>
             <div class="flex items-center gap-3">
-                <a href="./inbox.html" class="p-1 text-zinc-100 hover:opacity-80" aria-label="Inbox" title="Inbox">
+                <a href="./inbox.html" class="relative p-1 text-zinc-100 hover:opacity-80" aria-label="Inbox" title="Inbox">
                     <i data-lucide="message-square" class="h-6 w-6 stroke-[2.2]" aria-hidden="true"></i>
+                    <span data-unread-message-badge class="absolute -right-1 -top-1 hidden min-w-4 h-4 items-center justify-center rounded-full bg-rose-500 px-1 text-[10px] font-bold leading-none text-white" aria-hidden="true"></span>
                 </a>
             </div>
         </div>
@@ -106,6 +107,7 @@
         import { auth, db } from './firebase.js';
         import { getUserFollowStats, toggleUserFollow, isUserFollowing } from './follows.js';
         import { createProfileVideoViewer } from './profile-video-viewer.js';
+        import { subscribeToUnreadMessages } from './unread-messages.js';
         import { onAuthStateChanged } from 'https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js';
         import { collection, doc, getDoc, getDocs, query, serverTimestamp, where, addDoc } from 'https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js';
 
@@ -113,12 +115,16 @@
         const params = new URLSearchParams(location.search);
         const targetUid = params.get('uid');
         const targetUsername = params.get('username')?.replace(/^@/, '').toLowerCase();
-        const videoViewer = createProfileVideoViewer();
+        const videoViewer = createProfileVideoViewer({ auth, db });
+        let unsubscribeUnreadMessages = null;
 
         function getCurrentUser() {
             return new Promise(resolve => {
                 const unsubscribe = onAuthStateChanged(auth, current => {
                     unsubscribe();
+                    if (current) {
+                        unsubscribeUnreadMessages = subscribeToUnreadMessages(db, current.uid);
+                    }
                     resolve(current);
                 }, error => {
                     console.error('Unable to read sign-in state:', error);
@@ -406,7 +412,9 @@
                 videoViewer.open(combinedPosts.map(video => ({
                     ...video,
                     creatorUsername: profile.username ? `@${profile.username}` : profile.fullName,
-                    creatorVerified: profile.verify === 'yes'
+                    creatorVerified: profile.verify === 'yes',
+                    creatorAvatar: profile.profilePic || '',
+                    creatorProfileHref: `./view-profile.html?uid=${encodeURIComponent(userId)}`
                 })), videoId);
             };
 
