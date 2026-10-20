@@ -94,10 +94,47 @@
             <nav class="mb-8 flex gap-2 overflow-x-auto border-b border-zinc-800" aria-label="Admin sections">
                 <button class="admin-tab tab-active shrink-0 border-b-2 px-4 py-3 text-sm font-semibold" data-admin-tab="videos" type="button">Videos</button>
                 <button class="admin-tab shrink-0 border-b-2 border-transparent px-4 py-3 text-sm font-semibold text-zinc-500" data-admin-tab="users" type="button">Users</button>
+                <button class="admin-tab inline-flex shrink-0 items-center gap-2 border-b-2 border-transparent px-4 py-3 text-sm font-semibold text-zinc-500" data-admin-tab="messages" type="button">Messages<span id="admin-message-badge" class="hidden min-w-5 rounded-full bg-rose-500 px-1.5 py-0.5 text-center text-[10px] font-bold leading-4 text-white"></span></button>
                 <button class="admin-tab inline-flex shrink-0 items-center gap-2 border-b-2 border-transparent px-4 py-3 text-sm font-semibold text-zinc-500" data-admin-tab="wallet" type="button"><i data-lucide="coins" class="h-4 w-4 text-amber-400" aria-hidden="true"></i>Coins &amp; wallet</button>
                 <button class="admin-tab shrink-0 border-b-2 border-transparent px-4 py-3 text-sm font-semibold text-zinc-500" data-admin-tab="growth" type="button">Growth &amp; verification</button>
                 <button class="admin-tab shrink-0 border-b-2 border-transparent px-4 py-3 text-sm font-semibold text-zinc-500" data-admin-tab="activity" type="button">Website activity</button>
             </nav>
+            <section id="messages-panel" class="admin-panel hidden">
+                <div class="mb-5">
+                    <h1 class="text-3xl font-bold">Support &amp; merchant messages</h1>
+                    <p class="mt-2 text-sm text-zinc-400">Reply to customer support requests or respond as the merchant the customer contacted. Updates arrive in real time.</p>
+                </div>
+                <div class="grid min-h-[32rem] overflow-hidden rounded-2xl border border-zinc-800 bg-zinc-900/50 md:grid-cols-[minmax(16rem,.8fr)_minmax(0,1.5fr)]">
+                    <section class="border-b border-zinc-800 md:border-b-0 md:border-r" aria-label="Support conversations">
+                        <div class="grid grid-cols-2 border-b border-zinc-800">
+                            <button id="admin-support-filter" class="border-b-2 border-rose-500 px-3 py-3 text-sm font-bold" type="button">Support <span id="admin-support-count" class="ml-1 text-xs text-zinc-500">0</span></button>
+                            <button id="admin-merchant-filter" class="border-b-2 border-transparent px-3 py-3 text-sm font-semibold text-zinc-500" type="button">Merchants <span id="admin-merchant-count" class="ml-1 text-xs text-zinc-500">0</span></button>
+                        </div>
+                        <div id="admin-support-chat-list" class="max-h-[32rem] divide-y divide-zinc-800 overflow-y-auto">
+                            <p class="p-6 text-center text-sm text-zinc-500">Loading conversations…</p>
+                        </div>
+                    </section>
+                    <section class="flex min-h-[28rem] flex-col" aria-label="Conversation">
+                        <div id="admin-chat-heading" class="border-b border-zinc-800 p-4 text-sm text-zinc-500">Select a conversation to reply.</div>
+                        <div id="admin-chat-messages" class="flex-1 space-y-3 overflow-y-auto p-4">
+                            <p class="py-10 text-center text-sm text-zinc-500">Conversation messages will appear here.</p>
+                        </div>
+                        <form id="admin-chat-form" class="border-t border-zinc-800 p-4">
+                            <label class="mb-2 block text-xs font-semibold text-zinc-400">Reply as
+                                <select id="admin-reply-mode" class="field mt-1 py-2 text-sm" disabled>
+                                    <option value="support">Customer support</option>
+                                    <option value="merchant">Selected merchant</option>
+                                </select>
+                            </label>
+                            <div class="flex gap-2">
+                                <input id="admin-chat-input" class="field min-w-0 flex-1 py-2.5 text-sm" maxlength="2000" placeholder="Write a reply…" autocomplete="off" disabled required>
+                                <button id="admin-chat-send" class="btn btn-primary" type="submit" disabled>Send</button>
+                            </div>
+                            <p id="admin-chat-error" class="mt-2 hidden text-xs text-rose-600" role="alert"></p>
+                        </form>
+                    </section>
+                </div>
+            </section>
             <section id="videos-panel" class="admin-panel">
             <section class="mb-8 flex flex-col justify-between gap-5 sm:flex-row sm:items-end">
                 <div>
@@ -397,7 +434,7 @@
         import { db } from './firebase.js';
         import { getUserFollowStats } from './follows.js';
         import {
-            collection, deleteDoc, doc, getDoc, getDocs, limit, orderBy, query,
+            collection, deleteDoc, doc, getDoc, getDocs, limit, onSnapshot, orderBy, query,
             runTransaction, serverTimestamp, setDoc, startAfter, Timestamp, updateDoc, where, writeBatch
         } from 'https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js';
 
@@ -430,6 +467,11 @@
         let cryptoMethods = [];
         let merchants = [];
         let withdrawalRates = [];
+        let supportConversations = [];
+        let activeSupportFilter = 'support';
+        let activeSupportChat = null;
+        let unsubscribeSupportConversations = null;
+        let unsubscribeSupportMessages = null;
 
         function escapeHtml(value) {
             return String(value ?? '').replace(/[&<>"']/g, character => ({
@@ -737,6 +779,7 @@
                 loginScreen.classList.add('hidden');
                 adminApp.classList.remove('hidden');
                 setAdminTab('videos', false);
+                startAdminSupportListener();
                 await loadVideos();
             } catch (error) {
                 console.error('Admin sign-in failed:', error);
@@ -753,6 +796,7 @@
             loginScreen.classList.add('hidden');
             adminApp.classList.remove('hidden');
             setAdminTab('videos', false);
+            startAdminSupportListener();
             loadVideos();
         }
 
@@ -995,6 +1039,10 @@
             });
             if (loadPanel && !loadedAdminPanels.has(tab)) {
                 if (tab === 'users') loadUsers();
+                if (tab === 'messages') {
+                    startAdminSupportListener();
+                    loadedAdminPanels.add('messages');
+                }
                 if (tab === 'wallet') {
                     setWalletSubtab('bonus');
                     loadWalletSettings();
@@ -1008,6 +1056,203 @@
                 }
             }
         }
+
+        function renderAdminSupportChats() {
+            const list = document.getElementById('admin-support-chat-list');
+            const filtered = supportConversations.filter(chat => chat.kind === activeSupportFilter);
+            const supportUnread = supportConversations.filter(chat => chat.kind === 'support'
+                && Array.isArray(chat.unreadBy) && chat.unreadBy.includes('admin')).length;
+            const merchantUnread = supportConversations.filter(chat => chat.kind === 'merchant'
+                && Array.isArray(chat.unreadBy) && chat.unreadBy.includes('admin')).length;
+            document.getElementById('admin-support-count').textContent = String(supportUnread);
+            document.getElementById('admin-merchant-count').textContent = String(merchantUnread);
+            const totalUnread = supportUnread + merchantUnread;
+            const badge = document.getElementById('admin-message-badge');
+            badge.textContent = totalUnread > 99 ? '99+' : String(totalUnread);
+            badge.classList.toggle('hidden', totalUnread === 0);
+            if (!filtered.length) {
+                list.innerHTML = `<p class="p-6 text-center text-sm text-zinc-500">No ${activeSupportFilter === 'support' ? 'support' : 'merchant'} conversations yet.</p>`;
+                return;
+            }
+            list.innerHTML = filtered.map(chat => {
+                const unread = Array.isArray(chat.unreadBy) && chat.unreadBy.includes('admin');
+                const selected = activeSupportChat?.id === chat.id;
+                const title = chat.kind === 'support' ? (chat.userName || 'EarnTok user')
+                    : `${chat.merchantName || 'Merchant'} · ${chat.userName || 'EarnTok user'}`;
+                const time = chat.updatedAt?.toDate?.();
+                return `<button type="button" data-support-chat-id="${escapeHtml(chat.id)}" class="w-full p-4 text-left transition ${selected ? 'bg-zinc-800' : 'hover:bg-zinc-900'}">
+                    <span class="flex items-center justify-between gap-2"><span class="truncate text-sm ${unread ? 'font-bold text-zinc-100' : 'font-semibold text-zinc-300'}">${escapeHtml(title)}</span>${unread ? '<span class="h-2 w-2 shrink-0 rounded-full bg-rose-500" aria-label="Unread"></span>' : ''}</span>
+                    <span class="mt-1 block truncate text-xs text-zinc-500">${escapeHtml(chat.lastMessage || 'No messages yet')}</span>
+                    <span class="mt-1 block text-[10px] text-zinc-600">${time ? escapeHtml(time.toLocaleString()) : 'New conversation'}</span>
+                </button>`;
+            }).join('');
+        }
+
+        function renderAdminSupportMessages(entries) {
+            const container = document.getElementById('admin-chat-messages');
+            if (!entries.length) {
+                container.innerHTML = '<p class="py-10 text-center text-sm text-zinc-500">No messages yet.</p>';
+                return;
+            }
+            container.innerHTML = entries.map(message => {
+                const fromUser = message.senderType === 'user';
+                const label = fromUser ? (message.senderName || 'Customer')
+                    : message.senderType === 'merchant'
+                        ? `${message.merchantName || activeSupportChat?.merchantName || 'Merchant'} (merchant)`
+                        : 'Customer support';
+                const time = message.createdAt?.toDate?.();
+                return `<article class="flex ${fromUser ? 'justify-start' : 'justify-end'}">
+                    <div class="max-w-[85%]">
+                        <p class="mb-1 px-1 text-[11px] font-semibold text-zinc-500 ${fromUser ? '' : 'text-right'}">${escapeHtml(label)}</p>
+                        <div class="rounded-2xl ${fromUser ? 'rounded-bl-sm bg-zinc-800 text-zinc-100' : 'rounded-br-sm bg-rose-500 text-white'} px-4 py-2.5 text-sm leading-5">
+                            <p class="whitespace-pre-wrap break-words">${escapeHtml(message.text)}</p>
+                        </div>
+                        <p class="mt-1 px-1 text-[10px] text-zinc-500 ${fromUser ? '' : 'text-right'}">${time ? escapeHtml(time.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })) : 'Just now'}</p>
+                    </div>
+                </article>`;
+            }).join('');
+            container.scrollTop = container.scrollHeight;
+        }
+
+        async function selectAdminSupportChat(chat) {
+            activeSupportChat = chat;
+            renderAdminSupportChats();
+            const heading = document.getElementById('admin-chat-heading');
+            const input = document.getElementById('admin-chat-input');
+            const mode = document.getElementById('admin-reply-mode');
+            const sendButton = document.getElementById('admin-chat-send');
+            const error = document.getElementById('admin-chat-error');
+            heading.textContent = chat.kind === 'support'
+                ? (chat.userName || 'EarnTok user')
+                : `${chat.userName || 'EarnTok user'} · ${chat.merchantName || 'Merchant'}`;
+            input.disabled = false;
+            mode.disabled = false;
+            sendButton.disabled = false;
+            mode.value = 'support';
+            mode.querySelector('[value="merchant"]').disabled = chat.kind !== 'merchant';
+            error.classList.add('hidden');
+            unsubscribeSupportMessages?.();
+            unsubscribeSupportMessages = onSnapshot(collection(db, 'supportChats', chat.id, 'messages'), snapshot => {
+                const entries = snapshot.docs.map(item => ({ id: item.id, ...item.data() }))
+                    .sort((a, b) => (a.createdAt?.toMillis?.() || 0) - (b.createdAt?.toMillis?.() || 0));
+                renderAdminSupportMessages(entries);
+            }, listenerError => {
+                console.error('Unable to listen to admin support messages:', listenerError);
+                error.textContent = 'Could not sync conversation messages.';
+                error.classList.remove('hidden');
+            });
+            if (Array.isArray(chat.unreadBy) && chat.unreadBy.includes('admin')) {
+                try {
+                    const chatRef = doc(db, 'supportChats', chat.id);
+                    await runTransaction(db, async transaction => {
+                        const snapshot = await transaction.get(chatRef);
+                        const unreadBy = snapshot.data()?.unreadBy;
+                        if (snapshot.exists() && Array.isArray(unreadBy) && unreadBy.includes('admin')) {
+                            transaction.update(chatRef, {
+                                unreadBy: unreadBy.filter(value => value !== 'admin')
+                            });
+                        }
+                    });
+                } catch (readError) {
+                    console.error('Unable to mark admin support chat as read:', readError);
+                }
+            }
+        }
+
+        function startAdminSupportListener() {
+            if (unsubscribeSupportConversations) return;
+            unsubscribeSupportConversations = onSnapshot(collection(db, 'supportChats'), snapshot => {
+                supportConversations = snapshot.docs.map(item => ({ id: item.id, ...item.data() }))
+                    .sort((a, b) => (b.updatedAt?.toMillis?.() || 0) - (a.updatedAt?.toMillis?.() || 0));
+                renderAdminSupportChats();
+                const selected = supportConversations.find(chat => chat.id === activeSupportChat?.id);
+                if (selected) {
+                    activeSupportChat = selected;
+                    if (Array.isArray(selected.unreadBy) && selected.unreadBy.includes('admin')) {
+                        const chatRef = doc(db, 'supportChats', selected.id);
+                        runTransaction(db, async transaction => {
+                            const latest = await transaction.get(chatRef);
+                            const unreadBy = latest.data()?.unreadBy;
+                            if (latest.exists() && Array.isArray(unreadBy) && unreadBy.includes('admin')) {
+                                transaction.update(chatRef, {
+                                    unreadBy: unreadBy.filter(value => value !== 'admin')
+                                });
+                            }
+                        }).catch(readError => console.error('Unable to mark active support chat as read:', readError));
+                    }
+                }
+                else if (activeSupportChat) {
+                    activeSupportChat = null;
+                    unsubscribeSupportMessages?.();
+                    unsubscribeSupportMessages = null;
+                    document.getElementById('admin-chat-input').disabled = true;
+                    document.getElementById('admin-chat-send').disabled = true;
+                    document.getElementById('admin-reply-mode').disabled = true;
+                    document.getElementById('admin-chat-heading').textContent = 'This conversation is no longer available.';
+                }
+            }, error => {
+                console.error('Unable to listen to support conversations:', error);
+                document.getElementById('admin-support-chat-list').innerHTML = '<p class="p-6 text-center text-sm text-rose-300">Could not load messages. Check Firestore permissions and connection.</p>';
+            });
+        }
+
+        document.getElementById('admin-support-filter').addEventListener('click', () => {
+            activeSupportFilter = 'support';
+            document.getElementById('admin-support-filter').className = 'border-b-2 border-rose-500 px-3 py-3 text-sm font-bold';
+            document.getElementById('admin-merchant-filter').className = 'border-b-2 border-transparent px-3 py-3 text-sm font-semibold text-zinc-500';
+            renderAdminSupportChats();
+        });
+        document.getElementById('admin-merchant-filter').addEventListener('click', () => {
+            activeSupportFilter = 'merchant';
+            document.getElementById('admin-merchant-filter').className = 'border-b-2 border-rose-500 px-3 py-3 text-sm font-bold';
+            document.getElementById('admin-support-filter').className = 'border-b-2 border-transparent px-3 py-3 text-sm font-semibold text-zinc-500';
+            renderAdminSupportChats();
+        });
+        document.getElementById('admin-support-chat-list').addEventListener('click', event => {
+            const button = event.target.closest('[data-support-chat-id]');
+            if (!button) return;
+            const chat = supportConversations.find(item => item.id === button.dataset.supportChatId);
+            if (chat) selectAdminSupportChat(chat);
+        });
+        document.getElementById('admin-chat-form').addEventListener('submit', async event => {
+            event.preventDefault();
+            const chat = activeSupportChat;
+            const input = document.getElementById('admin-chat-input');
+            const error = document.getElementById('admin-chat-error');
+            const text = input.value.trim();
+            const senderType = document.getElementById('admin-reply-mode').value;
+            if (!chat || !text || !['support', 'merchant'].includes(senderType)
+                || (senderType === 'merchant' && chat.kind !== 'merchant')) return;
+            const sendButton = document.getElementById('admin-chat-send');
+            sendButton.disabled = true;
+            error.classList.add('hidden');
+            try {
+                const chatRef = doc(db, 'supportChats', chat.id);
+                const batch = writeBatch(db);
+                batch.set(doc(collection(db, 'supportChats', chat.id, 'messages')), {
+                    senderId: 'admin',
+                    senderType,
+                    senderName: senderType === 'merchant' ? chat.merchantName : 'Customer support',
+                    ...(senderType === 'merchant' ? { merchantName: chat.merchantName } : {}),
+                    text,
+                    createdAt: serverTimestamp()
+                });
+                batch.update(chatRef, {
+                    lastMessage: text,
+                    lastSenderId: 'admin',
+                    unreadBy: [chat.userId],
+                    updatedAt: serverTimestamp()
+                });
+                await batch.commit();
+                input.value = '';
+            } catch (sendError) {
+                console.error('Unable to send admin support reply:', sendError);
+                error.textContent = sendError.message || 'Could not send reply. Check Firestore permissions and try again.';
+                error.classList.remove('hidden');
+            } finally {
+                sendButton.disabled = false;
+            }
+        });
 
         async function loadWalletSettings() {
             const amountInput = document.getElementById('welcome-bonus-amount');
@@ -1229,6 +1474,8 @@
                     </div>
                     <div class="merchant-fields grid gap-3 sm:grid-cols-2">
                         <label class="text-sm font-medium">Merchant name<input class="field mt-1" data-merchant-index="${index}" data-merchant-field="name" value="${escapeHtml(item.name)}" maxlength="100" required></label>
+                        <label class="text-sm font-medium">Accepted currency<input class="field mt-1" data-merchant-index="${index}" data-merchant-field="currency" value="${escapeHtml(item.currency)}" maxlength="20" placeholder="USD, NGN, GHS" required></label>
+                        <label class="text-sm font-medium">Currency per coin<input class="field mt-1" data-merchant-index="${index}" data-merchant-field="ratePerCoin" type="number" min="0.00000001" step="any" value="${escapeHtml(item.ratePerCoin)}" required></label>
                         <div class="flex items-center gap-3 sm:row-span-2">
                             ${item.profilePic
                                 ? `<img class="merchant-profile-preview h-16 w-16 shrink-0 rounded-full border border-zinc-200 object-cover" src="${escapeHtml(item.profilePic)}" alt="${escapeHtml(item.name || 'Merchant')} profile picture">`
@@ -1276,6 +1523,8 @@
             merchants = (Array.isArray(settings.merchants) ? settings.merchants : []).map(item => ({
                 id: String(item.id || crypto.randomUUID()),
                 name: String(item.name || ''),
+                currency: String(item.currency || ''),
+                ratePerCoin: item.ratePerCoin ?? '',
                 totalCoins: item.totalCoins ?? '',
                 minimumCoins: item.minimumCoins ?? '',
                 maximumCoins: item.maximumCoins ?? '',
@@ -1491,6 +1740,8 @@
             });
             for (const item of next) {
                 if (!item.name || !['Bank transfer', 'MoMo transfer'].includes(item.paymentMethod)
+                    || !String(item.currency || '').trim()
+                    || !Number.isFinite(Number(item.ratePerCoin)) || Number(item.ratePerCoin) <= 0
                     || !Number.isSafeInteger(item.totalCoins) || item.totalCoins < 0
                     || ![item.minimumCoins, item.maximumCoins].every(value => Number.isSafeInteger(value) && value > 0)
                     || item.minimumCoins > item.maximumCoins
@@ -1498,8 +1749,10 @@
                         ? !item.bankAccountName || !item.bankName || !item.bankAccountNumber
                         : !item.momoName || !item.momoNetwork || !item.momoNumber)
                     || !validHttpUrl(item.profilePic)) {
-                    throw new Error('Each merchant needs a profile picture, all details for the selected payment method, non-negative whole-number inventory, and valid order limits (minimum ≤ maximum).');
+                    throw new Error('Each merchant needs a name, accepted currency, positive currency-per-coin rate, profile picture, payment details, non-negative inventory, and valid order limits (minimum ≤ maximum).');
                 }
+                item.currency = String(item.currency).trim().toUpperCase();
+                item.ratePerCoin = Number(item.ratePerCoin);
                 item.profilePic = validHttpUrl(item.profilePic);
             }
             return next;
@@ -1541,7 +1794,7 @@
                 const payment = request.payment || {};
                 const description = request.method === 'crypto'
                     ? `${payment.cryptoName || 'Crypto'} · ${payment.chain || 'Network'} · ${payment.cryptoAmount ?? '?'} ${payment.cryptoName || ''}`
-                    : `${payment.merchantName || 'Merchant'} · ${payment.paymentMethod || 'P2P transfer'}`;
+                    : `${payment.merchantName || 'Merchant'} · ${payment.paymentMethod || 'P2P transfer'}${payment.amountToPay ? ` · Pay ${payment.amountToPay} ${payment.currency || ''}` : ''}`;
                 const proofUrl = validHttpUrl(request.proofUrl);
                 const date = request.createdAt?.toDate?.();
                 return `<article class="p-5">
@@ -1833,6 +2086,8 @@
             merchants.push({
                 id: crypto.randomUUID(),
                 name: '',
+                currency: '',
+                ratePerCoin: '',
                 totalCoins: '',
                 minimumCoins: '',
                 maximumCoins: '',
@@ -2258,6 +2513,13 @@
         document.getElementById('search-input').addEventListener('input', renderVideos);
         document.getElementById('logout-button').addEventListener('click', () => {
             sessionStorage.removeItem(ADMIN_SESSION_KEY);
+            unsubscribeSupportConversations?.();
+            unsubscribeSupportMessages?.();
+            unsubscribeSupportConversations = null;
+            unsubscribeSupportMessages = null;
+            supportConversations = [];
+            activeSupportChat = null;
+            renderAdminSupportChats();
             adminApp.classList.add('hidden');
             loginScreen.classList.remove('hidden');
             loginForm.reset();

@@ -1,0 +1,53 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
+    <meta name="theme-color" content="#ffffff">
+    <title>EarnTok · Contact Merchant</title>
+    <link rel="icon" type="image/png" href="./earntok-logo.png">
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <style>
+        :root { color-scheme: light; }
+        html, body { height: 100%; height: 100dvh; overflow: hidden; }
+        .messages-scroll::-webkit-scrollbar { width: 5px; }
+        .messages-scroll::-webkit-scrollbar-thumb { background: #e4e4e8; border-radius: 9999px; }
+        body.bg-zinc-950 { background: #fff !important; color: #161823 !important; }
+        .bg-zinc-950 { background-color: #fff !important; }
+        .bg-zinc-900 { background-color: #f8f8fa !important; }
+        .text-zinc-100 { color: #161823 !important; }
+        .text-zinc-400, .text-zinc-500 { color: #777782 !important; }
+        .border-zinc-800 { border-color: #e4e4e8 !important; }
+    </style>
+</head>
+<body class="bg-zinc-950 text-zinc-100 antialiased flex h-full flex-col">
+    <header class="shrink-0 border-b border-zinc-200 bg-white px-4 py-3">
+        <div class="mx-auto flex max-w-3xl items-center gap-3">
+            <a href="./buy-coins.html" class="p-1 text-zinc-700" aria-label="Back to buy coins"><i data-lucide="arrow-left" class="h-6 w-6"></i></a>
+            <img id="chat-avatar" class="h-10 w-10 rounded-full border border-zinc-200 bg-zinc-100 object-cover" src="./earntok-logo.png" alt="">
+            <div class="min-w-0"><h1 id="chat-title" class="truncate font-bold">Merchant</h1><p id="chat-subtitle" class="text-xs text-zinc-500">Chat with this coin merchant</p></div>
+        </div>
+    </header>
+    <p id="chat-error" class="hidden mx-auto mt-3 w-full max-w-3xl px-4 text-sm text-rose-600" role="alert"></p>
+    <main id="chat-messages" class="messages-scroll mx-auto w-full max-w-3xl flex-1 space-y-3 overflow-y-auto px-4 py-5" aria-live="polite">
+        <p class="py-10 text-center text-sm text-zinc-400">Opening conversation…</p>
+    </main>
+    <footer class="shrink-0 border-t border-zinc-200 bg-white px-4 py-3 pb-[max(.75rem,env(safe-area-inset-bottom))]">
+        <p id="chat-status" class="hidden mx-auto mb-2 max-w-3xl text-xs text-rose-600" role="status"></p>
+        <form id="chat-form" class="mx-auto flex max-w-3xl items-center gap-2">
+            <input id="chat-input" class="min-w-0 flex-1 rounded-full border border-zinc-200 bg-zinc-100 px-4 py-3 text-sm text-zinc-900 outline-none focus:border-rose-500" type="text" maxlength="2000" placeholder="Write a message…" autocomplete="off" disabled required>
+            <button class="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-rose-500 text-white disabled:opacity-50" type="submit" aria-label="Send message" disabled><i data-lucide="send" class="h-5 w-5"></i></button>
+        </form>
+    </footer>
+    <script type="module">
+        import { auth, db } from './firebase.js';
+        import { enableHistoryBack } from './navigation.js';
+        import { startContactChat } from './contact-chat.js';
+        import { onAuthStateChanged } from 'https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js';
+        lucide.createIcons();
+        enableHistoryBack();
+        startContactChat({ auth, db, kind: 'merchant', onAuthStateChanged });
+    </script>
+</body>
+</html>

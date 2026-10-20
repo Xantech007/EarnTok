@@ -82,6 +82,13 @@
                 <p class="text-sm">Loading your chats…</p>
             </div>
         </div>
+        <div class="mt-7 flex items-center justify-between border-b border-zinc-100 pb-2">
+            <h2 class="text-xs font-bold uppercase tracking-wider text-zinc-400">Support &amp; merchant chats</h2>
+            <span id="support-chat-count" class="text-xs font-medium text-zinc-400">Loading…</span>
+        </div>
+        <div id="support-chats-list" class="divide-y divide-zinc-100 mt-1">
+            <p class="py-6 text-center text-sm text-zinc-400">Loading support conversations…</p>
+        </div>
     </main>
 
     <!-- Activity & New Followers Modal -->
@@ -176,13 +183,19 @@
 
         let currentUser = null;
         let allChats = [];
+        let supportChats = [];
         let profileCache = new Map();
         let unsubscribeChats = null;
+        let unsubscribeSupportChats = null;
+        let directUnreadCount = 0;
+        let supportUnreadCount = 0;
 
         const chatsList = document.getElementById('chats-list');
         const chatCountLabel = document.getElementById('chat-count-label');
         const searchInput = document.getElementById('chat-search');
         const errorMessage = document.getElementById('inbox-error-message');
+        const supportChatsList = document.getElementById('support-chats-list');
+        const supportChatCount = document.getElementById('support-chat-count');
 
         const newChatModal = document.getElementById('new-chat-modal');
         const newChatButton = document.getElementById('new-chat-button');
@@ -611,6 +624,38 @@
             lucide.createIcons();
         }
 
+        function renderSupportChats(filterText = '') {
+            const search = filterText.trim().toLowerCase();
+            const filtered = supportChats.filter(chat => {
+                const title = chat.kind === 'support' ? 'customer support' : (chat.merchantName || 'merchant');
+                return !search || title.toLowerCase().includes(search) || String(chat.lastMessage || '').toLowerCase().includes(search);
+            });
+            supportChatCount.textContent = `${supportChats.length} conversation${supportChats.length === 1 ? '' : 's'}`;
+            if (!filtered.length) {
+                supportChatsList.innerHTML = `<p class="py-6 text-center text-sm text-zinc-500">${supportChats.length ? 'No support chats match your search.' : 'No support or merchant conversations yet.'}</p>`;
+                return;
+            }
+            supportChatsList.innerHTML = filtered.map(chat => {
+                const isSupport = chat.kind === 'support';
+                const name = isSupport ? 'Customer support' : (chat.merchantName || 'Merchant');
+                const target = isSupport ? './contact-support.html' : `./contact-merchant.html?merchantId=${encodeURIComponent(chat.merchantId || '')}`;
+                const unread = Array.isArray(chat.unreadBy) && chat.unreadBy.includes(currentUser.uid);
+                const avatar = isSupport ? './earntok-logo.png' : (chat.merchantProfilePic || defaultAvatar);
+                return `<a href="${target}" class="flex items-center gap-3.5 rounded-2xl px-2 py-3.5 transition hover:bg-zinc-50">
+                    <span class="relative h-12 w-12 shrink-0">
+                        <img src="${escapeHtml(avatar)}" alt="" class="h-12 w-12 rounded-full border border-zinc-100 bg-zinc-100 object-cover" onerror="this.src='${defaultAvatar}'">
+                        ${unread ? '<span class="absolute -bottom-0.5 -right-0.5 h-3.5 w-3.5 rounded-full border-2 border-white bg-rose-500"></span>' : ''}
+                    </span>
+                    <span class="min-w-0 flex-1">
+                        <span class="flex items-center justify-between gap-2"><span class="truncate text-sm font-bold text-zinc-900">${escapeHtml(name)}</span><span class="shrink-0 text-xs text-zinc-400">${escapeHtml(formatTime(chat.updatedAt))}</span></span>
+                        <span class="mt-0.5 block truncate text-xs ${unread ? 'font-semibold text-zinc-900' : 'text-zinc-500'}">${escapeHtml(chat.lastMessage || (isSupport ? 'Start a conversation with support' : 'Start a conversation with this merchant'))}</span>
+                    </span>
+                    <i data-lucide="chevron-right" class="h-4 w-4 shrink-0 text-zinc-300"></i>
+                </a>`;
+            }).join('');
+            lucide.createIcons();
+        }
+
         async function subscribeToUserChats() {
             if (!currentUser) return;
             try {
@@ -620,10 +665,11 @@
                 );
 
                 unsubscribeChats = onSnapshot(chatsQuery, async snapshot => {
-                    renderUnreadMessageCount(snapshot.docs.reduce((count, chat) => {
+                    directUnreadCount = snapshot.docs.reduce((count, chat) => {
                         const unreadBy = chat.data().unreadBy;
                         return count + (Array.isArray(unreadBy) && unreadBy.includes(currentUser.uid) ? 1 : 0);
-                    }, 0));
+                    }, 0);
+                    renderUnreadMessageCount(directUnreadCount + supportUnreadCount);
                     const rawChats = [];
                     const profilePromises = [];
 
@@ -685,6 +731,25 @@
             } catch (err) {
                 console.error('Failed to initialize chats listener:', err);
             }
+        }
+
+        function subscribeToSupportChats() {
+            if (!currentUser) return;
+            unsubscribeSupportChats = onSnapshot(query(
+                collection(db, 'supportChats'),
+                where('userId', '==', currentUser.uid)
+            ), snapshot => {
+                supportChats = snapshot.docs.map(item => ({ id: item.id, ...item.data() }))
+                    .sort((left, right) => (right.updatedAt?.toMillis?.() || 0) - (left.updatedAt?.toMillis?.() || 0));
+                supportUnreadCount = supportChats.filter(chat =>
+                    Array.isArray(chat.unreadBy) && chat.unreadBy.includes(currentUser.uid)).length;
+                renderUnreadMessageCount(directUnreadCount + supportUnreadCount);
+                renderSupportChats(searchInput.value);
+            }, error => {
+                console.error('Error listening to support conversations:', error);
+                supportChatCount.textContent = 'Error';
+                supportChatsList.innerHTML = '<p class="py-6 text-center text-sm text-rose-500">Could not load support conversations. Check your connection and Firestore permissions.</p>';
+            });
         }
 
         document.getElementById('activity-button').addEventListener('click', openActivityModal);
@@ -870,6 +935,7 @@
 
         searchInput.addEventListener('input', () => {
             renderChats(searchInput.value);
+            renderSupportChats(searchInput.value);
         });
 
         // Auth state handler
@@ -882,6 +948,7 @@
             currentUser = user;
             renderActivityPreview();
             subscribeToUserChats();
+            subscribeToSupportChats();
         });
     </script>
 </body>
