@@ -1,9 +1,8 @@
 // netlify/functions/api.js
-require('dotenv').config();
-const express = require('express');
-const cors = require('cors');
-const axios = require('axios');
-const serverless = require('serverless-http');
+import express from 'express';
+import cors from 'cors';
+import axios from 'axios';
+import serverless from 'serverless-http';
 
 const app = express();
 app.use(cors());
@@ -228,4 +227,4 @@ router.get('/resolve-bank', async (req, res) => {
 app.use('/.netlify/functions/api', router);
 app.use('/api', router);
 
-module.exports.handler = serverless(app);
+export const handler = serverless(app);
