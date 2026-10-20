@@ -155,6 +155,7 @@
                 <div id="momo-details" class="space-y-4">
                     <label class="block text-sm font-semibold text-zinc-700">Network
                         <input id="momo-provider" class="field mt-2" maxlength="100" autocomplete="organization">
+                        <select id="momo-provider-select" class="field mt-2 hidden"></select>
                     </label>
                     <label class="block text-sm font-semibold text-zinc-700">MoMo Name
                         <input id="momo-name" class="field mt-2" maxlength="120" autocomplete="name">
@@ -183,6 +184,7 @@
                 <div id="bank-details" class="space-y-4">
                     <label class="block text-sm font-semibold text-zinc-700">Bank name
                         <input id="bank-name" class="field mt-2" maxlength="120" autocomplete="organization">
+                        <select id="bank-name-select" class="field mt-2 hidden"></select>
                     </label>
                     <label class="block text-sm font-semibold text-zinc-700">Account holder name
                         <input id="bank-holder" class="field mt-2" maxlength="120" autocomplete="name">
@@ -229,26 +231,131 @@
         // Auto-lookup config. Only runs when the user's `country` field is in `countries`.
         const $ = id => document.getElementById(id);
         const NO_ROUTING_COUNTRIES = ['NG', 'GH'];
+        // Bank / network pick-lists. For a country listed here the provider field becomes a dropdown.
+        const NG_BANKS = [
+            "Access Bank",
+            "Access Bank (Diamond)",
+            "ALAT by Wema",
+            "ASO Savings and Loans",
+            "Bowen Microfinance Bank",
+            "CEMCS Microfinance Bank",
+            "Citibank Nigeria",
+            "Coronation Merchant Bank",
+            "Ecobank Nigeria",
+            "Ekondo Microfinance Bank",
+            "Eyowo",
+            "Fidelity Bank",
+            "Firmus MFB",
+            "First Bank of Nigeria",
+            "First City Monument Bank",
+            "FSDH Merchant Bank",
+            "Globus Bank",
+            "Guaranty Trust Bank",
+            "Hackman Microfinance Bank",
+            "Hasal Microfinance Bank",
+            "Heritage Bank",
+            "Ibile Microfinance Bank",
+            "Infinity Microfinance Bank",
+            "Jaiz Bank",
+            "Kadpoly Microfinance Bank",
+            "Keystone Bank",
+            "Kuda Microfinance Bank",
+            "Lagos Building Investment Company",
+            "Links MFB",
+            "Lotus Bank",
+            "Mayfair MFB",
+            "Mint MFB",
+            "Moniepoint",
+            "NPF Microfinance Bank",
+            "Opay",
+            "Paga",
+            "PalmPay",
+            "Parallex Bank",
+            "Parkway - ReadyCash",
+            "Paycom",
+            "Petra Microfinance Bank",
+            "Polaris Bank",
+            "PremiumTrust Bank",
+            "Providus Bank",
+            "QuickFund MFB",
+            "Rand Merchant Bank",
+            "Rubies Bank",
+            "Signature Bank",
+            "Sparkle Bank",
+            "Stanbic IBTC Bank",
+            "Standard Chartered Bank",
+            "Sterling Bank",
+            "SunTrust Bank",
+            "TAJBank",
+            "Tanadi Microfinance Bank",
+            "Titan Trust Bank",
+            "U&C Microfinance Bank",
+            "Union Bank of Nigeria",
+            "United Bank for Africa",
+            "Unity Bank",
+            "VFD Microfinance Bank",
+            "Wema Bank",
+            "Zenith Bank",
+            "9 Payment Service Bank"
+        ];
+        const GH_BANKS = [
+            "Absa Bank Ghana",
+            "Access Bank Ghana",
+            "Agricultural Development Bank (ADB)",
+            "Bank of Africa Ghana",
+            "CalBank",
+            "Consolidated Bank Ghana (CBG)",
+            "Ecobank Ghana",
+            "Fidelity Bank Ghana",
+            "First Atlantic Bank",
+            "First National Bank Ghana",
+            "GCB Bank",
+            "GTBank Ghana",
+            "National Investment Bank (NIB)",
+            "OmniBSIC Bank",
+            "Prudential Bank",
+            "Republic Bank Ghana",
+            "Societe Generale Ghana",
+            "Stanbic Bank Ghana",
+            "Standard Chartered Bank Ghana",
+            "United Bank for Africa (UBA) Ghana",
+            "Universal Merchant Bank (UMB)",
+            "Zenith Bank Ghana"
+        ];
+        const GH_MOMO_NETWORKS = ['MTN MoMo', 'Telecel Cash', 'AirtelTigo Money'];
+        const PROVIDER_LISTS = {
+            bank: { NG: NG_BANKS, GH: GH_BANKS },
+            momo: { GH: GH_MOMO_NETWORKS }
+        };
+        const providerFields = {
+            momo: { input: $('momo-provider'), select: $('momo-provider-select'), placeholder: 'Choose network' },
+            bank: { input: $('bank-name'), select: $('bank-name-select'), placeholder: 'Choose your bank' }
+        };
+        // Whichever element (text input or dropdown) is in use for the user's country
+        const providerField = kind => PROVIDER_LISTS[kind][accountCountry] ? providerFields[kind].select : providerFields[kind].input;
+        const SCAN_CONCURRENCY = 8;
+        const scanCache = new Map();
+
         const lookups = {
             momo: {
                 countries: ['GH'],
                 endpoint: 'resolve-momo',
                 number: $('momo-number'),
                 status: $('momo-lookup-status'),
-                provider: $('momo-provider'),
+                get provider() { return providerField('momo'); },
                 holder: $('momo-name'),
                 details: $('momo-details'),
                 skeleton: $('momo-skeleton'),
                 choiceWrap: null, choice: null,
                 candidates: [], needsChoice: false,
-                timer: null, seq: 0, pending: false, autofilled: false
+                timer: null, controller: null, seq: 0, pending: false, autofilled: false
             },
             bank: {
                 countries: ['GH', 'NG'],
                 endpoint: 'resolve-bank',
                 number: $('bank-number'),
                 status: $('bank-lookup-status'),
-                provider: $('bank-name'),
+                get provider() { return providerField('bank'); },
                 holder: $('bank-holder'),
                 details: $('bank-details'),
                 skeleton: $('bank-skeleton'),
@@ -257,7 +364,7 @@
                 choiceList: $('bank-choice-list'),
                 choiceValue: $('bank-choice-value'),
                 candidates: [], needsChoice: false,
-                timer: null, seq: 0, pending: false, autofilled: false
+                timer: null, controller: null, seq: 0, pending: false, autofilled: false
             }
         };
 
@@ -335,6 +442,8 @@
             lookup.needsChoice = false;
             lookup.candidates = [];
             clearTimeout(lookup.timer);
+            lookup.controller?.abort();
+            lookup.controller = null;
             if (lookup.autofilled) {
                 lookup.provider.value = '';
                 lookup.holder.value = '';
@@ -421,10 +530,23 @@
             setLookupStatus('bank', 'Bank selected. Details filled in — you can still edit them.', 'success');
         }
 
+        // Set a text input or a dropdown. Unknown values are added to the dropdown so nothing is lost.
+        function setProviderValue(field, value) {
+            const wanted = String(value ?? '').trim();
+            if (field.tagName !== 'SELECT') { field.value = wanted; return; }
+            if (!wanted) { field.value = ''; return; }
+            const alias = field.id === 'momo-provider-select'
+                ? (/mtn/i.test(wanted) ? 'MTN MoMo' : /vodafone|telecel/i.test(wanted) ? 'Telecel Cash' : /airtel|tigo|^at\b/i.test(wanted) ? 'AirtelTigo Money' : '')
+                : '';
+            let option = [...field.options].find(item => item.value.toLowerCase() === wanted.toLowerCase() || item.value === alias);
+            if (!option) { option = new Option(wanted, wanted); field.add(option); }
+            field.value = option.value;
+        }
+
         // Fill the fields, then reveal them. They stay editable.
         function applyCandidate(kind, candidate) {
             const lookup = lookups[kind];
-            lookup.provider.value = candidate.provider;
+            setProviderValue(lookup.provider, candidate.provider);
             lookup.holder.value = candidate.holder;
             lookup.provider.readOnly = false;
             lookup.holder.readOnly = false;
@@ -433,27 +555,97 @@
             setDetailsVisible(kind, true, true);
         }
 
+        const loadingText = kind => kind === 'momo' ? 'Fetching MoMo details…'
+            : PROVIDER_LISTS.bank[accountCountry] ? 'Checking banks for this account number…' : 'Fetching bank details…';
+
+        // Update the text of a running chip without replaying its pop-in animation
+        function setLookupStatusText(kind, text) {
+            const label = lookups[kind].status.querySelector('.tt-chip-loading .tt-chip-text');
+            if (label) label.textContent = text;
+            else setLookupStatus(kind, text, 'loading');
+        }
+
+        // Ask the API about the account number at every bank in the user's country list.
+        // Only banks that return an account holder name are kept.
+        async function scanBanks(number, signal, onProgress) {
+            const banks = PROVIDER_LISTS.bank[accountCountry];
+            const cacheKey = `${accountCountry}:${number}`;
+            if (scanCache.has(cacheKey)) return scanCache.get(cacheKey);
+            const found = [];
+            let next = 0, checked = 0, errors = 0;
+            const worker = async () => {
+                while (next < banks.length && !signal.aborted) {
+                    const index = next++;
+                    const bank = banks[index];
+                    const timeout = new AbortController();
+                    const timer = setTimeout(() => timeout.abort(), 15000);
+                    const onAbort = () => timeout.abort();
+                    signal.addEventListener('abort', onAbort, { once: true });
+                    try {
+                        const params = new URLSearchParams({ account_number: number, country: accountCountry, bank_name: bank });
+                        const response = await fetch(`${API_BASE}/${lookups.bank.endpoint}?${params}`, { signal: timeout.signal });
+                        const result = await response.json().catch(() => ({}));
+                        if (response.status >= 500) errors++;
+                        else if (response.ok && result.status) {
+                            const holder = normalizeCandidates('bank', result.data ?? result).find(item => item.holder)?.holder;
+                            if (holder) found.push({ index, provider: bank, holder });
+                        }
+                    } catch (error) {
+                        if (!signal.aborted) errors++;
+                    } finally {
+                        clearTimeout(timer);
+                        signal.removeEventListener('abort', onAbort);
+                    }
+                    checked++;
+                    onProgress(checked, banks.length, found.length);
+                }
+            };
+            await Promise.all(Array.from({ length: SCAN_CONCURRENCY }, worker));
+            if (signal.aborted) return [];
+            if (errors === banks.length) throw new Error('Lookup failed');
+            const matches = found.sort((left, right) => left.index - right.index)
+                .map(({ provider, holder }) => ({ provider, holder }));
+            scanCache.set(cacheKey, matches);
+            return matches;
+        }
+
         async function runLookup(kind, number) {
             const lookup = lookups[kind];
             const seq = ++lookup.seq;
-            setLookupStatus(kind, kind === 'momo' ? 'Fetching MoMo details…' : 'Fetching bank details…', 'loading');
+            const scanning = kind === 'bank' && Boolean(PROVIDER_LISTS.bank[accountCountry]);
+            setLookupStatus(kind, loadingText(kind), 'loading');
+            const controller = new AbortController();
+            lookup.controller = controller;
             try {
-                const params = new URLSearchParams(kind === 'momo'
-                    ? { phone: number, country: accountCountry }
-                    : { account_number: number, country: accountCountry });
-                const response = await fetch(`${API_BASE}/${lookup.endpoint}?${params}`, { signal: AbortSignal.timeout(25000) });
-                const result = await response.json().catch(() => ({}));
-                if (seq !== lookup.seq) return;
-                if (!response.ok || !result.status) throw new Error(result.message || 'Lookup failed');
-                const candidates = normalizeCandidates(kind, result.data ?? result.banks ?? result.matches ?? result.results);
-                if (!candidates.length) throw new Error('No account details returned');
+                let candidates;
+                if (scanning) {
+                    candidates = await scanBanks(number, controller.signal, (checked, total, matched) => {
+                        if (seq === lookup.seq) setLookupStatusText(kind, `Checking banks… ${checked}/${total} · ${matched} found`);
+                    });
+                    if (seq !== lookup.seq) return;
+                    if (!candidates.length) {
+                        const noMatch = new Error('No bank returned an account name');
+                        noMatch.userMessage = 'No bank returned an account name for this number. Choose your bank and enter the details manually.';
+                        throw noMatch;
+                    }
+                } else {
+                    const params = new URLSearchParams(kind === 'momo'
+                        ? { phone: number, country: accountCountry }
+                        : { account_number: number, country: accountCountry });
+                    const response = await fetch(`${API_BASE}/${lookup.endpoint}?${params}`, { signal: AbortSignal.timeout(25000) });
+                    const result = await response.json().catch(() => ({}));
+                    if (seq !== lookup.seq) return;
+                    if (!response.ok || !result.status) throw new Error(result.message || 'Lookup failed');
+                    candidates = normalizeCandidates(kind, result.data ?? result.banks ?? result.matches ?? result.results);
+                    if (!candidates.length) throw new Error('No account details returned');
+                }
                 setSearching(kind, false);
 
                 if (candidates.length > 1 && lookup.choice) {
                     // Several banks matched this account number: let the user pick the right one
+                    renderChoices(candidates);
                     lookup.candidates = candidates;
                     lookup.needsChoice = true;
-                    renderChoices(candidates);
                     lookup.choiceWrap.classList.remove('hidden', 'tt-chosen');
                     if (!reducedMotion.matches) replay(lookup.choiceWrap, 'tt-reveal');
                     setLookupStatus(kind, `We found ${candidates.length} banks for this account number. Pick the correct bank and account name.`, 'info');
@@ -466,7 +658,7 @@
                 console.warn(`Automatic ${kind} lookup failed:`, error);
                 setSearching(kind, false);
                 setDetailsVisible(kind, true, true);
-                setLookupStatus(kind, 'We could not verify this account automatically. Please enter the details manually.', 'error');
+                setLookupStatus(kind, error.userMessage || 'We could not verify this account automatically. Please enter the details manually.', 'error');
             } finally {
                 if (seq === lookup.seq) lookup.pending = false;
             }
@@ -482,7 +674,7 @@
             lookup.pending = true;
             setDetailsVisible(kind, false);
             setSearching(kind, true);
-            setLookupStatus(kind, kind === 'momo' ? 'Fetching MoMo details…' : 'Fetching bank details…', 'loading');
+            setLookupStatus(kind, loadingText(kind), 'loading');
             lookup.timer = setTimeout(() => runLookup(kind, number), 500);
         }
 
@@ -511,8 +703,19 @@
             if (!lookups.bank.choiceWrap.contains(event.target)) setChoiceOpen(false);
         });
 
-        // Branch / routing code is not used for NG and GH accounts
+        // Country rules: NG / GH get bank (and GH MoMo network) dropdowns, and no branch / routing code
         function applyCountryRules() {
+            for (const kind of Object.keys(providerFields)) {
+                const { input, select, placeholder } = providerFields[kind];
+                const list = PROVIDER_LISTS[kind][accountCountry];
+                if (list) {
+                    select.innerHTML = `<option value="" disabled selected>${placeholder}</option>`
+                        + list.map(name => `<option value="${escapeHtml(name)}">${escapeHtml(name)}</option>`).join('');
+                    input.value = '';
+                }
+                select.classList.toggle('hidden', !list);
+                input.classList.toggle('hidden', Boolean(list));
+            }
             const hideRouting = NO_ROUTING_COUNTRIES.includes(accountCountry);
             $('bank-routing-wrap').classList.toggle('hidden', hideRouting);
             if (hideRouting) $('bank-routing').value = '';
@@ -564,9 +767,9 @@
                 const panel = document.getElementById(`${name}-fields`);
                 panel.classList.toggle('hidden', method !== name);
                 const lookup = lookups[name];
-                panel.querySelectorAll('input').forEach(input => {
+                panel.querySelectorAll('input, select').forEach(input => {
                     const detailsHidden = lookup && lookup.details.contains(input) && lookup.details.classList.contains('hidden');
-                    input.required = method === name && input.id !== 'bank-routing' && !detailsHidden;
+                    input.required = method === name && input.id !== 'bank-routing' && !detailsHidden && !input.classList.contains('hidden');
                 });
             }
         }
@@ -577,12 +780,12 @@
                 network: document.getElementById('crypto-network').value.trim()
             };
             if (method === 'momo') return {
-                provider: document.getElementById('momo-provider').value.trim(),
+                provider: providerField('momo').value.trim(),
                 accountName: document.getElementById('momo-name').value.trim(),
                 phoneNumber: document.getElementById('momo-number').value.trim()
             };
             return {
-                bankName: document.getElementById('bank-name').value.trim(),
+                bankName: providerField('bank').value.trim(),
                 accountName: document.getElementById('bank-holder').value.trim(),
                 accountNumber: document.getElementById('bank-number').value.trim(),
                 routingCode: NO_ROUTING_COUNTRIES.includes(accountCountry) ? '' : document.getElementById('bank-routing').value.trim()
