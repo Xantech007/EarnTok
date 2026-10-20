@@ -535,7 +535,7 @@
             const alias = field.id === 'momo-provider-select'
                 ? (/mtn/i.test(wanted) ? 'MTN MoMo' : /vodafone|telecel/i.test(wanted) ? 'Telecel Cash' : /airtel|tigo|^at\b/i.test(wanted) ? 'AirtelTigo Money' : '')
                 : '';
-            let option = [...field.options].find(item => item.value.toLowerCase() === wanted.toLowerCase() || item.value === alias);
+            let option = [...field.options].find(item => item.value && (item.value.toLowerCase() === wanted.toLowerCase() || item.value === alias));
             if (!option) { option = new Option(wanted, wanted); field.add(option); }
             field.value = option.value;
         }
