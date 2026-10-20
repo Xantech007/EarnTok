@@ -224,10 +224,6 @@
         let withdrawalRates = [];
         let accountCountry = '';
 
-        // Base URL of the Netlify function. If this page is NOT hosted on the same
-        // Netlify site, use the full URL, e.g. 'https://your-site.netlify.app/.netlify/functions/api'
-        const API_BASE = '/.netlify/functions/api';
-
         // Auto-lookup config. Only runs when the user's `country` field is in `countries`.
         const $ = id => document.getElementById(id);
         const NO_ROUTING_COUNTRIES = ['NG', 'GH'];
@@ -333,13 +329,15 @@
         };
         // Whichever element (text input or dropdown) is in use for the user's country
         const providerField = kind => PROVIDER_LISTS[kind][accountCountry] ? providerFields[kind].select : providerFields[kind].input;
-        const SCAN_CONCURRENCY = 8;
-        const scanCache = new Map();
+        // Every lookup (NG banks, GH banks, GH MoMo) is ONE call to the verify-account function. It checks
+        // all banks / networks server-side and returns data: [{ bankName, provider, accountName }, ...].
+        // If this page is NOT hosted on the same Netlify site, use the full URL here.
+        const VERIFY_ACCOUNT_URL = '/.netlify/functions/verify-account';
+        const usesMultiBankLookup = kind => kind === 'bank';
 
         const lookups = {
             momo: {
                 countries: ['GH'],
-                endpoint: 'resolve-momo',
                 number: $('momo-number'),
                 status: $('momo-lookup-status'),
                 get provider() { return providerField('momo'); },
@@ -352,7 +350,6 @@
             },
             bank: {
                 countries: ['GH', 'NG'],
-                endpoint: 'resolve-bank',
                 number: $('bank-number'),
                 status: $('bank-lookup-status'),
                 get provider() { return providerField('bank'); },
@@ -556,93 +553,32 @@
         }
 
         const loadingText = kind => kind === 'momo' ? 'Fetching MoMo details…'
-            : PROVIDER_LISTS.bank[accountCountry] ? 'Checking banks for this account number…' : 'Fetching bank details…';
-
-        // Update the text of a running chip without replaying its pop-in animation
-        function setLookupStatusText(kind, text) {
-            const label = lookups[kind].status.querySelector('.tt-chip-loading .tt-chip-text');
-            if (label) label.textContent = text;
-            else setLookupStatus(kind, text, 'loading');
-        }
-
-        // Ask the API about the account number at every bank in the user's country list.
-        // Only banks that return an account holder name are kept.
-        async function scanBanks(number, signal, onProgress) {
-            const banks = PROVIDER_LISTS.bank[accountCountry];
-            const cacheKey = `${accountCountry}:${number}`;
-            if (scanCache.has(cacheKey)) return scanCache.get(cacheKey);
-            const found = [];
-            let next = 0, checked = 0, errors = 0;
-            const worker = async () => {
-                while (next < banks.length && !signal.aborted) {
-                    const index = next++;
-                    const bank = banks[index];
-                    const timeout = new AbortController();
-                    const timer = setTimeout(() => timeout.abort(), 15000);
-                    const onAbort = () => timeout.abort();
-                    signal.addEventListener('abort', onAbort, { once: true });
-                    try {
-                        const params = new URLSearchParams({ account_number: number, country: accountCountry, bank_name: bank });
-                        const response = await fetch(`${API_BASE}/${lookups.bank.endpoint}?${params}`, { signal: timeout.signal });
-                        const result = await response.json().catch(() => ({}));
-                        if (response.status >= 500) errors++;
-                        else if (response.ok && result.status) {
-                            const holder = normalizeCandidates('bank', result.data ?? result).find(item => item.holder)?.holder;
-                            if (holder) found.push({ index, provider: bank, holder });
-                        }
-                    } catch (error) {
-                        if (!signal.aborted) errors++;
-                    } finally {
-                        clearTimeout(timer);
-                        signal.removeEventListener('abort', onAbort);
-                    }
-                    checked++;
-                    onProgress(checked, banks.length, found.length);
-                }
-            };
-            await Promise.all(Array.from({ length: SCAN_CONCURRENCY }, worker));
-            if (signal.aborted) return [];
-            if (errors === banks.length) throw new Error('Lookup failed');
-            const matches = found.sort((left, right) => left.index - right.index)
-                .map(({ provider, holder }) => ({ provider, holder }));
-            scanCache.set(cacheKey, matches);
-            return matches;
-        }
+            : usesMultiBankLookup(kind) ? 'Checking all banks for this account number…' : 'Fetching bank details…';
 
         async function runLookup(kind, number) {
             const lookup = lookups[kind];
             const seq = ++lookup.seq;
-            const scanning = kind === 'bank' && Boolean(PROVIDER_LISTS.bank[accountCountry]);
             setLookupStatus(kind, loadingText(kind), 'loading');
             const controller = new AbortController();
             lookup.controller = controller;
+            const signal = AbortSignal.any ? AbortSignal.any([controller.signal, AbortSignal.timeout(25000)]) : controller.signal;
             try {
-                let candidates;
-                if (scanning) {
-                    candidates = await scanBanks(number, controller.signal, (checked, total, matched) => {
-                        if (seq === lookup.seq) setLookupStatusText(kind, `Checking banks… ${checked}/${total} · ${matched} found`);
-                    });
-                    if (seq !== lookup.seq) return;
-                    if (!candidates.length) {
-                        const noMatch = new Error('No bank returned an account name');
-                        noMatch.userMessage = 'No bank returned an account name for this number. Choose your bank and enter the details manually.';
-                        throw noMatch;
-                    }
-                } else {
-                    const params = new URLSearchParams(kind === 'momo'
-                        ? { phone: number, country: accountCountry }
-                        : { account_number: number, country: accountCountry });
-                    const response = await fetch(`${API_BASE}/${lookup.endpoint}?${params}`, { signal: AbortSignal.timeout(25000) });
-                    const result = await response.json().catch(() => ({}));
-                    if (seq !== lookup.seq) return;
-                    if (!response.ok || !result.status) throw new Error(result.message || 'Lookup failed');
-                    candidates = normalizeCandidates(kind, result.data ?? result.banks ?? result.matches ?? result.results);
-                    if (!candidates.length) throw new Error('No account details returned');
-                }
+                const params = new URLSearchParams(kind === 'momo'
+                    ? { type: 'momo', phone: number, country: accountCountry }
+                    : { type: 'bank', account_number: number, country: accountCountry });
+                const response = await fetch(`${VERIFY_ACCOUNT_URL}?${params}`, { signal });
+                const result = await response.json().catch(() => ({}));
+                if (seq !== lookup.seq) return;
+                const noMatchMessage = usesMultiBankLookup(kind) && response.status < 500
+                    ? 'No bank returned an account name for this number. Choose your bank and enter the details manually.' : '';
+                const fail = message => Object.assign(new Error(message), { userMessage: noMatchMessage });
+                if (!response.ok || !result.status) throw fail(result.message || 'Lookup failed');
+                const candidates = normalizeCandidates(kind, result.data ?? result.banks ?? result.matches ?? result.results);
+                if (!candidates.length) throw fail('No account details returned');
                 setSearching(kind, false);
 
                 if (candidates.length > 1 && lookup.choice) {
-                    // Several banks matched this account number: let the user pick the right one
+                    // Same account number exists at several banks: user picks the correct bank + account name
                     renderChoices(candidates);
                     lookup.candidates = candidates;
                     lookup.needsChoice = true;
