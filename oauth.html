@@ -305,12 +305,14 @@
                         method: 'POST',
                         headers: {
                             'Authorization': `Bearer ${idToken}`,
-                            'Content-Type': 'application/json'
+                            'Content-Type': 'application/json',
+                            'Accept': 'application/json'
                         },
+                        cache: 'no-store',
                         body: JSON.stringify({ welcomeBonus })
                     });
-                    const emailResult = await emailResponse.json();
-                    if (!emailResponse.ok) {
+                    const emailResult = await emailResponse.json().catch(() => ({}));
+                    if (!emailResponse.ok || emailResult.sent !== true) {
                         throw new Error(emailResult.error || `Welcome email request failed (${emailResponse.status}).`);
                     }
                 } catch (emailError) {

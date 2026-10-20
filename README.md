@@ -4,7 +4,7 @@ EarnTok, watch to earn
 
 Registration detects a two-letter country code from the user's IP with a browser-locale fallback and saves it on `users/{uid}.country`. Location lookup is best-effort and does not prevent account creation.
 
-The welcome email is sent by the Netlify Function in `netlify/functions/send-welcome-email.js` after the registration transaction completes. Deploy the site on Netlify and configure `SMTP_HOST`, `SMTP_USER`, and `SMTP_PASS` as Netlify environment variables. `SMTP_PORT` defaults to `587`; optionally set `SMTP_SECURE` and `SMTP_FROM`. Never commit SMTP credentials. The function uses the hardcoded public site URL `https://earntok.online`, verifies the Firebase ID token, and reads the saved registration bonus and profile details from the new user's Firestore document before sending. Firestore rules must allow users to read their own `users/{uid}` document. Failed email delivery does not undo a successful registration.
+The welcome email is sent by the Netlify Function in `netlify/functions/send-welcome-email.js` after the registration transaction completes. Deploy the site on Netlify and configure `SMTP_USER` and `SMTP_PASS` as Netlify environment variables; `SMTP_HOST` defaults to `smtp.gmail.com` and `SMTP_PORT` defaults to `465` (Gmail SSL). Optionally set `SMTP_SECURE` and `SMTP_FROM`. Never commit SMTP credentials. The function uses the hardcoded public site URL `https://earntok.online`, verifies the Firebase ID token, and reads the saved registration bonus and profile details from the new user's Firestore document before sending. Firestore rules must allow users to read their own `users/{uid}` document. Failed email delivery does not undo a successful registration.
 
 ## Video feed and administration
 

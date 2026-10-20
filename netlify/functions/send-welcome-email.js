@@ -66,18 +66,20 @@ function getSiteUrl() {
 }
 
 function createTransport() {
-    const host = process.env.SMTP_HOST;
+    const host = process.env.SMTP_HOST || 'smtp.gmail.com';
     const user = process.env.SMTP_USER;
     const pass = process.env.SMTP_PASS;
-    const port = Number(process.env.SMTP_PORT || 587);
+    const port = Number(process.env.SMTP_PORT || 465);
     if (!host || !user || !pass || !Number.isInteger(port) || port < 1 || port > 65535) {
-        throw new Error('Configure SMTP_HOST, SMTP_USER, and SMTP_PASS; SMTP_PORT must be a valid port if set.');
+        throw new Error('Configure SMTP_USER and SMTP_PASS; SMTP_PORT must be a valid port if set.');
     }
     return {
         transport: nodemailer.createTransport({
             host,
             port,
-            secure: process.env.SMTP_SECURE === 'true' || port === 465,
+            secure: process.env.SMTP_SECURE === undefined
+                ? port === 465
+                : process.env.SMTP_SECURE === 'true',
             auth: { user, pass }
         }),
         from: process.env.SMTP_FROM || user
