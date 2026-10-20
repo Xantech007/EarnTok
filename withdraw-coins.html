@@ -71,9 +71,30 @@
         .tt-reveal > *:nth-child(2) { animation-delay: .09s; }
         .field.tt-glitch { animation: tt-glitch .6s ease-out, tt-ring .8s ease-out; }
         .tt-choice .field { border-color: var(--tt-red); animation: tt-ring 1.4s ease-out infinite; }
+        .tt-choice.tt-chosen .field { border-color: var(--tt-cyan); animation: none; }
+
+        /* Bank picker: bank + account holder per option */
+        @keyframes tt-drop { from { opacity: 0; transform: translateY(-8px) scale(.98); } to { opacity: 1; transform: none; } }
+        .tt-dd { position: relative; }
+        .tt-dd-btn { display: flex; align-items: center; justify-content: space-between; gap: .5rem; text-align: left; cursor: pointer; font-weight: 500; }
+        .tt-dd-value { display: flex; align-items: center; gap: .625rem; min-width: 0; }
+        .tt-dd-placeholder { color: #777782; }
+        .tt-dd-caret { flex: none; color: var(--tt-red); }
+        .tt-dd-btn[aria-expanded="true"] .tt-dd-caret { transform: rotate(180deg); }
+        .tt-dd-list { position: absolute; z-index: 15; left: 0; right: 0; top: calc(100% + .375rem); max-height: 17rem; overflow-y: auto; margin: 0; padding: .375rem; list-style: none; background: #fff; border: 1px solid #e4e4e8; border-radius: .875rem; box-shadow: 0 12px 32px rgb(22 24 35 / 16%), -2px 0 0 var(--tt-cyan), 2px 0 0 var(--tt-red); }
+        .tt-dd-list:not(.hidden) { animation: tt-drop .22s ease-out; }
+        .tt-dd-opt { display: flex; align-items: center; gap: .75rem; padding: .625rem .75rem; border-radius: .625rem; cursor: pointer; outline: none; }
+        .tt-dd-opt:hover, .tt-dd-opt:focus { background: #f8f8fa; box-shadow: inset 3px 0 0 var(--tt-red); }
+        .tt-dd-opt[aria-selected="true"] { background: #f0fffe; }
+        .tt-dd-tick { margin-left: auto; flex: none; color: #0a5e5a; opacity: 0; }
+        .tt-dd-opt[aria-selected="true"] .tt-dd-tick { opacity: 1; }
+        .tt-dd-text { display: flex; flex-direction: column; min-width: 0; line-height: 1.25; }
+        .tt-dd-text b { font-weight: 700; color: var(--tt-ink); font-size: .875rem; }
+        .tt-dd-text small { color: #777782; font-size: .75rem; font-weight: 500; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+        .tt-av { flex: none; display: grid; place-items: center; width: 2rem; height: 2rem; border-radius: 50%; background: var(--tt-ink); color: #fff; font-size: .8rem; font-weight: 800; box-shadow: -2px 0 0 var(--tt-cyan), 2px 0 0 var(--tt-red); }
 
         @media (prefers-reduced-motion: reduce) {
-            .tt-chip, .tt-chip *, .tt-chip::after, .tt-eq i, .tt-skel i, .tt-reveal > *, .field.tt-glitch, .field.tt-scanning, .tt-choice .field { animation: none !important; }
+            .tt-chip, .tt-chip *, .tt-chip::after, .tt-eq i, .tt-skel i, .tt-reveal > *, .field.tt-glitch, .field.tt-scanning, .tt-choice .field, .tt-dd-list { animation: none !important; }
             .tt-chip-success .tt-check { stroke-dashoffset: 0; }
             .tt-eq i { height: 8px; }
         }
@@ -123,7 +144,7 @@
                 </label>
             </div>
             <div id="momo-fields" class="hidden space-y-4">
-                <label class="block text-sm font-semibold text-zinc-700">Mobile money number
+                <label class="block text-sm font-semibold text-zinc-700">MoMo Number
                     <input id="momo-number" class="field mt-2" maxlength="50" autocomplete="tel" inputmode="tel">
                     <span id="momo-lookup-status" class="lookup-status" aria-live="polite"></span>
                 </label>
@@ -132,10 +153,10 @@
                     <div><i class="l"></i><i class="f"></i></div>
                 </div>
                 <div id="momo-details" class="space-y-4">
-                    <label class="block text-sm font-semibold text-zinc-700">Mobile money provider
+                    <label class="block text-sm font-semibold text-zinc-700">Network
                         <input id="momo-provider" class="field mt-2" maxlength="100" autocomplete="organization">
                     </label>
-                    <label class="block text-sm font-semibold text-zinc-700">Account holder name
+                    <label class="block text-sm font-semibold text-zinc-700">MoMo Name
                         <input id="momo-name" class="field mt-2" maxlength="120" autocomplete="name">
                     </label>
                 </div>
@@ -150,9 +171,14 @@
                     <div><i class="l"></i><i class="f"></i></div>
                 </div>
                 <div id="bank-choice-wrap" class="tt-choice tt-reveal hidden">
-                    <label class="block text-sm font-semibold text-zinc-700">Select your bank
-                        <select id="bank-choice" class="field mt-2"></select>
-                    </label>
+                    <span id="bank-choice-label" class="block text-sm font-semibold text-zinc-700">Select your bank &amp; account name</span>
+                    <div class="tt-dd mt-2">
+                        <button type="button" id="bank-choice" class="field tt-dd-btn" aria-haspopup="listbox" aria-expanded="false" aria-controls="bank-choice-list" aria-labelledby="bank-choice-label">
+                            <span id="bank-choice-value" class="tt-dd-value"></span>
+                            <svg class="tt-dd-caret" viewBox="0 0 20 20" width="18" height="18" aria-hidden="true"><path d="M5 8l5 5 5-5" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+                        </button>
+                        <ul id="bank-choice-list" class="tt-dd-list hidden" role="listbox" aria-labelledby="bank-choice-label"></ul>
+                    </div>
                 </div>
                 <div id="bank-details" class="space-y-4">
                     <label class="block text-sm font-semibold text-zinc-700">Bank name
@@ -228,6 +254,8 @@
                 skeleton: $('bank-skeleton'),
                 choiceWrap: $('bank-choice-wrap'),
                 choice: $('bank-choice'),
+                choiceList: $('bank-choice-list'),
+                choiceValue: $('bank-choice-value'),
                 candidates: [], needsChoice: false,
                 timer: null, seq: 0, pending: false, autofilled: false
             }
@@ -315,8 +343,10 @@
             lookup.provider.readOnly = false;
             lookup.holder.readOnly = false;
             if (lookup.choice) {
-                lookup.choice.innerHTML = '';
+                lookup.choiceList.innerHTML = '';
+                setChoiceOpen(false);
                 lookup.choiceWrap.classList.add('hidden');
+                lookup.choiceWrap.classList.remove('tt-chosen');
             }
             setSearching(kind, false);
             setDetailsVisible(kind, true);
@@ -336,23 +366,59 @@
             return value.length >= 10 && value.length <= 16 ? value : '';
         }
 
-        // Accepts a single object, or an array (directly, or under banks / accounts / matches)
+        // Accepts a single object, or an array (directly, or under banks / accounts / matches / results / data)
         function normalizeCandidates(kind, data) {
-            const list = Array.isArray(data) ? data
-                : Array.isArray(data?.banks) ? data.banks
-                : Array.isArray(data?.accounts) ? data.accounts
-                : Array.isArray(data?.matches) ? data.matches
-                : data ? [data] : [];
+            const nested = ['banks', 'accounts', 'matches', 'results', 'data'].map(key => data?.[key]).find(Array.isArray);
+            const list = Array.isArray(data) ? data : nested || (data ? [data] : []);
             const seen = new Set();
             return list.map(item => ({
-                provider: String((kind === 'momo' ? item.provider : item.bank_name) ?? item.bank_name ?? item.provider ?? '').trim(),
-                holder: String(item.account_name ?? '').trim()
+                provider: String(item?.bank_name ?? item?.bankName
+                    ?? (typeof item?.bank === 'string' ? item.bank : item?.bank?.name)
+                    ?? item?.provider ?? item?.network ?? '').trim(),
+                holder: String(item?.account_name ?? item?.accountName ?? item?.account_holder ?? item?.holder ?? '').trim()
             })).filter(item => {
                 const key = `${item.provider}|${item.holder}`.toLowerCase();
                 if ((!item.provider && !item.holder) || seen.has(key)) return false;
                 seen.add(key);
                 return true;
             });
+        }
+
+        // ----- Bank picker (same account number can exist at several banks, each with its own holder name) -----
+        const choiceRow = item => `<span class="tt-av" aria-hidden="true">${escapeHtml((item.provider || '?').trim().charAt(0).toUpperCase())}</span>`
+            + `<span class="tt-dd-text"><b>${escapeHtml(item.provider || 'Unknown bank')}</b><small>${escapeHtml(item.holder || 'No account name returned')}</small></span>`;
+
+        function setChoiceOpen(open) {
+            const lookup = lookups.bank;
+            lookup.choiceList.classList.toggle('hidden', !open);
+            lookup.choice.setAttribute('aria-expanded', String(open));
+            if (!open) return;
+            if (!reducedMotion.matches) replay(lookup.choiceList, 'tt-drop');
+            (lookup.choiceList.querySelector('[aria-selected="true"]') || lookup.choiceList.firstElementChild)?.focus();
+        }
+
+        function renderChoices(candidates) {
+            const lookup = lookups.bank;
+            lookup.choiceValue.className = 'tt-dd-value tt-dd-placeholder';
+            lookup.choiceValue.textContent = `Choose from ${candidates.length} matches…`;
+            lookup.choiceList.innerHTML = candidates.map((item, index) =>
+                `<li role="option" tabindex="-1" aria-selected="false" data-index="${index}" class="tt-dd-opt">${choiceRow(item)}<svg class="tt-dd-tick" viewBox="0 0 20 20" width="18" height="18" aria-hidden="true"><path d="M5 10.5l3.2 3.2L15 6.8" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></svg></li>`
+            ).join('');
+        }
+
+        function chooseCandidate(index) {
+            const lookup = lookups.bank;
+            const candidate = lookup.candidates[index];
+            if (!candidate) return;
+            lookup.choiceList.querySelectorAll('[role="option"]').forEach(option =>
+                option.setAttribute('aria-selected', String(Number(option.dataset.index) === index)));
+            lookup.choiceValue.className = 'tt-dd-value';
+            lookup.choiceValue.innerHTML = choiceRow(candidate);
+            lookup.choiceWrap.classList.add('tt-chosen');
+            setChoiceOpen(false);
+            lookup.choice.focus({ preventScroll: true });
+            applyCandidate('bank', candidate);
+            setLookupStatus('bank', 'Bank selected. Details filled in — you can still edit them.', 'success');
         }
 
         // Fill the fields, then reveal them. They stay editable.
@@ -370,7 +436,7 @@
         async function runLookup(kind, number) {
             const lookup = lookups[kind];
             const seq = ++lookup.seq;
-            setLookupStatus(kind, kind === 'momo' ? 'Fetching mobile money details…' : 'Fetching bank details…', 'loading');
+            setLookupStatus(kind, kind === 'momo' ? 'Fetching MoMo details…' : 'Fetching bank details…', 'loading');
             try {
                 const params = new URLSearchParams(kind === 'momo'
                     ? { phone: number, country: accountCountry }
@@ -379,7 +445,7 @@
                 const result = await response.json().catch(() => ({}));
                 if (seq !== lookup.seq) return;
                 if (!response.ok || !result.status) throw new Error(result.message || 'Lookup failed');
-                const candidates = normalizeCandidates(kind, result.data ?? result.banks);
+                const candidates = normalizeCandidates(kind, result.data ?? result.banks ?? result.matches ?? result.results);
                 if (!candidates.length) throw new Error('No account details returned');
                 setSearching(kind, false);
 
@@ -387,11 +453,10 @@
                     // Several banks matched this account number: let the user pick the right one
                     lookup.candidates = candidates;
                     lookup.needsChoice = true;
-                    lookup.choice.innerHTML = `<option value="">Choose from ${candidates.length} matches…</option>`
-                        + candidates.map((item, index) => `<option value="${index}">${escapeHtml(item.provider)}${item.holder ? ` · ${escapeHtml(item.holder)}` : ''}</option>`).join('');
-                    lookup.choiceWrap.classList.remove('hidden');
+                    renderChoices(candidates);
+                    lookup.choiceWrap.classList.remove('hidden', 'tt-chosen');
                     if (!reducedMotion.matches) replay(lookup.choiceWrap, 'tt-reveal');
-                    setLookupStatus(kind, `We found ${candidates.length} banks for this account number. Pick the correct one.`, 'info');
+                    setLookupStatus(kind, `We found ${candidates.length} banks for this account number. Pick the correct bank and account name.`, 'info');
                 } else {
                     applyCandidate(kind, candidates[0]);
                     setLookupStatus(kind, 'Account found. Details filled in — you can still edit them.', 'success');
@@ -417,7 +482,7 @@
             lookup.pending = true;
             setDetailsVisible(kind, false);
             setSearching(kind, true);
-            setLookupStatus(kind, kind === 'momo' ? 'Fetching mobile money details…' : 'Fetching bank details…', 'loading');
+            setLookupStatus(kind, kind === 'momo' ? 'Fetching MoMo details…' : 'Fetching bank details…', 'loading');
             lookup.timer = setTimeout(() => runLookup(kind, number), 500);
         }
 
@@ -425,20 +490,25 @@
             lookups[kind].number.addEventListener('input', () => scheduleLookup(kind));
         }
 
-        lookups.bank.choice.addEventListener('change', () => {
-            const lookup = lookups.bank;
-            const candidate = lookup.candidates[Number(lookup.choice.value)];
-            if (lookup.choice.value === '' || !candidate) {
-                lookup.needsChoice = true;
-                lookup.provider.value = '';
-                lookup.holder.value = '';
-                lookup.autofilled = false;
-                setDetailsVisible('bank', false);
-                setLookupStatus('bank', `We found ${lookup.candidates.length} banks for this account number. Pick the correct one.`, 'info');
-                return;
-            }
-            applyCandidate('bank', candidate);
-            setLookupStatus('bank', 'Bank selected. Details filled in — you can still edit them.', 'success');
+        lookups.bank.choice.addEventListener('click', () => setChoiceOpen(lookups.bank.choiceList.classList.contains('hidden')));
+        lookups.bank.choice.addEventListener('keydown', event => {
+            if (['ArrowDown', 'ArrowUp'].includes(event.key)) { event.preventDefault(); setChoiceOpen(true); }
+        });
+        lookups.bank.choiceList.addEventListener('click', event => {
+            const option = event.target.closest('[role="option"]');
+            if (option) chooseCandidate(Number(option.dataset.index));
+        });
+        lookups.bank.choiceList.addEventListener('keydown', event => {
+            const option = event.target.closest('[role="option"]');
+            if (!option) return;
+            if (event.key === 'ArrowDown') { event.preventDefault(); (option.nextElementSibling || option).focus(); }
+            else if (event.key === 'ArrowUp') { event.preventDefault(); (option.previousElementSibling || option).focus(); }
+            else if (event.key === 'Enter' || event.key === ' ') { event.preventDefault(); chooseCandidate(Number(option.dataset.index)); }
+            else if (event.key === 'Escape') { event.preventDefault(); setChoiceOpen(false); lookups.bank.choice.focus(); }
+            else if (event.key === 'Tab') setChoiceOpen(false);
+        });
+        document.addEventListener('click', event => {
+            if (!lookups.bank.choiceWrap.contains(event.target)) setChoiceOpen(false);
         });
 
         // Branch / routing code is not used for NG and GH accounts
