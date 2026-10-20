@@ -19,6 +19,7 @@
         .text-zinc-400, .text-zinc-500 { color: #777782 !important; }
         .border-zinc-800, .border-zinc-700 { border-color: #e4e4e8 !important; }
         .field { width: 100%; border: 1px solid #d8d8de; border-radius: .75rem; background: #fff; padding: .75rem .875rem; color: #161823; outline: none; }
+        .field[readonly] { background: #f8f8fa; color: #454550; cursor: not-allowed; }
         .field:focus { border-color: #fe2c55; box-shadow: 0 0 0 3px rgb(254 44 85 / 10%); }
     </style>
 </head>
@@ -66,25 +67,27 @@
                 </label>
             </div>
             <div id="momo-fields" class="hidden space-y-4">
+                <label class="block text-sm font-semibold text-zinc-700">Mobile money number
+                    <input id="momo-number" class="field mt-2" maxlength="50" autocomplete="tel" inputmode="tel">
+                    <span id="momo-lookup-status" class="mt-1 block text-xs font-normal text-zinc-500" aria-live="polite"></span>
+                </label>
                 <label class="block text-sm font-semibold text-zinc-700">Mobile money provider
                     <input id="momo-provider" class="field mt-2" maxlength="100" autocomplete="organization">
                 </label>
                 <label class="block text-sm font-semibold text-zinc-700">Account holder name
                     <input id="momo-name" class="field mt-2" maxlength="120" autocomplete="name">
                 </label>
-                <label class="block text-sm font-semibold text-zinc-700">Mobile money number
-                    <input id="momo-number" class="field mt-2" maxlength="50" autocomplete="tel">
-                </label>
             </div>
             <div id="bank-fields" class="hidden space-y-4">
+                <label class="block text-sm font-semibold text-zinc-700">Account number / IBAN
+                    <input id="bank-number" class="field mt-2" maxlength="100" autocomplete="off" inputmode="numeric">
+                    <span id="bank-lookup-status" class="mt-1 block text-xs font-normal text-zinc-500" aria-live="polite"></span>
+                </label>
                 <label class="block text-sm font-semibold text-zinc-700">Bank name
                     <input id="bank-name" class="field mt-2" maxlength="120" autocomplete="organization">
                 </label>
                 <label class="block text-sm font-semibold text-zinc-700">Account holder name
                     <input id="bank-holder" class="field mt-2" maxlength="120" autocomplete="name">
-                </label>
-                <label class="block text-sm font-semibold text-zinc-700">Account number / IBAN
-                    <input id="bank-number" class="field mt-2" maxlength="100" autocomplete="off">
                 </label>
                 <label class="block text-sm font-semibold text-zinc-700">Branch / routing code (optional)
                     <input id="bank-routing" class="field mt-2" maxlength="100" autocomplete="off">
@@ -118,6 +121,110 @@
         let accountUser = null;
         let accountBalance = 0;
         let withdrawalRates = [];
+        let accountCountry = '';
+
+        // Base URL of the Netlify function. If this page is NOT hosted on the same
+        // Netlify site, use the full URL, e.g. 'https://your-site.netlify.app/.netlify/functions/api'
+        const API_BASE = '/.netlify/functions/api';
+
+        // Auto-lookup config. Only runs when the user's `country` field is in `countries`.
+        const lookups = {
+            momo: {
+                countries: ['GH'],
+                endpoint: 'resolve-momo',
+                number: document.getElementById('momo-number'),
+                status: document.getElementById('momo-lookup-status'),
+                provider: document.getElementById('momo-provider'),
+                holder: document.getElementById('momo-name'),
+                timer: null, seq: 0, pending: false, autofilled: false
+            },
+            bank: {
+                countries: ['GH', 'NG'],
+                endpoint: 'resolve-bank',
+                number: document.getElementById('bank-number'),
+                status: document.getElementById('bank-lookup-status'),
+                provider: document.getElementById('bank-name'),
+                holder: document.getElementById('bank-holder'),
+                timer: null, seq: 0, pending: false, autofilled: false
+            }
+        };
+
+        function setLookupStatus(kind, text, tone = 'neutral') {
+            const el = lookups[kind].status;
+            el.textContent = text;
+            el.classList.remove('text-zinc-500', 'text-emerald-700', 'text-rose-600');
+            el.classList.add(tone === 'success' ? 'text-emerald-700' : tone === 'error' ? 'text-rose-600' : 'text-zinc-500');
+        }
+
+        // Cancel any in-flight lookup and unlock the fields (clearing them only if we filled them)
+        function resetLookup(kind) {
+            const lookup = lookups[kind];
+            lookup.seq++;
+            lookup.pending = false;
+            clearTimeout(lookup.timer);
+            if (lookup.autofilled) {
+                lookup.provider.value = '';
+                lookup.holder.value = '';
+                lookup.autofilled = false;
+            }
+            lookup.provider.readOnly = false;
+            lookup.holder.readOnly = false;
+            setLookupStatus(kind, '');
+        }
+
+        function normalizedLookupNumber(kind, raw) {
+            const value = raw.replace(/[\s-]/g, '');
+            if (kind === 'momo') {
+                let local = value;
+                if (local.startsWith('+233')) local = `0${local.slice(4)}`;
+                else if (local.startsWith('233') && local.length === 12) local = `0${local.slice(3)}`;
+                return /^0\d{9}$/.test(local) ? local : '';
+            }
+            if (!/^\d+$/.test(value)) return '';
+            if (accountCountry === 'NG') return value.length === 10 ? value : '';
+            return value.length >= 10 && value.length <= 16 ? value : '';
+        }
+
+        async function runLookup(kind, number) {
+            const lookup = lookups[kind];
+            const seq = ++lookup.seq;
+            setLookupStatus(kind, kind === 'momo' ? 'Looking up mobile money account…' : 'Looking up bank account…');
+            try {
+                const params = new URLSearchParams(kind === 'momo'
+                    ? { phone: number, country: accountCountry }
+                    : { account_number: number, country: accountCountry });
+                const response = await fetch(`${API_BASE}/${lookup.endpoint}?${params}`, { signal: AbortSignal.timeout(25000) });
+                const result = await response.json().catch(() => ({}));
+                if (seq !== lookup.seq) return;
+                if (!response.ok || !result.status) throw new Error(result.message || 'Lookup failed');
+                lookup.provider.value = kind === 'momo' ? result.data.provider : result.data.bank_name;
+                lookup.holder.value = result.data.account_name;
+                lookup.provider.readOnly = true;
+                lookup.holder.readOnly = true;
+                lookup.autofilled = true;
+                setLookupStatus(kind, 'Account found. Details filled in automatically.', 'success');
+            } catch (error) {
+                if (seq !== lookup.seq) return;
+                console.warn(`Automatic ${kind} lookup failed:`, error);
+                setLookupStatus(kind, 'We could not verify this account automatically. Please enter the details manually.', 'error');
+            } finally {
+                if (seq === lookup.seq) lookup.pending = false;
+            }
+        }
+
+        function scheduleLookup(kind) {
+            const lookup = lookups[kind];
+            resetLookup(kind);
+            if (!lookup.countries.includes(accountCountry)) return;
+            const number = normalizedLookupNumber(kind, lookup.number.value.trim());
+            if (!number) return;
+            lookup.pending = true;
+            lookup.timer = setTimeout(() => runLookup(kind, number), 500);
+        }
+
+        for (const kind of Object.keys(lookups)) {
+            lookups[kind].number.addEventListener('input', () => scheduleLookup(kind));
+        }
 
         function escapeHtml(value) {
             return String(value ?? '').replace(/[&<>"']/g, character => ({
@@ -250,6 +357,7 @@
             const rate = selectedRate();
             const coins = Number(coinInput.value);
             if (!accountUser) return showMessage('Sign in to request a withdrawal.', true);
+            if (lookups[method]?.pending) return showMessage('Please wait for the account lookup to finish.', true);
             if (!rate) return showMessage('Choose an available withdrawal currency.', true);
             if (!Number.isSafeInteger(coins) || coins < 1) return showMessage('Enter a positive whole number of coins.', true);
             const payoutAmount = coins * rate.ratePerCoin;
@@ -313,6 +421,8 @@
                 });
                 showMessage('Withdrawal submitted. The requested coins are reserved while admin reviews it.');
                 form.reset();
+                resetLookup('momo');
+                resetLookup('bank');
                 showMethodFields('');
                 renderCurrencyOptions();
                 accountBalance = updatedAvailableBalance;
@@ -343,6 +453,7 @@
                 const snapshot = await getDoc(userRefBase(user.uid));
                 if (!snapshot.exists()) throw new Error('Your account could not be found.');
                 const account = snapshot.data();
+                accountCountry = String(account.country || '').trim().toUpperCase();
                 accountBalance = Number(account.availableBalance ?? 0);
                 document.getElementById('withdraw-available').textContent = `Available balance: ${accountBalance.toLocaleString()} coins`;
                 if (account.verify !== 'yes') {
