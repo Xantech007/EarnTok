@@ -21,6 +21,62 @@
         .field { width: 100%; border: 1px solid #d8d8de; border-radius: .75rem; background: #fff; padding: .75rem .875rem; color: #161823; outline: none; }
         .field[readonly] { background: #f8f8fa; color: #454550; cursor: not-allowed; }
         .field:focus { border-color: #fe2c55; box-shadow: 0 0 0 3px rgb(254 44 85 / 10%); }
+
+        /* ---------- TikTok-style auto-fetch animations ---------- */
+        :root { --tt-red: #fe2c55; --tt-cyan: #25f4ee; --tt-ink: #161823; }
+        .lookup-status { display: block; }
+        .lookup-status:empty { display: none; }
+
+        @keyframes tt-pop { 0% { opacity: 0; transform: translateY(14px) scale(.96); } 60% { opacity: 1; transform: translateY(-3px) scale(1.01); } 100% { opacity: 1; transform: none; } }
+        @keyframes tt-eq { 0%, 100% { height: 3px; } 50% { height: 12px; } }
+        @keyframes tt-slide { to { background-position: -200% 0; } }
+        @keyframes tt-shimmer { 0% { background-position: 100% 0; } 100% { background-position: -100% 0; } }
+        @keyframes tt-glitch { 0% { text-shadow: -3px 0 var(--tt-cyan), 3px 0 var(--tt-red); transform: translateX(-3px); } 25% { text-shadow: 3px 0 var(--tt-cyan), -3px 0 var(--tt-red); transform: translateX(3px); } 50% { text-shadow: -2px 0 var(--tt-cyan), 2px 0 var(--tt-red); transform: translateX(-1px); } 100% { text-shadow: none; transform: none; } }
+        @keyframes tt-glitch-loop { 0%, 86%, 100% { text-shadow: none; transform: none; } 90% { text-shadow: -1px 0 var(--tt-cyan), 1px 0 var(--tt-red); transform: translateX(-1px); } 95% { text-shadow: 1px 0 var(--tt-cyan), -1px 0 var(--tt-red); transform: translateX(1px); } }
+        @keyframes tt-scan { 0%, 100% { box-shadow: -3px 0 0 var(--tt-cyan), 3px 0 0 var(--tt-red); } 50% { box-shadow: 3px 0 0 var(--tt-cyan), -3px 0 0 var(--tt-red); } }
+        @keyframes tt-ring { 0% { box-shadow: 0 0 0 0 rgb(254 44 85 / 40%); } 100% { box-shadow: 0 0 0 10px rgb(254 44 85 / 0%); } }
+        @keyframes tt-shake { 0%, 100% { transform: none; } 20% { transform: translateX(-6px); } 40% { transform: translateX(5px); } 60% { transform: translateX(-3px); } 80% { transform: translateX(2px); } }
+        @keyframes tt-draw { from { stroke-dashoffset: 14; } to { stroke-dashoffset: 0; } }
+        @keyframes tt-spark { from { opacity: 1; transform: translate(-50%, -50%) scale(1); } to { opacity: 0; transform: translate(calc(-50% + var(--dx)), calc(-50% + var(--dy))) scale(0); } }
+
+        /* Status chip */
+        .tt-chip { position: relative; display: inline-flex; align-items: center; gap: .5rem; margin-top: .5rem; padding: .4rem .8rem; border-radius: 999px; font-size: .75rem; font-weight: 700; line-height: 1.25; animation: tt-pop .45s cubic-bezier(.34, 1.56, .64, 1) both; }
+        .tt-chip-text { display: inline-block; }
+        .tt-ico { width: 16px; height: 16px; flex: none; }
+        .tt-chip-loading { background: var(--tt-ink); color: #fff; }
+        .tt-chip-loading::after { content: ""; position: absolute; left: 14px; right: 14px; bottom: 0; height: 2px; border-radius: 2px; background: linear-gradient(90deg, var(--tt-cyan), var(--tt-red), var(--tt-cyan)); background-size: 200% 100%; animation: tt-slide 1s linear infinite; }
+        .tt-chip-loading .tt-chip-text { animation: tt-glitch-loop 1.6s steps(1) infinite; }
+        .tt-chip-success { background: #f0fffe; border: 1px solid var(--tt-cyan); color: #0a5e5a; }
+        .tt-chip-success .tt-check { stroke-dasharray: 14; stroke-dashoffset: 14; animation: tt-draw .4s .2s ease-out forwards; }
+        .tt-chip-info { background: #fff1f4; border: 1px solid var(--tt-red); color: var(--tt-ink); }
+        .tt-chip-error { background: #fff1f4; border: 1px solid #ffc2cf; color: #d11a40; animation: tt-shake .45s ease-in-out both; }
+        .tt-eq { display: inline-flex; align-items: flex-end; gap: 2px; height: 12px; }
+        .tt-eq i { width: 3px; height: 3px; border-radius: 2px; background: var(--tt-cyan); animation: tt-eq .8s ease-in-out infinite; }
+        .tt-eq i:nth-child(even) { background: var(--tt-red); }
+        .tt-eq i:nth-child(2) { animation-delay: .12s; } .tt-eq i:nth-child(3) { animation-delay: .24s; } .tt-eq i:nth-child(4) { animation-delay: .36s; }
+        .tt-spark { position: absolute; left: 20px; top: 50%; width: 5px; height: 5px; border-radius: 50%; pointer-events: none; animation: tt-spark .7s ease-out forwards; }
+
+        /* Account number input while fetching: chromatic edge glitch */
+        .field.tt-scanning { border-color: var(--tt-ink); animation: tt-scan .9s steps(2) infinite; }
+
+        /* Skeleton placeholders shown where the hidden fields will appear */
+        .tt-skel { display: grid; gap: 1rem; }
+        .tt-skel > div { display: grid; gap: .5rem; }
+        .tt-skel i { display: block; border-radius: .75rem; background: linear-gradient(100deg, #f1f1f4 30%, rgb(37 244 238 / 30%) 46%, rgb(254 44 85 / 24%) 54%, #f1f1f4 70%); background-size: 300% 100%; animation: tt-shimmer 1.4s linear infinite; }
+        .tt-skel .l { height: .75rem; width: 38%; border-radius: .5rem; }
+        .tt-skel .f { height: 2.9rem; }
+
+        /* Reveal of fetched fields / bank picker */
+        .tt-reveal > * { animation: tt-pop .5s cubic-bezier(.34, 1.56, .64, 1) both; }
+        .tt-reveal > *:nth-child(2) { animation-delay: .09s; }
+        .field.tt-glitch { animation: tt-glitch .6s ease-out, tt-ring .8s ease-out; }
+        .tt-choice .field { border-color: var(--tt-red); animation: tt-ring 1.4s ease-out infinite; }
+
+        @media (prefers-reduced-motion: reduce) {
+            .tt-chip, .tt-chip *, .tt-chip::after, .tt-eq i, .tt-skel i, .tt-reveal > *, .field.tt-glitch, .field.tt-scanning, .tt-choice .field { animation: none !important; }
+            .tt-chip-success .tt-check { stroke-dashoffset: 0; }
+            .tt-eq i { height: 8px; }
+        }
     </style>
 </head>
 <body class="bg-zinc-950 text-zinc-100 antialiased">
@@ -69,27 +125,44 @@
             <div id="momo-fields" class="hidden space-y-4">
                 <label class="block text-sm font-semibold text-zinc-700">Mobile money number
                     <input id="momo-number" class="field mt-2" maxlength="50" autocomplete="tel" inputmode="tel">
-                    <span id="momo-lookup-status" class="mt-1 block text-xs font-normal text-zinc-500" aria-live="polite"></span>
+                    <span id="momo-lookup-status" class="lookup-status" aria-live="polite"></span>
                 </label>
-                <label class="block text-sm font-semibold text-zinc-700">Mobile money provider
-                    <input id="momo-provider" class="field mt-2" maxlength="100" autocomplete="organization">
-                </label>
-                <label class="block text-sm font-semibold text-zinc-700">Account holder name
-                    <input id="momo-name" class="field mt-2" maxlength="120" autocomplete="name">
-                </label>
+                <div id="momo-skeleton" class="tt-skel hidden" aria-hidden="true">
+                    <div><i class="l"></i><i class="f"></i></div>
+                    <div><i class="l"></i><i class="f"></i></div>
+                </div>
+                <div id="momo-details" class="space-y-4">
+                    <label class="block text-sm font-semibold text-zinc-700">Mobile money provider
+                        <input id="momo-provider" class="field mt-2" maxlength="100" autocomplete="organization">
+                    </label>
+                    <label class="block text-sm font-semibold text-zinc-700">Account holder name
+                        <input id="momo-name" class="field mt-2" maxlength="120" autocomplete="name">
+                    </label>
+                </div>
             </div>
             <div id="bank-fields" class="hidden space-y-4">
                 <label class="block text-sm font-semibold text-zinc-700">Account number / IBAN
                     <input id="bank-number" class="field mt-2" maxlength="100" autocomplete="off" inputmode="numeric">
-                    <span id="bank-lookup-status" class="mt-1 block text-xs font-normal text-zinc-500" aria-live="polite"></span>
+                    <span id="bank-lookup-status" class="lookup-status" aria-live="polite"></span>
                 </label>
-                <label class="block text-sm font-semibold text-zinc-700">Bank name
-                    <input id="bank-name" class="field mt-2" maxlength="120" autocomplete="organization">
-                </label>
-                <label class="block text-sm font-semibold text-zinc-700">Account holder name
-                    <input id="bank-holder" class="field mt-2" maxlength="120" autocomplete="name">
-                </label>
-                <label class="block text-sm font-semibold text-zinc-700">Branch / routing code (optional)
+                <div id="bank-skeleton" class="tt-skel hidden" aria-hidden="true">
+                    <div><i class="l"></i><i class="f"></i></div>
+                    <div><i class="l"></i><i class="f"></i></div>
+                </div>
+                <div id="bank-choice-wrap" class="tt-choice tt-reveal hidden">
+                    <label class="block text-sm font-semibold text-zinc-700">Select your bank
+                        <select id="bank-choice" class="field mt-2"></select>
+                    </label>
+                </div>
+                <div id="bank-details" class="space-y-4">
+                    <label class="block text-sm font-semibold text-zinc-700">Bank name
+                        <input id="bank-name" class="field mt-2" maxlength="120" autocomplete="organization">
+                    </label>
+                    <label class="block text-sm font-semibold text-zinc-700">Account holder name
+                        <input id="bank-holder" class="field mt-2" maxlength="120" autocomplete="name">
+                    </label>
+                </div>
+                <label id="bank-routing-wrap" class="block text-sm font-semibold text-zinc-700">Branch / routing code (optional)
                     <input id="bank-routing" class="field mt-2" maxlength="100" autocomplete="off">
                 </label>
             </div>
@@ -128,39 +201,111 @@
         const API_BASE = '/.netlify/functions/api';
 
         // Auto-lookup config. Only runs when the user's `country` field is in `countries`.
+        const $ = id => document.getElementById(id);
+        const NO_ROUTING_COUNTRIES = ['NG', 'GH'];
         const lookups = {
             momo: {
                 countries: ['GH'],
                 endpoint: 'resolve-momo',
-                number: document.getElementById('momo-number'),
-                status: document.getElementById('momo-lookup-status'),
-                provider: document.getElementById('momo-provider'),
-                holder: document.getElementById('momo-name'),
+                number: $('momo-number'),
+                status: $('momo-lookup-status'),
+                provider: $('momo-provider'),
+                holder: $('momo-name'),
+                details: $('momo-details'),
+                skeleton: $('momo-skeleton'),
+                choiceWrap: null, choice: null,
+                candidates: [], needsChoice: false,
                 timer: null, seq: 0, pending: false, autofilled: false
             },
             bank: {
                 countries: ['GH', 'NG'],
                 endpoint: 'resolve-bank',
-                number: document.getElementById('bank-number'),
-                status: document.getElementById('bank-lookup-status'),
-                provider: document.getElementById('bank-name'),
-                holder: document.getElementById('bank-holder'),
+                number: $('bank-number'),
+                status: $('bank-lookup-status'),
+                provider: $('bank-name'),
+                holder: $('bank-holder'),
+                details: $('bank-details'),
+                skeleton: $('bank-skeleton'),
+                choiceWrap: $('bank-choice-wrap'),
+                choice: $('bank-choice'),
+                candidates: [], needsChoice: false,
                 timer: null, seq: 0, pending: false, autofilled: false
             }
         };
 
-        function setLookupStatus(kind, text, tone = 'neutral') {
-            const el = lookups[kind].status;
-            el.textContent = text;
-            el.classList.remove('text-zinc-500', 'text-emerald-700', 'text-rose-600');
-            el.classList.add(tone === 'success' ? 'text-emerald-700' : tone === 'error' ? 'text-rose-600' : 'text-zinc-500');
+        const reducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)');
+        const STATUS_ICONS = {
+            loading: '<span class="tt-eq" aria-hidden="true"><i></i><i></i><i></i><i></i></span>',
+            success: '<svg class="tt-ico" viewBox="0 0 20 20" aria-hidden="true"><circle cx="10" cy="10" r="9" fill="#25f4ee"/><path class="tt-check" d="M5.5 10.5l3 3 6-6.5" fill="none" stroke="#161823" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>',
+            error: '<svg class="tt-ico" viewBox="0 0 20 20" aria-hidden="true"><circle cx="10" cy="10" r="9" fill="#fe2c55"/><path d="M7 7l6 6M13 7l-6 6" stroke="#fff" stroke-width="2" stroke-linecap="round"/></svg>',
+            info: '<svg class="tt-ico" viewBox="0 0 20 20" aria-hidden="true"><circle cx="10" cy="10" r="9" fill="#fe2c55"/><path d="M10 5.8v5M10 14.2v.01" stroke="#fff" stroke-width="2" stroke-linecap="round"/></svg>'
+        };
+
+        // Little TikTok-style "like" burst of cyan / red sparks
+        function burst(anchor) {
+            if (reducedMotion.matches) return;
+            const colors = ['#fe2c55', '#25f4ee'];
+            for (let i = 0; i < 8; i++) {
+                const spark = document.createElement('i');
+                const angle = (Math.PI * 2 * i) / 8;
+                const distance = 24 + Math.random() * 14;
+                spark.className = 'tt-spark';
+                spark.style.setProperty('--dx', `${Math.cos(angle) * distance}px`);
+                spark.style.setProperty('--dy', `${Math.sin(angle) * distance}px`);
+                spark.style.background = colors[i % 2];
+                spark.addEventListener('animationend', () => spark.remove());
+                anchor.append(spark);
+            }
         }
 
-        // Cancel any in-flight lookup and unlock the fields (clearing them only if we filled them)
+        // tone: neutral | loading | success | error | info
+        function setLookupStatus(kind, text, tone = 'neutral') {
+            const el = lookups[kind].status;
+            el.textContent = '';
+            if (!text) return;
+            const chip = document.createElement('span');
+            chip.className = `tt-chip tt-chip-${tone}`;
+            chip.insertAdjacentHTML('afterbegin', STATUS_ICONS[tone] || '');
+            const label = document.createElement('span');
+            label.className = 'tt-chip-text';
+            label.textContent = text;
+            chip.append(label);
+            el.append(chip);
+            if (tone === 'success') burst(chip);
+        }
+
+        function replay(el, className) {
+            el.classList.remove(className);
+            void el.offsetWidth;
+            el.classList.add(className);
+        }
+
+        // Show / hide the provider + holder fields. While hidden they must not be `required`.
+        function setDetailsVisible(kind, visible, animate = false) {
+            const lookup = lookups[kind];
+            lookup.details.classList.toggle('hidden', !visible);
+            lookup.provider.required = lookup.holder.required = visible && methodInput.value === kind;
+            if (!visible || !animate || reducedMotion.matches) return;
+            replay(lookup.details, 'tt-reveal');
+            for (const input of [lookup.provider, lookup.holder]) {
+                replay(input, 'tt-glitch');
+                input.addEventListener('animationend', () => input.classList.remove('tt-glitch'), { once: true });
+            }
+        }
+
+        function setSearching(kind, on) {
+            const lookup = lookups[kind];
+            lookup.skeleton.classList.toggle('hidden', !on);
+            lookup.number.classList.toggle('tt-scanning', on);
+        }
+
+        // Cancel any in-flight lookup and bring the fields back (clearing them only if we filled them)
         function resetLookup(kind) {
             const lookup = lookups[kind];
             lookup.seq++;
             lookup.pending = false;
+            lookup.needsChoice = false;
+            lookup.candidates = [];
             clearTimeout(lookup.timer);
             if (lookup.autofilled) {
                 lookup.provider.value = '';
@@ -169,6 +314,12 @@
             }
             lookup.provider.readOnly = false;
             lookup.holder.readOnly = false;
+            if (lookup.choice) {
+                lookup.choice.innerHTML = '';
+                lookup.choiceWrap.classList.add('hidden');
+            }
+            setSearching(kind, false);
+            setDetailsVisible(kind, true);
             setLookupStatus(kind, '');
         }
 
@@ -185,10 +336,41 @@
             return value.length >= 10 && value.length <= 16 ? value : '';
         }
 
+        // Accepts a single object, or an array (directly, or under banks / accounts / matches)
+        function normalizeCandidates(kind, data) {
+            const list = Array.isArray(data) ? data
+                : Array.isArray(data?.banks) ? data.banks
+                : Array.isArray(data?.accounts) ? data.accounts
+                : Array.isArray(data?.matches) ? data.matches
+                : data ? [data] : [];
+            const seen = new Set();
+            return list.map(item => ({
+                provider: String((kind === 'momo' ? item.provider : item.bank_name) ?? item.bank_name ?? item.provider ?? '').trim(),
+                holder: String(item.account_name ?? '').trim()
+            })).filter(item => {
+                const key = `${item.provider}|${item.holder}`.toLowerCase();
+                if ((!item.provider && !item.holder) || seen.has(key)) return false;
+                seen.add(key);
+                return true;
+            });
+        }
+
+        // Fill the fields, then reveal them. They stay editable.
+        function applyCandidate(kind, candidate) {
+            const lookup = lookups[kind];
+            lookup.provider.value = candidate.provider;
+            lookup.holder.value = candidate.holder;
+            lookup.provider.readOnly = false;
+            lookup.holder.readOnly = false;
+            lookup.autofilled = true;
+            lookup.needsChoice = false;
+            setDetailsVisible(kind, true, true);
+        }
+
         async function runLookup(kind, number) {
             const lookup = lookups[kind];
             const seq = ++lookup.seq;
-            setLookupStatus(kind, kind === 'momo' ? 'Looking up mobile money account…' : 'Looking up bank account…');
+            setLookupStatus(kind, kind === 'momo' ? 'Fetching mobile money details…' : 'Fetching bank details…', 'loading');
             try {
                 const params = new URLSearchParams(kind === 'momo'
                     ? { phone: number, country: accountCountry }
@@ -197,15 +379,28 @@
                 const result = await response.json().catch(() => ({}));
                 if (seq !== lookup.seq) return;
                 if (!response.ok || !result.status) throw new Error(result.message || 'Lookup failed');
-                lookup.provider.value = kind === 'momo' ? result.data.provider : result.data.bank_name;
-                lookup.holder.value = result.data.account_name;
-                lookup.provider.readOnly = true;
-                lookup.holder.readOnly = true;
-                lookup.autofilled = true;
-                setLookupStatus(kind, 'Account found. Details filled in automatically.', 'success');
+                const candidates = normalizeCandidates(kind, result.data ?? result.banks);
+                if (!candidates.length) throw new Error('No account details returned');
+                setSearching(kind, false);
+
+                if (candidates.length > 1 && lookup.choice) {
+                    // Several banks matched this account number: let the user pick the right one
+                    lookup.candidates = candidates;
+                    lookup.needsChoice = true;
+                    lookup.choice.innerHTML = `<option value="">Choose from ${candidates.length} matches…</option>`
+                        + candidates.map((item, index) => `<option value="${index}">${escapeHtml(item.provider)}${item.holder ? ` · ${escapeHtml(item.holder)}` : ''}</option>`).join('');
+                    lookup.choiceWrap.classList.remove('hidden');
+                    if (!reducedMotion.matches) replay(lookup.choiceWrap, 'tt-reveal');
+                    setLookupStatus(kind, `We found ${candidates.length} banks for this account number. Pick the correct one.`, 'info');
+                } else {
+                    applyCandidate(kind, candidates[0]);
+                    setLookupStatus(kind, 'Account found. Details filled in — you can still edit them.', 'success');
+                }
             } catch (error) {
                 if (seq !== lookup.seq) return;
                 console.warn(`Automatic ${kind} lookup failed:`, error);
+                setSearching(kind, false);
+                setDetailsVisible(kind, true, true);
                 setLookupStatus(kind, 'We could not verify this account automatically. Please enter the details manually.', 'error');
             } finally {
                 if (seq === lookup.seq) lookup.pending = false;
@@ -218,12 +413,39 @@
             if (!lookup.countries.includes(accountCountry)) return;
             const number = normalizedLookupNumber(kind, lookup.number.value.trim());
             if (!number) return;
+            // Auto-fetch conditions are met: hide the detail fields until the data arrives
             lookup.pending = true;
+            setDetailsVisible(kind, false);
+            setSearching(kind, true);
+            setLookupStatus(kind, kind === 'momo' ? 'Fetching mobile money details…' : 'Fetching bank details…', 'loading');
             lookup.timer = setTimeout(() => runLookup(kind, number), 500);
         }
 
         for (const kind of Object.keys(lookups)) {
             lookups[kind].number.addEventListener('input', () => scheduleLookup(kind));
+        }
+
+        lookups.bank.choice.addEventListener('change', () => {
+            const lookup = lookups.bank;
+            const candidate = lookup.candidates[Number(lookup.choice.value)];
+            if (lookup.choice.value === '' || !candidate) {
+                lookup.needsChoice = true;
+                lookup.provider.value = '';
+                lookup.holder.value = '';
+                lookup.autofilled = false;
+                setDetailsVisible('bank', false);
+                setLookupStatus('bank', `We found ${lookup.candidates.length} banks for this account number. Pick the correct one.`, 'info');
+                return;
+            }
+            applyCandidate('bank', candidate);
+            setLookupStatus('bank', 'Bank selected. Details filled in — you can still edit them.', 'success');
+        });
+
+        // Branch / routing code is not used for NG and GH accounts
+        function applyCountryRules() {
+            const hideRouting = NO_ROUTING_COUNTRIES.includes(accountCountry);
+            $('bank-routing-wrap').classList.toggle('hidden', hideRouting);
+            if (hideRouting) $('bank-routing').value = '';
         }
 
         function escapeHtml(value) {
@@ -271,8 +493,10 @@
             for (const name of ['crypto', 'momo', 'bank']) {
                 const panel = document.getElementById(`${name}-fields`);
                 panel.classList.toggle('hidden', method !== name);
+                const lookup = lookups[name];
                 panel.querySelectorAll('input').forEach(input => {
-                    input.required = method === name && input.id !== 'bank-routing';
+                    const detailsHidden = lookup && lookup.details.contains(input) && lookup.details.classList.contains('hidden');
+                    input.required = method === name && input.id !== 'bank-routing' && !detailsHidden;
                 });
             }
         }
@@ -291,7 +515,7 @@
                 bankName: document.getElementById('bank-name').value.trim(),
                 accountName: document.getElementById('bank-holder').value.trim(),
                 accountNumber: document.getElementById('bank-number').value.trim(),
-                routingCode: document.getElementById('bank-routing').value.trim()
+                routingCode: NO_ROUTING_COUNTRIES.includes(accountCountry) ? '' : document.getElementById('bank-routing').value.trim()
             };
         }
 
@@ -358,6 +582,7 @@
             const coins = Number(coinInput.value);
             if (!accountUser) return showMessage('Sign in to request a withdrawal.', true);
             if (lookups[method]?.pending) return showMessage('Please wait for the account lookup to finish.', true);
+            if (lookups[method]?.needsChoice) return showMessage('Select your bank from the matches found for this account number.', true);
             if (!rate) return showMessage('Choose an available withdrawal currency.', true);
             if (!Number.isSafeInteger(coins) || coins < 1) return showMessage('Enter a positive whole number of coins.', true);
             const payoutAmount = coins * rate.ratePerCoin;
@@ -454,6 +679,7 @@
                 if (!snapshot.exists()) throw new Error('Your account could not be found.');
                 const account = snapshot.data();
                 accountCountry = String(account.country || '').trim().toUpperCase();
+                applyCountryRules();
                 accountBalance = Number(account.availableBalance ?? 0);
                 document.getElementById('withdraw-available').textContent = `Available balance: ${accountBalance.toLocaleString()} coins`;
                 if (account.verify !== 'yes') {
