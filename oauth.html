@@ -28,6 +28,15 @@
         .field { background: #fff; border-color: #d8d8de; color: #161823; }
         .tab-active { color: #161823; }
         button.bg-rose-500.text-white { color: #fff !important; }
+        #auth-processing { background: rgb(22 24 35 / 68%); backdrop-filter: blur(5px); }
+        .auth-spinner { position: relative; height: 3.5rem; width: 3.5rem; }
+        .auth-spinner::before, .auth-spinner::after { position: absolute; inset: 0; border: 4px solid transparent; border-radius: 9999px; content: ""; }
+        .auth-spinner::before { border-top-color: #fe2c55; border-bottom-color: #fe2c55; animation: auth-spin .85s linear infinite; }
+        .auth-spinner::after { inset: 7px; border-left-color: #25f4ee; border-right-color: #25f4ee; animation: auth-spin .65s linear infinite reverse; }
+        @keyframes auth-spin { to { transform: rotate(360deg); } }
+        @keyframes auth-pulse { 50% { opacity: .45; transform: scale(.92); } }
+        .auth-processing-logo { animation: auth-pulse 1.2s ease-in-out infinite; }
+        @media (prefers-reduced-motion: reduce) { .auth-spinner::before, .auth-spinner::after, .auth-processing-logo { animation-duration: 2.5s; } }
     </style>
 </head>
 <body class="bg-zinc-950 text-zinc-100 antialiased">
@@ -88,8 +97,18 @@
             </form>
             <p id="form-message" class="mt-5 hidden rounded-xl border p-3 text-sm" role="status"></p>
             <p class="mt-6 text-center text-xs leading-5 text-zinc-500">By continuing, you agree to use EarnTok respectfully. Your account information is securely stored.</p>
+            <p class="mt-4 text-center text-sm text-zinc-600">New to EarnTok? <a href="./about-us.html" class="font-bold text-rose-500 underline decoration-rose-200 underline-offset-4 hover:text-rose-600">Learn about our community and how the platform works.</a></p>
+            <p class="mt-3 text-center text-sm text-zinc-600">Prefer another language? <button type="button" data-open-translator class="font-bold text-rose-500 underline decoration-rose-200 underline-offset-4 hover:text-rose-600">Choose a language</button></p>
         </section>
     </main>
+    <div id="auth-processing" class="fixed inset-0 z-50 hidden items-center justify-center p-5" role="status" aria-live="polite" aria-hidden="true">
+        <section class="w-full max-w-xs rounded-3xl border border-zinc-200 bg-white p-7 text-center shadow-2xl">
+            <img src="./earntok-logo.png" class="auth-processing-logo mx-auto h-12 w-12 object-contain" alt="">
+            <div class="auth-spinner mx-auto mt-5" aria-hidden="true"></div>
+            <p id="auth-processing-title" class="mt-5 text-lg font-bold text-zinc-900">Connecting you to EarnTok…</p>
+            <p class="mt-2 text-sm text-zinc-500">Please keep this page open for a moment.</p>
+        </section>
+    </div>
 
     <script type="module">
         import { auth, db } from './firebase.js';
@@ -107,10 +126,19 @@
         const loginForm = document.getElementById('login-panel');
         const registerForm = document.getElementById('register-panel');
         const message = document.getElementById('form-message');
+        const processing = document.getElementById('auth-processing');
+        const processingTitle = document.getElementById('auth-processing-title');
         const countryDetectionStatus = document.getElementById('country-detection-status');
         const returnTo = new URLSearchParams(location.search).get('returnTo');
         const FIREBASE_PROJECT_ID = 'earntok-c08e3';
         let detectedCountry = '';
+
+        function setProcessing(active, title = 'Connecting you to EarnTok…') {
+            processingTitle.textContent = title;
+            processing.classList.toggle('hidden', !active);
+            processing.classList.toggle('flex', active);
+            processing.setAttribute('aria-hidden', String(!active));
+        }
 
         function getLocaleCountry() {
             try {
@@ -194,6 +222,8 @@
             event.preventDefault();
             const button = loginForm.querySelector('button[type="submit"]');
             button.disabled = true;
+            message.classList.add('hidden');
+            setProcessing(true, 'Signing you in…');
             button.innerHTML = '<i data-lucide="loader" class="h-4 w-4 shrink-0 animate-spin" aria-hidden="true"></i><span>Signing in…</span>';
             lucide.createIcons();
             try {
@@ -205,6 +235,7 @@
                 console.error('Login failed:', error);
                 showMessage(authError(error));
             } finally {
+                setProcessing(false);
                 button.disabled = false;
                 button.innerHTML = '<i data-lucide="log-in" class="h-4 w-4 shrink-0" aria-hidden="true"></i><span>Log in</span>';
                 lucide.createIcons();
@@ -232,6 +263,8 @@
             }
 
             button.disabled = true;
+            message.classList.add('hidden');
+            setProcessing(true, 'Creating your account…');
             button.innerHTML = '<i data-lucide="loader" class="mr-2 h-4 w-4 animate-spin inline-block"></i> Creating account…';
             lucide.createIcons();
             let createdUser = null;
@@ -333,11 +366,13 @@
                 }
                 showMessage(authError(error));
             } finally {
+                setProcessing(false);
                 button.disabled = false;
                 button.innerHTML = '<i data-lucide="user-plus" class="h-4 w-4 shrink-0" aria-hidden="true"></i><span>Create account</span>';
                 lucide.createIcons();
             }
         });
     </script>
+    <script type="module" src="./translator.js"></script>
 </body>
 </html>

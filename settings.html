@@ -62,11 +62,37 @@
                 <button id="settings-save" class="inline-flex w-full items-center justify-center rounded-xl bg-rose-500 px-5 py-3 font-bold text-white transition hover:bg-rose-600 disabled:cursor-wait disabled:opacity-60 sm:w-auto" type="submit">Save changes</button>
             </form>
         </section>
+        <section class="mt-6 rounded-3xl bg-zinc-900/70 p-6 shadow-sm sm:p-8">
+            <div class="mb-6">
+                <p class="text-sm font-semibold text-zinc-500">Security</p>
+                <h2 class="mt-1 text-2xl font-bold">Password</h2>
+                <p id="password-help" class="mt-2 text-sm text-zinc-500">Choose a strong password you do not use elsewhere.</p>
+            </div>
+            <p id="password-message" class="mb-4 hidden rounded-xl border p-3 text-sm" role="status"></p>
+            <form id="password-form" class="space-y-5">
+                <label id="current-password-wrap" class="block text-sm font-semibold text-zinc-700">
+                    Current password
+                    <input id="current-password" class="field mt-2" type="password" autocomplete="current-password">
+                </label>
+                <label class="block text-sm font-semibold text-zinc-700">
+                    New password
+                    <input id="new-password" class="field mt-2" type="password" autocomplete="new-password" minlength="8" required>
+                </label>
+                <label class="block text-sm font-semibold text-zinc-700">
+                    Confirm new password
+                    <input id="confirm-password" class="field mt-2" type="password" autocomplete="new-password" minlength="8" required>
+                </label>
+                <button id="password-save" class="inline-flex w-full items-center justify-center rounded-xl bg-rose-500 px-5 py-3 font-bold text-white transition hover:bg-rose-600 disabled:cursor-wait disabled:opacity-60 sm:w-auto" type="submit">Update password</button>
+            </form>
+        </section>
     </main>
     <script type="module">
         import { auth, db } from './firebase.js';
         import { enableHistoryBack } from './navigation.js';
-        import { onAuthStateChanged, updateEmail } from 'https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js';
+        import {
+            EmailAuthProvider, linkWithCredential, onAuthStateChanged, reauthenticateWithCredential,
+            updateEmail, updatePassword
+        } from 'https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js';
         import { doc, getDoc, updateDoc } from 'https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js';
 
         lucide.createIcons();
@@ -74,6 +100,9 @@
         const form = document.getElementById('settings-form');
         const saveButton = document.getElementById('settings-save');
         const message = document.getElementById('settings-message');
+        const passwordForm = document.getElementById('password-form');
+        const passwordButton = document.getElementById('password-save');
+        const passwordMessage = document.getElementById('password-message');
         const countrySelect = document.getElementById('settings-country');
         let accountUser = null;
 
@@ -115,6 +144,12 @@
             }
             accountUser = user;
             saveButton.disabled = true;
+            const hasPasswordProvider = user.providerData.some(provider => provider.providerId === 'password');
+            document.getElementById('current-password-wrap').classList.toggle('hidden', !hasPasswordProvider);
+            document.getElementById('current-password').required = hasPasswordProvider;
+            if (!hasPasswordProvider) {
+                document.getElementById('password-help').textContent = 'Set a password to add email-and-password sign-in to your account.';
+            }
             try {
                 const snapshot = await getDoc(doc(db, 'users', user.uid));
                 if (!snapshot.exists()) throw new Error('Your account details could not be found.');
@@ -158,6 +193,69 @@
                     dateOfBirth,
                     country
                 });
+
+                passwordForm.addEventListener('submit', async event => {
+                    event.preventDefault();
+                    if (!accountUser) return;
+                    const currentPassword = document.getElementById('current-password').value;
+                    const newPassword = document.getElementById('new-password').value;
+                    const confirmPassword = document.getElementById('confirm-password').value;
+                    const hasPasswordProvider = accountUser.providerData.some(provider => provider.providerId === 'password');
+                    passwordMessage.classList.add('hidden');
+                    if (newPassword.length < 8) {
+                        showPasswordMessage('Choose a password with at least 8 characters.', true);
+                        return;
+                    }
+                    if (newPassword !== confirmPassword) {
+                        showPasswordMessage('Your new passwords do not match.', true);
+                        return;
+                    }
+                    if (hasPasswordProvider && !currentPassword) {
+                        showPasswordMessage('Enter your current password to continue.', true);
+                        return;
+                    }
+                    passwordButton.disabled = true;
+                    passwordButton.textContent = hasPasswordProvider ? 'Updating…' : 'Setting…';
+                    try {
+                        if (hasPasswordProvider) {
+                            const credential = EmailAuthProvider.credential(accountUser.email, currentPassword);
+                            await reauthenticateWithCredential(accountUser, credential);
+                            await updatePassword(accountUser, newPassword);
+                            showPasswordMessage('Your password has been updated.');
+                        } else {
+                            const credential = EmailAuthProvider.credential(accountUser.email, newPassword);
+                            await linkWithCredential(accountUser, credential);
+                            showPasswordMessage('A password has been added to your account.');
+                            document.getElementById('current-password-wrap').classList.remove('hidden');
+                            document.getElementById('current-password').required = true;
+                            document.getElementById('password-help').textContent = 'Choose a strong password you do not use elsewhere.';
+                        }
+                        passwordForm.reset();
+                    } catch (error) {
+                        console.error('Unable to update account password:', error);
+                        const text = error.code === 'auth/wrong-password' || error.code === 'auth/invalid-credential'
+                            ? 'Your current password is incorrect.'
+                            : error.code === 'auth/requires-recent-login'
+                                ? 'For your security, sign out and sign in again before changing your password.'
+                                : error.code === 'auth/weak-password'
+                                    ? 'Choose a stronger password with at least 8 characters.'
+                                    : error.code === 'auth/provider-already-linked'
+                                        ? 'This account already has a password sign-in method. Reload the page and try again.'
+                                        : error.message || 'Could not update your password. Try again.';
+                        showPasswordMessage(text, true);
+                    } finally {
+                        passwordButton.disabled = false;
+                        passwordButton.textContent = 'Update password';
+                    }
+                });
+
+                function showPasswordMessage(text, isError) {
+                    passwordMessage.textContent = text;
+                    passwordMessage.classList.remove('hidden', 'border-rose-200', 'bg-rose-50', 'text-rose-600', 'border-emerald-200', 'bg-emerald-50', 'text-emerald-700');
+                    passwordMessage.classList.add(...(isError
+                        ? ['border-rose-200', 'bg-rose-50', 'text-rose-600']
+                        : ['border-emerald-200', 'bg-emerald-50', 'text-emerald-700']));
+                }
                 showMessage('Your account details have been saved.');
             } catch (error) {
                 console.error('Unable to save account settings:', error);
@@ -173,5 +271,6 @@
             }
         });
     </script>
+    <script type="module" src="./translator.js"></script>
 </body>
 </html>

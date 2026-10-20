@@ -52,14 +52,15 @@
             <input id="chat-search" type="search" placeholder="Search direct messages…" class="w-full rounded-full bg-zinc-100 pl-10 pr-4 py-2.5 text-sm text-zinc-900 placeholder:text-zinc-400 outline-none border border-transparent focus:border-zinc-300 focus:bg-white transition">
         </div>
 
-        <button id="activity-button" type="button" class="flex w-full items-center gap-3 rounded-xl px-2 py-3 text-left transition hover:bg-zinc-50" aria-label="Open activity and new followers">
+        <button id="activity-button" type="button" class="relative flex w-full items-center gap-3 rounded-xl px-2 py-3 text-left transition hover:bg-zinc-50" aria-label="Open activity and new followers">
             <span class="relative flex h-12 w-12 shrink-0 items-center justify-center overflow-hidden rounded-full bg-zinc-100 text-zinc-500">
                 <img id="activity-preview-avatar" class="hidden h-full w-full object-cover" alt="">
-                <i id="activity-preview-icon" data-lucide="bell" class="h-5 w-5" aria-hidden="true"></i>
+                <span id="activity-preview-icon" aria-hidden="true"><i data-lucide="bell" class="h-5 w-5"></i></span>
             </span>
             <span class="min-w-0 flex-1">
                 <span class="flex items-center justify-between gap-2">
                     <span class="truncate text-sm font-bold text-zinc-900">Activity &amp; new followers</span>
+                    <span id="activity-unread-badge" class="hidden min-w-5 h-5 items-center justify-center rounded-full bg-rose-500 px-1.5 text-[10px] font-bold leading-none text-white" aria-label="Unread activity"></span>
                     <span id="activity-preview-time" class="shrink-0 text-xs text-zinc-400"></span>
                 </span>
                 <span id="activity-preview-message" class="mt-0.5 block truncate text-xs text-zinc-500">Likes, comments, profile views and new followers</span>
@@ -101,8 +102,8 @@
                 </button>
             </div>
             <div class="grid grid-cols-2 border-b border-zinc-100 px-5" role="tablist" aria-label="Activity categories">
-                <button id="activity-tab-button" class="border-b-2 border-rose-500 py-3 text-sm font-bold text-zinc-900" type="button" role="tab" aria-selected="true" aria-controls="activity-tab-panel">Activity</button>
-                <button id="followers-tab-button" class="border-b-2 border-transparent py-3 text-sm font-semibold text-zinc-500" type="button" role="tab" aria-selected="false" aria-controls="followers-tab-panel">New followers</button>
+                <button id="activity-tab-button" class="inline-flex items-center justify-center gap-2 border-b-2 border-rose-500 py-3 text-sm font-bold text-zinc-900" type="button" role="tab" aria-selected="true" aria-controls="activity-tab-panel"><i data-lucide="bell" class="h-4 w-4" aria-hidden="true"></i>Activity<span id="activity-tab-badge" class="hidden min-w-5 h-5 items-center justify-center rounded-full bg-rose-500 px-1.5 text-[10px] font-bold leading-none text-white" aria-label="Unread activity"></span></button>
+                <button id="followers-tab-button" class="inline-flex items-center justify-center gap-2 border-b-2 border-transparent py-3 text-sm font-semibold text-zinc-500" type="button" role="tab" aria-selected="false" aria-controls="followers-tab-panel"><i data-lucide="user-plus" class="h-4 w-4" aria-hidden="true"></i>New followers<span id="followers-tab-badge" class="hidden min-w-5 h-5 items-center justify-center rounded-full bg-rose-500 px-1.5 text-[10px] font-bold leading-none text-white" aria-label="New followers"></span></button>
             </div>
             <p id="activity-modal-error" class="hidden mx-5 mt-3 rounded-lg border border-rose-200 bg-rose-50 p-3 text-sm text-rose-600" role="alert"></p>
             <div id="activity-tab-panel" class="min-h-48 flex-1 overflow-y-auto px-5 py-2" role="tabpanel" aria-labelledby="activity-tab-button">
@@ -189,6 +190,16 @@
         let unsubscribeSupportChats = null;
         let directUnreadCount = 0;
         let supportUnreadCount = 0;
+        let activityUnsubscribers = [];
+        let videoActivityUnsubscribe = null;
+        let activitySnapshots = new Map();
+        let activityReadErrors = false;
+        let followerUnsubscribers = [];
+        let followerDocuments = [];
+        let followingDocuments = [];
+        let followerSnapshotsReady = new Set();
+        let activitySeenAt = 0;
+        let activityPreviewRenderId = 0;
 
         const chatsList = document.getElementById('chats-list');
         const chatCountLabel = document.getElementById('chat-count-label');
@@ -214,6 +225,9 @@
         const activityPreviewTime = document.getElementById('activity-preview-time');
         const activityPreviewAvatar = document.getElementById('activity-preview-avatar');
         const activityPreviewIcon = document.getElementById('activity-preview-icon');
+        const activityUnreadBadge = document.getElementById('activity-unread-badge');
+        const activityTabBadge = document.getElementById('activity-tab-badge');
+        const followersTabBadge = document.getElementById('followers-tab-badge');
         const defaultAvatar = 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?auto=format&fit=crop&w=200&q=80';
         let followerIds = new Set();
 
@@ -346,6 +360,21 @@
             }
         }
 
+        function activityIconName(action) {
+            action = String(action || '');
+            if (['like', 'comment_like'].includes(action)) return 'heart';
+            if (action === 'comment') return 'message-circle';
+            if (action === 'share') return 'share-2';
+            if (action === 'save') return 'bookmark';
+            if (action === 'profile_view') return 'eye';
+            if (action === 'follow_creator') return 'user-plus';
+            if (action.startsWith('coin_') || action.startsWith('activity_reward') || action === 'welcome_bonus') return 'coins';
+            if (action.startsWith('withdrawal_')) return 'wallet';
+            if (action.startsWith('boost_')) return 'megaphone';
+            if (action.startsWith('verification_')) return 'badge-check';
+            return 'bell';
+        }
+
         function activityLoadingMarkup() {
             return '<div class="py-12 text-center text-sm text-zinc-400"><i data-lucide="loader" class="mx-auto mb-2 h-7 w-7 animate-spin text-rose-500"></i>Loading…</div>';
         }
@@ -354,44 +383,140 @@
             container.innerHTML = `<p class="py-12 text-center text-sm text-zinc-500">${escapeHtml(message)}</p>`;
         }
 
-        async function queryUserActivities() {
-            const videoSnapshot = await getDocs(query(
+        function getUserActivityRecords() {
+            const records = new Map();
+            activitySnapshots.forEach(snapshotRecords => {
+                snapshotRecords.forEach((item, key) => records.set(key, item));
+            });
+            return [...records.values()];
+        }
+
+        function queryUserActivities() {
+            return { records: getUserActivityRecords(), hasReadErrors: activityReadErrors };
+        }
+
+        function getInboxActivities(records) {
+            return records
+                .filter(item => item.userId !== currentUser.uid)
+                .filter(item => INBOX_ACTIVITY_ACTIONS.has(item.action))
+                .sort((left, right) => (activityDate(right.createdAt)?.getTime() || 0) - (activityDate(left.createdAt)?.getTime() || 0));
+        }
+
+        function renderActivityBadges(records) {
+            const activities = getInboxActivities(records);
+            const unreadActivities = activities.filter(item => (activityDate(item.createdAt)?.getTime() || 0) > activitySeenAt).length;
+            const unreadFollowers = followerDocuments.filter(item => {
+                const createdAt = activityDate(item.createdAt)?.getTime() || 0;
+                return createdAt > activitySeenAt;
+            }).length;
+            [
+                [activityUnreadBadge, unreadActivities],
+                [activityTabBadge, unreadActivities],
+                [followersTabBadge, unreadFollowers]
+            ].forEach(([badge, count]) => {
+                badge.textContent = count > 99 ? '99+' : String(count);
+                badge.classList.toggle('hidden', count === 0);
+                badge.classList.toggle('flex', count > 0);
+            });
+        }
+
+        function refreshActivityViews() {
+            const records = getUserActivityRecords();
+            renderActivityBadges(records);
+            renderActivityPreview();
+            if (!activityModal.classList.contains('hidden')) renderActivity();
+        }
+
+        function subscribeToUserActivities() {
+            activityUnsubscribers.forEach(unsubscribe => unsubscribe());
+            activityUnsubscribers = [];
+            videoActivityUnsubscribe?.();
+            videoActivityUnsubscribe = null;
+            activitySnapshots = new Map();
+            activityReadErrors = false;
+            const storedSeenAt = localStorage.getItem(`earntok-activity-seen-${currentUser.uid}`);
+            activitySeenAt = storedSeenAt ? Number(storedSeenAt) || 0 : Date.now();
+            if (!storedSeenAt) localStorage.setItem(`earntok-activity-seen-${currentUser.uid}`, String(activitySeenAt));
+
+            const activitySources = ['activities', 'activity'];
+            const subscribeToActivityQueries = videoIds => {
+                activityUnsubscribers.forEach(unsubscribe => unsubscribe());
+                activityUnsubscribers = [];
+                activitySnapshots = new Map();
+                const listeners = [];
+                activitySources.forEach(source => {
+                    listeners.push([`${source}:profile`, query(collection(db, source), where('profileId', '==', currentUser.uid))]);
+                    listeners.push([`${source}:following`, query(collection(db, source), where('details.followingId', '==', currentUser.uid))]);
+                    for (let index = 0; index < videoIds.length; index += 10) {
+                        const chunk = videoIds.slice(index, index + 10);
+                        listeners.push([`${source}:videos:${index}`, query(collection(db, source), where('videoId', 'in', chunk))]);
+                    }
+                });
+                listeners.forEach(([key, activityQuery]) => {
+                    activityUnsubscribers.push(onSnapshot(activityQuery, snapshot => {
+                        const records = new Map();
+                        snapshot.docs.forEach(item => records.set(`${item.ref.parent.id}:${item.id}`, {
+                            id: item.id,
+                            ...item.data()
+                        }));
+                        activitySnapshots.set(key, records);
+                        refreshActivityViews();
+                    }, error => {
+                        activityReadErrors = true;
+                        console.error(`Unable to listen to ${key} activity:`, error);
+                        refreshActivityViews();
+                    }));
+                });
+            };
+
+            videoActivityUnsubscribe = onSnapshot(query(
                 collection(db, 'videos'),
                 where('userId', '==', currentUser.uid)
-            ));
-            const videoIds = videoSnapshot.docs
-                .filter(video => video.data().admin === 'yes')
-                .map(video => video.id);
-            const sources = ['activities', 'activity'];
-            const reads = [];
-            for (const source of sources) {
-                reads.push(
-                    getDocs(query(collection(db, source), where('profileId', '==', currentUser.uid))),
-                    getDocs(query(collection(db, source), where('details.followingId', '==', currentUser.uid)))
-                );
-                for (let index = 0; index < videoIds.length; index += 10) {
-                    reads.push(getDocs(query(
-                        collection(db, source),
-                        where('videoId', 'in', videoIds.slice(index, index + 10))
-                    )));
-                }
-            }
+            ), snapshot => {
+                const videoIds = snapshot.docs
+                    .filter(video => video.data().admin === 'yes')
+                    .map(video => video.id);
+                subscribeToActivityQueries(videoIds);
+            }, error => {
+                activityReadErrors = true;
+                console.error('Unable to listen to videos for inbox activity:', error);
+                subscribeToActivityQueries([]);
+            });
+        }
 
-            const settled = await Promise.allSettled(reads);
-            const records = new Map();
-            const errors = settled.filter(result => result.status === 'rejected');
-            errors.forEach(result => console.error('Unable to read some activity records:', result.reason));
-            settled.forEach(result => {
-                if (result.status !== 'fulfilled') return;
-                result.value.docs.forEach(item => records.set(`${item.ref.parent.id}:${item.id}`, {
+        function subscribeToUserFollowers() {
+            followerUnsubscribers.forEach(unsubscribe => unsubscribe());
+            followerUnsubscribers = [];
+            followerDocuments = [];
+            followingDocuments = [];
+            followerSnapshotsReady = new Set();
+            const updateFollowers = () => {
+                followerIds = new Set(followingDocuments.map(item => item.followingId).filter(Boolean));
+                if (followerSnapshotsReady.size === 2) {
+                    renderActivityBadges(getUserActivityRecords());
+                    renderNewFollowers();
+                }
+            };
+            const onFollowerSnapshot = (index, callback) => onSnapshot(query(
+                collection(db, 'follows'),
+                where(index === 0 ? 'followingId' : 'followerId', '==', currentUser.uid)
+            ), snapshot => {
+                const records = snapshot.docs.map(item => ({
                     id: item.id,
                     ...item.data()
                 }));
+                if (index === 0) followerDocuments = records;
+                else followingDocuments = records;
+                followerSnapshotsReady.add(index);
+                updateFollowers();
+                callback?.();
+            }, error => {
+                console.error('Unable to listen to inbox followers:', error);
+                activityModalError.textContent = 'Could not load followers. Check Firestore permissions and try again.';
+                activityModalError.classList.remove('hidden');
             });
-            if (records.size === 0 && errors.length === reads.length) {
-                throw errors[0].reason;
-            }
-            return { records: [...records.values()], hasReadErrors: errors.length > 0 };
+            followerUnsubscribers.push(onFollowerSnapshot(0));
+            followerUnsubscribers.push(onFollowerSnapshot(1));
         }
 
         async function renderActivity() {
@@ -399,12 +524,11 @@
             lucide.createIcons();
             try {
                 const { records, hasReadErrors } = await queryUserActivities();
-                const activities = records
-                    .filter(item => item.userId !== currentUser.uid)
-                    .filter(item => INBOX_ACTIVITY_ACTIONS.has(item.action))
-                    .sort((left, right) => (activityDate(right.createdAt)?.getTime() || 0) - (activityDate(left.createdAt)?.getTime() || 0));
+                const activities = getInboxActivities(records);
                 if (!activities.length) {
-                    renderEmptyActivity(activityList, 'No activity yet.');
+                    renderEmptyActivity(activityList, hasReadErrors
+                        ? 'Activity could not be loaded. Check Firestore permissions and try again.'
+                        : 'No activity yet.');
                 } else {
                     const profiles = await Promise.all(activities.map(item => {
                         if (SYSTEM_ACTIVITY_ACTIONS.has(item.action) || !item.userId || item.userId.startsWith('guest-')) return Promise.resolve(null);
@@ -421,13 +545,10 @@
                             ? `<p class="mt-1 truncate text-xs text-zinc-500">“${escapeHtml(item.details.text)}”</p>`
                             : '';
                         const message = activityMessage(item);
-                        const coinIcon = message.toLowerCase().includes('coin')
-                            ? '<i data-lucide="coins" class="inline h-4 w-4 text-amber-400 align-[-0.15em]" aria-hidden="true"></i> '
-                            : '';
                         const row = `<div class="flex items-center gap-3 py-3">
                             <img src="${escapeHtml(profile.profilePic || defaultAvatar)}" alt="" class="h-11 w-11 shrink-0 rounded-full bg-zinc-200 object-cover" onerror="this.src='${defaultAvatar}'">
                             <div class="min-w-0 flex-1">
-                                <p class="text-sm text-zinc-900"><span class="font-bold">${escapeHtml(name)}</span> ${coinIcon}${escapeHtml(message)}</p>
+                                <p class="text-sm text-zinc-900"><i data-lucide="${activityIconName(item.action)}" class="mr-1 inline h-4 w-4 align-[-0.15em] text-rose-500" aria-hidden="true"></i><span class="font-bold">${escapeHtml(name)}</span> ${escapeHtml(message)}</p>
                                 ${username ? `<p class="truncate text-xs text-zinc-500">${escapeHtml(username)}</p>` : ''}
                                 ${detail}
                             </div>
@@ -452,11 +573,11 @@
         async function renderActivityPreview() {
             try {
                 const { records, hasReadErrors } = await queryUserActivities();
-                const latest = records
-                    .filter(item => item.userId !== currentUser.uid)
-                    .filter(item => INBOX_ACTIVITY_ACTIONS.has(item.action))
-                    .sort((left, right) => (activityDate(right.createdAt)?.getTime() || 0) - (activityDate(left.createdAt)?.getTime() || 0))[0];
+                const renderId = ++activityPreviewRenderId;
+                const latest = getInboxActivities(records)[0];
                 if (!latest) {
+                    activityPreviewAvatar.classList.add('hidden');
+                    activityPreviewIcon.classList.remove('hidden');
                     if (hasReadErrors) {
                         activityPreviewMessage.textContent = 'Could not load the latest activity. Open to retry.';
                     }
@@ -466,15 +587,21 @@
                 const profile = !SYSTEM_ACTIVITY_ACTIONS.has(latest.action) && !guest && latest.userId
                     ? await getContactProfile(latest.userId, { id: latest.userId })
                     : {};
+                if (renderId !== activityPreviewRenderId) return;
                 const actor = SYSTEM_ACTIVITY_ACTIONS.has(latest.action) ? 'EarnTok' : guest ? 'Someone' : (profile.fullName || 'Someone');
                 activityPreviewMessage.textContent = `${actor} ${activityMessage(latest)}`;
                 const date = activityDate(latest.createdAt);
                 activityPreviewTime.textContent = date ? formatTime(date) : '';
+                activityPreviewIcon.innerHTML = `<i data-lucide="${activityIconName(latest.action)}" class="h-5 w-5"></i>`;
+                activityPreviewIcon.classList.remove('hidden');
                 if (profile.profilePic) {
                     activityPreviewAvatar.src = profile.profilePic;
                     activityPreviewAvatar.classList.remove('hidden');
                     activityPreviewIcon.classList.add('hidden');
+                } else {
+                    activityPreviewAvatar.classList.add('hidden');
                 }
+                lucide.createIcons();
                 if (hasReadErrors) console.warn('Some activity sources could not be loaded for the inbox preview.');
             } catch (error) {
                 console.error('Unable to load inbox activity preview:', error);
@@ -486,13 +613,12 @@
             followersList.innerHTML = activityLoadingMarkup();
             lucide.createIcons();
             try {
-                const [followersSnapshot, followingSnapshot] = await Promise.all([
-                    getDocs(query(collection(db, 'follows'), where('followingId', '==', currentUser.uid))),
-                    getDocs(query(collection(db, 'follows'), where('followerId', '==', currentUser.uid)))
-                ]);
-                followerIds = new Set(followingSnapshot.docs.map(item => item.data().followingId).filter(Boolean));
-                const followers = followersSnapshot.docs
-                    .map(item => ({ id: item.data().followerId, createdAt: item.data().createdAt }))
+                if (followerSnapshotsReady.size < 2) {
+                    renderEmptyActivity(followersList, 'Loading followers…');
+                    return;
+                }
+                const followers = followerDocuments
+                    .map(item => ({ id: item.followerId, createdAt: item.createdAt }))
                     .filter(item => item.id && item.id !== currentUser.uid)
                     .sort((left, right) => (activityDate(right.createdAt)?.getTime() || 0) - (activityDate(left.createdAt)?.getTime() || 0));
                 if (!followers.length) {
@@ -528,6 +654,14 @@
         }
 
         async function openActivityModal() {
+            const activities = getInboxActivities(queryUserActivities().records);
+            const latestActivityAt = activities.reduce((latest, item) =>
+                Math.max(latest, activityDate(item.createdAt)?.getTime() || 0), 0);
+            const latestFollowerAt = followerDocuments.reduce((latest, item) =>
+                Math.max(latest, activityDate(item.createdAt)?.getTime() || 0), 0);
+            activitySeenAt = Math.max(Date.now(), latestActivityAt, latestFollowerAt);
+            localStorage.setItem(`earntok-activity-seen-${currentUser.uid}`, String(activitySeenAt));
+            renderActivityBadges(queryUserActivities().records);
             activityModal.classList.remove('hidden');
             activityModal.classList.add('flex');
             activityModal.setAttribute('aria-hidden', 'false');
@@ -946,10 +1080,12 @@
                 return;
             }
             currentUser = user;
-            renderActivityPreview();
+            subscribeToUserActivities();
+            subscribeToUserFollowers();
             subscribeToUserChats();
             subscribeToSupportChats();
         });
     </script>
+    <script type="module" src="./translator.js"></script>
 </body>
 </html>
