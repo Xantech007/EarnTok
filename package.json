@@ -6,7 +6,7 @@
     "node": ">=20"
   },
   "dependencies": {
-    "@netlify/blobs": "^8.1.0",
+    "@netlify/blobs": "^11.1.4",
     "nodemailer": "^10.1.7"
   }
 }
