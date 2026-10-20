@@ -1,4 +1,4 @@
-import { getStore } from '@netlify/blobs';
+import { getStore, connectLambda } from '@netlify/blobs';
 import nodemailer from 'nodemailer';
 import { createWelcomeEmail } from './welcome-email-template.js';
 
@@ -87,7 +87,10 @@ function createTransport() {
 }
 
 export const handler = async event => {
+    connectLambda(event);
+
     if (event.httpMethod !== 'POST') return response(405, { error: 'Method not allowed.' });
+    // ...rest unchanged
 
     let requestBody;
     try {
